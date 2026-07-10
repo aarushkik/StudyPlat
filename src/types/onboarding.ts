@@ -10,22 +10,30 @@ export interface ExperienceLevel {
   bars: number;
 }
 
-/** Daily study-time commitment. */
-export type DailyGoalId = '5' | '10' | '15' | '20' | '30';
+/** The AP score the student is aiming for. */
+export type ScoreGoalId = 'score5' | 'score4' | 'score3' | 'grade' | 'unsure';
 
-export interface DailyGoal {
-  id: DailyGoalId;
-  minutes: number;
-  /** Trailing descriptor, e.g. "Regular". */
-  tag: string;
+export interface ScoreGoal {
+  id: ScoreGoalId;
+  label: string;
+  description: string;
+}
+
+/** When the student plans to take the AP exam. */
+export type ExamTimeframeId = 'this_spring' | 'next_year' | 'for_class' | 'unsure';
+
+export interface ExamTimeframe {
+  id: ExamTimeframeId;
+  label: string;
+  description: string;
 }
 
 /** How the student wants to begin the course. */
 export type StartChoice = 'scratch' | 'find_level';
 
-/** One "what you'll achieve" row on the preview screen. */
+/** One "quest ahead" milestone on the preview screen. */
 export interface Achievement {
-  /** Ionicons name for the row's icon. */
+  /** Ionicons name for the milestone's icon. */
   icon: string;
   title: string;
   description: string;
@@ -39,7 +47,8 @@ export interface Achievement {
 export interface OnboardingState {
   courseId: string | null;
   experienceLevelId: ExperienceLevelId | null;
-  dailyGoalId: DailyGoalId | null;
+  goalScoreId: ScoreGoalId | null;
+  examTimeframeId: ExamTimeframeId | null;
   startChoice: StartChoice | null;
   placementLevelId: PlacementLevelId | null;
 }

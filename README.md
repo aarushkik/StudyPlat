@@ -33,6 +33,20 @@ runs the quiz and scores it.
 
 ---
 
+## 🔥 Streaks & progress (quiz)
+
+The placement quiz tracks a **correct-answer streak (combo)** and celebrates
+milestones with an original animation — no Duolingo lightning.
+
+- **Streak state** ([`utils/streaks.ts`](src/utils/streaks.ts)) — the quiz tracks `currentCorrectStreak`, `bestCorrectStreak`, `totalCorrect`, `totalAnswered`. A correct answer increments the streak; a wrong one resets it to 0.
+- **Progress header** ([`QuizProgressHeader`](src/components/quiz/QuizProgressHeader.tsx)) — left-weighted: close button → a column with the **streak badge** ("N IN A ROW", accent color, appears at 2+) sitting just above an animated rose progress bar (soft-gray rounded track) → a small reacting Stu.
+- **Milestone celebration** ([`StreakMilestoneOverlay`](src/components/quiz/StreakMilestoneOverlay.tsx)) — at 5 / 10 / 15 / 20 (every 5, extensible) a turquoise **"knowledge splash"** blooms from Stu's wand: an SVG splash blob, an expanding ripple, flying droplets, and a bold label, then it fades out. It's non-blocking (`pointerEvents="none"`), self-completing (`onAnimationComplete`), and honors the device's **reduce-motion** setting (falls back to a quick fade). Reusable via `variant` (`water` implemented).
+
+The streak system is built to be reused by full lessons and longer practice
+sessions later, where higher milestones (10/15/20+) will naturally trigger.
+
+---
+
 ## 🚀 Run it
 
 ```bash

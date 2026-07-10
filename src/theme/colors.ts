@@ -41,6 +41,12 @@ export const palette = {
   danger: '#FF5A6A',
   dangerDark: '#D53344',
   dangerSoft: '#FFE3E6',
+
+  // Splash / streak celebration (turquoise — its own identity)
+  splash: '#2FC6D6',
+  splashDeep: '#1799AC',
+  splashMid: '#8AE0EA',
+  splashSoft: '#D6F4F8',
   disabledBg: '#EDE7EC',
   disabledEdge: '#DED6DD',
   disabledText: '#B7AEB6',
@@ -67,6 +73,10 @@ export const colors = {
   danger: palette.danger,
   dangerDark: palette.dangerDark,
   dangerSoft: palette.dangerSoft,
+  splash: palette.splash,
+  splashDeep: palette.splashDeep,
+  splashMid: palette.splashMid,
+  splashSoft: palette.splashSoft,
   disabledBg: palette.disabledBg,
   disabledEdge: palette.disabledEdge,
   disabledText: palette.disabledText,

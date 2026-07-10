@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { accents, colors, radius, shadows, spacing, typography } from '@/theme';
+import { CourseIcon } from '@/components/icons';
 import type { APCourse } from '@/types';
 
 interface CourseCardProps {
@@ -39,8 +40,8 @@ export function CourseCard({ course, selected, onPress }: CourseCardProps) {
           selected && { borderColor: accent.base, backgroundColor: accent.soft },
         ]}
       >
-        <View style={[styles.badge, { backgroundColor: selected ? colors.surface : accent.soft }]}>
-          <Text style={styles.emoji}>{course.emoji}</Text>
+        <View style={styles.badge}>
+          <CourseIcon courseId={course.id} size={46} />
         </View>
         <View style={styles.body}>
           <Text style={typography.subtitle} numberOfLines={1}>
@@ -70,14 +71,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   badge: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.lg,
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.lg,
   },
-  emoji: { fontSize: 26 },
   body: { flex: 1, paddingRight: spacing.sm },
   check: {
     width: 26,

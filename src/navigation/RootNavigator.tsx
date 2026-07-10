@@ -5,9 +5,9 @@ import { WelcomeScreen } from '@/screens/WelcomeScreen';
 import { IntroScreen } from '@/screens/IntroScreen';
 import { CourseSelectionScreen } from '@/screens/CourseSelectionScreen';
 import { SubjectExperienceScreen } from '@/screens/SubjectExperienceScreen';
-import { DailyGoalScreen } from '@/screens/DailyGoalScreen';
+import { GoalScoreScreen } from '@/screens/GoalScoreScreen';
+import { ExamTimelineScreen } from '@/screens/ExamTimelineScreen';
 import { AchievementPreviewScreen } from '@/screens/AchievementPreviewScreen';
-import { StartChoiceScreen } from '@/screens/StartChoiceScreen';
 import { PlacementResultScreen } from '@/screens/PlacementResultScreen';
 import { HomePlaceholderScreen } from '@/screens/HomePlaceholderScreen';
 import { PlacementQuizScreen } from '@/components/quiz';
@@ -17,10 +17,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /**
  * Onboarding + placement stack. A linear flow:
- * Splash → Welcome → Intro → CourseSelection → SubjectExperience → DailyGoal
- *   → AchievementPreview → StartChoice → [PlacementQuiz] → PlacementResult → Home.
- * "Start from scratch" skips the quiz; "Find my level" runs it. Headers are
- * hidden; screens use the custom TopBackButton / close where needed.
+ * Splash → Welcome → Intro → CourseSelection → SubjectExperience → GoalScore
+ *   → ExamTimeline → AchievementPreview → PlacementQuiz → PlacementResult → Home.
+ * The quiz intro lets the student either take the placement quest or skip
+ * straight to Unit 1. Headers are hidden; screens use TopBackButton / close.
  */
 export function RootNavigator() {
   return (
@@ -33,9 +33,9 @@ export function RootNavigator() {
       <Stack.Screen name="Intro" component={IntroScreen} />
       <Stack.Screen name="CourseSelection" component={CourseSelectionScreen} />
       <Stack.Screen name="SubjectExperience" component={SubjectExperienceScreen} />
-      <Stack.Screen name="DailyGoal" component={DailyGoalScreen} />
+      <Stack.Screen name="GoalScore" component={GoalScoreScreen} />
+      <Stack.Screen name="ExamTimeline" component={ExamTimelineScreen} />
       <Stack.Screen name="AchievementPreview" component={AchievementPreviewScreen} />
-      <Stack.Screen name="StartChoice" component={StartChoiceScreen} />
       <Stack.Screen name="PlacementQuiz" component={PlacementQuizScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="PlacementResult" component={PlacementResultScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="Home" component={HomePlaceholderScreen} options={{ animation: 'fade' }} />

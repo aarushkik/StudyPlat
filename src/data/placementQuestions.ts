@@ -20,6 +20,12 @@ const CHOICE_IDS = ['a', 'b', 'c', 'd', 'e'];
 /** Per-subject question builders that auto-number ids and set the courseId. */
 function subject(courseId: string) {
   let n = 0;
+  // Correct answers are rotated to varied positions so they aren't always "B".
+  // Each subject starts at a different offset (derived from its id) and then
+  // cycles through the choice positions, keeping the distribution balanced.
+  let mcSeq = 0;
+  const startOffset = [...courseId].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+
   const mc = (
     difficulty: QuestionDifficulty,
     skillTag: string,
@@ -30,6 +36,13 @@ function subject(courseId: string) {
     stimulus?: Stimulus,
   ): PlacementQuestion => {
     n += 1;
+    const len = choices.length;
+    const target = (startOffset + mcSeq) % len;
+    mcSeq += 1;
+    // Rotate so the correct choice lands at `target`, preserving the others' order.
+    const shift = (target - correctIndex + len) % len;
+    const rotated: string[] = new Array(len);
+    for (let i = 0; i < len; i += 1) rotated[(i + shift) % len] = choices[i];
     return {
       id: `${courseId}-q${n}`,
       courseId,
@@ -37,8 +50,8 @@ function subject(courseId: string) {
       type: stimulus ? 'stimulus' : 'multiple_choice',
       prompt,
       stimulus,
-      choices: choices.map((text, i) => ({ id: CHOICE_IDS[i], text })),
-      correctAnswerId: CHOICE_IDS[correctIndex],
+      choices: rotated.map((text, i) => ({ id: CHOICE_IDS[i], text })),
+      correctAnswerId: CHOICE_IDS[target],
       explanation,
       skillTag,
     };
@@ -314,28 +327,24 @@ export const PLACEMENT_LEVELS: Record<string, PlacementLevel> = {
     title: 'Beginner',
     headline: 'Start at Unit 1 foundations',
     description: 'For students who are new or want a fresh start.',
-    emoji: '🌱',
   },
   builder: {
     id: 'builder',
     title: 'Builder',
     headline: 'Start with early unit lessons and guided practice',
     description: 'For students who know some ideas but need structure.',
-    emoji: '🧱',
   },
   ap_ready: {
     id: 'ap_ready',
     title: 'AP Ready',
     headline: 'Start with AP-style practice and targeted review',
     description: 'For students who understand the course and need exam practice.',
-    emoji: '🎯',
   },
   advanced_review: {
     id: 'advanced_review',
     title: 'Advanced Review',
     headline: 'Start with challenge questions, weak-area review, and boss battles',
     description: 'For students who are close to exam-ready.',
-    emoji: '🏆',
   },
 };
 

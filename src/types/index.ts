@@ -15,8 +15,10 @@ export type {
 export type {
   ExperienceLevelId,
   ExperienceLevel,
-  DailyGoalId,
-  DailyGoal,
+  ScoreGoalId,
+  ScoreGoal,
+  ExamTimeframeId,
+  ExamTimeframe,
   StartChoice,
   Achievement,
   OnboardingState,

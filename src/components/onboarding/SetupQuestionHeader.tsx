@@ -1,31 +1,34 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ProgressBar, SpeechBubble, TopBackButton } from '@/components/ui';
+import { StyleSheet, Text, View } from 'react-native';
+import { ProgressBar, TopBackButton } from '@/components/ui';
 import { Mascot } from '@/components/Mascot';
 import type { MascotAccessory, MascotExpression } from '@/components/Mascot';
-import { spacing } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 interface SetupQuestionHeaderProps {
   onBack: () => void;
   /** 0–1 onboarding progress. */
   progress: number;
-  /** The question Stu asks in the speech bubble. */
+  /** The screen's headline question. */
   question: string;
+  /** Optional supporting line under the headline. */
+  subtitle?: string;
   mascotExpression?: MascotExpression;
   mascotAccessory?: MascotAccessory;
 }
 
 /**
- * Shared top block for the setup screens: back button + progress bar, then Stu
- * beside a speech bubble asking the screen's question. Keeps every setup screen
- * visually consistent.
+ * Shared top block for the setup screens: back button + progress bar, then a
+ * bold headline with Stu as a small friendly accent. Deliberately a clean
+ * headline layout (not a mascot speech bubble) to feel original.
  */
 export function SetupQuestionHeader({
   onBack,
   progress,
   question,
+  subtitle,
   mascotExpression = 'happy',
-  mascotAccessory = 'book',
+  mascotAccessory = 'none',
 }: SetupQuestionHeaderProps) {
   return (
     <View>
@@ -34,9 +37,12 @@ export function SetupQuestionHeader({
         <ProgressBar progress={progress} />
       </View>
 
-      <View style={styles.mascotRow}>
-        <Mascot size="small" expression={mascotExpression} accessory={mascotAccessory} />
-        <SpeechBubble text={question} tail="left" style={styles.bubble} />
+      <View style={styles.headlineRow}>
+        <View style={styles.textCol}>
+          <Text style={typography.title}>{question}</Text>
+          {subtitle ? <Text style={[typography.body, styles.subtitle]}>{subtitle}</Text> : null}
+        </View>
+        <Mascot size={68} expression={mascotExpression} accessory={mascotAccessory} />
       </View>
     </View>
   );
@@ -45,6 +51,7 @@ export function SetupQuestionHeader({
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
   back: { marginLeft: -spacing.sm, marginRight: spacing.sm },
-  mascotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
-  bubble: { flex: 1, marginLeft: spacing.md },
+  headlineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.xl },
+  textCol: { flex: 1, paddingRight: spacing.md, paddingTop: spacing.xs },
+  subtitle: { marginTop: spacing.sm },
 });

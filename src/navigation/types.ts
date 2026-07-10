@@ -5,9 +5,9 @@ export type RootStackParamList = {
   Intro: undefined;
   CourseSelection: undefined;
   SubjectExperience: undefined;
-  DailyGoal: undefined;
+  GoalScore: undefined;
+  ExamTimeline: undefined;
   AchievementPreview: undefined;
-  StartChoice: undefined;
   PlacementQuiz: undefined;
   PlacementResult: undefined;
   Home: undefined;

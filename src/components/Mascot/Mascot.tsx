@@ -20,6 +20,8 @@ const BILL_DARK = '#E0912A';
 const NOSTRIL = '#9C6416';
 const FOOT = palette.amber;
 const FOOT_DARK = '#E0912A';
+const BOW = palette.rose600;
+const BOW_DARK = palette.rose700;
 const TAIL = '#B5835F';
 const TAIL_DARK = '#8F6444';
 const HAT = palette.hatTan;
@@ -46,20 +48,25 @@ export function Mascot({
   const breathe = useRef(new Animated.Value(0)).current;
   const bounce = useRef(new Animated.Value(0)).current;
   const shake = useRef(new Animated.Value(0)).current;
+  const sway = useRef(new Animated.Value(0)).current;
+  const bob = useRef(new Animated.Value(0)).current;
   const [blinking, setBlinking] = useState(false);
 
-  // Idle breathing loop.
+  // Constant idle motion: breathe (scale), sway (rotate), and bob (drift).
+  // Slightly different periods keep it feeling alive rather than mechanical.
   useEffect(() => {
     if (!animated) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breathe, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(breathe, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [animated, breathe]);
+    const pingPong = (v: Animated.Value, duration: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(v, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ]),
+      );
+    const loops = [pingPong(breathe, 1600), pingPong(sway, 2400), pingPong(bob, 2000)];
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [animated, breathe, sway, bob]);
 
   // Occasional blink on a randomized cadence.
   useEffect(() => {
@@ -104,11 +111,15 @@ export function Mascot({
   const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] });
   const translateY = bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -16] });
   const rotate = shake.interpolate({ inputRange: [-1, 1], outputRange: ['-6deg', '6deg'] });
+  const idleBob = bob.interpolate({ inputRange: [0, 1], outputRange: [2.5, -2.5] });
+  const idleSway = sway.interpolate({ inputRange: [0, 1], outputRange: ['-1.8deg', '1.8deg'] });
 
   const raised = expression === 'celebrating';
 
   return (
-    <Animated.View style={{ transform: [{ translateY }, { rotate }, { scale }] }}>
+    <Animated.View
+      style={{ transform: [{ translateY }, { translateY: idleBob }, { rotate }, { rotate: idleSway }, { scale }] }}
+    >
       <Svg width={px} height={px} viewBox="0 0 240 252">
         {/* Flat tail (behind the body) */}
         <Tail />
@@ -126,21 +137,28 @@ export function Mascot({
         <Flipper side="right" raised={raised} />
 
         {/* Cheeks */}
-        <Ellipse cx={70} cy={150} rx={10} ry={6} fill={CHEEK} opacity={0.6} />
-        <Ellipse cx={170} cy={150} rx={10} ry={6} fill={CHEEK} opacity={0.6} />
+        <Ellipse cx={68} cy={150} rx={11} ry={7} fill={CHEEK} opacity={0.75} />
+        <Ellipse cx={172} cy={150} rx={11} ry={7} fill={CHEEK} opacity={0.75} />
 
         {/* Face */}
         <Eyes expression={expression} blinking={blinking} />
         <Bill expression={expression} />
 
+        {/* Scholarly bowtie */}
+        <Bowtie />
+
         {/* Hat (drawn last so the brim tidily overlaps the crown) */}
         <G>
           <Path d="M66 78 C66 40 174 40 174 78 Z" fill={HAT} />
-          <Circle cx={120} cy={45} r={5} fill={BILL} />
           <Ellipse cx={120} cy={79} rx={68} ry={12} fill={HAT_DARK} />
           <SvgText x={120} y={66} fontSize={22} fontWeight="bold" fontStyle="italic" fill={HAT_TEXT} textAnchor="middle">
             STU
           </SvgText>
+          {/* button + graduation tassel */}
+          <Circle cx={120} cy={45} r={5} fill={BILL} />
+          <Path d="M120 45 Q150 50 151 70" stroke={BILL} strokeWidth={3} fill="none" strokeLinecap="round" />
+          <Circle cx={151} cy={72} r={5} fill={BILL} />
+          <Path d="M148 76 v6 M151 77 v7 M154 76 v6" stroke={BILL} strokeWidth={2} strokeLinecap="round" />
         </G>
 
         {/* Held accessory + celebration sparkles */}
@@ -272,6 +290,17 @@ function Bill({ expression }: { expression: MascotExpression }) {
       ) : (
         <Path d="M108 156 Q120 162 132 156" stroke={BILL_DARK} strokeWidth={2.5} strokeLinecap="round" fill="none" />
       )}
+    </G>
+  );
+}
+
+/** A little bowtie under the bill — Stu's studious flourish. */
+function Bowtie() {
+  return (
+    <G>
+      <Path d="M120 180 L103 171 L103 189 Z" fill={BOW} />
+      <Path d="M120 180 L137 171 L137 189 Z" fill={BOW} />
+      <Circle cx={120} cy={180} r={6} fill={BOW_DARK} />
     </G>
   );
 }

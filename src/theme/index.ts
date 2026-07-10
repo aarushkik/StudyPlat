@@ -4,7 +4,7 @@ export type { AccentName } from './colors';
 export { spacing } from './spacing';
 export { radius } from './radius';
 export { shadows } from './shadows';
-export { typography, fontWeight } from './typography';
+export { typography, fontWeight, fonts } from './typography';
 
 import { colors, accents, palette } from './colors';
 import { spacing } from './spacing';

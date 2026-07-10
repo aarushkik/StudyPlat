@@ -1,9 +1,18 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Mascot, ScreenContainer } from '@/components';
-import { accents, colors, radius, shadows, spacing, typography } from '@/theme';
-import { getCourse, getDailyGoal, getExperienceLevel, PLACEMENT_LEVELS } from '@/data';
+import {
+  CourseIcon,
+  ExamIcon,
+  Mascot,
+  MapIcon,
+  PlacementIcon,
+  ScoreGoalIcon,
+  ScreenContainer,
+  Wordmark,
+} from '@/components';
+import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { getCourse, getExamTimeframe, getExperienceLevel, getScoreGoal, PLACEMENT_LEVELS } from '@/data';
 import { useOnboarding } from '@/state/OnboardingContext';
 
 /**
@@ -12,12 +21,12 @@ import { useOnboarding } from '@/state/OnboardingContext';
  * streaks, boss battles) is intentionally out of scope for this milestone.
  */
 export function HomePlaceholderScreen() {
-  const { courseId, dailyGoalId, experienceLevelId, placementLevelId } = useOnboarding();
+  const { courseId, goalScoreId, examTimeframeId, experienceLevelId, placementLevelId } = useOnboarding();
   const course = getCourse(courseId);
-  const goal = getDailyGoal(dailyGoalId);
+  const goal = getScoreGoal(goalScoreId);
+  const exam = getExamTimeframe(examTimeframeId);
   const experience = getExperienceLevel(experienceLevelId);
   const level = placementLevelId ? PLACEMENT_LEVELS[placementLevelId] : undefined;
-  const accent = course ? accents[course.accent] : accents.pink;
 
   return (
     <ScreenContainer scroll>
@@ -26,7 +35,7 @@ export function HomePlaceholderScreen() {
       <View style={styles.header}>
         <View style={styles.flex}>
           <Text style={typography.caption}>Welcome to</Text>
-          <Text style={typography.title}>stuAP</Text>
+          <Wordmark size={28} variant="brand" />
         </View>
         <Mascot size="small" expression="happy" />
       </View>
@@ -34,7 +43,9 @@ export function HomePlaceholderScreen() {
       {/* Placement result */}
       {level ? (
         <View style={styles.levelCard}>
-          <Text style={styles.levelEmoji}>{level.emoji}</Text>
+          <View style={styles.levelTile}>
+            <PlacementIcon id={level.id} color={colors.primary} size={30} />
+          </View>
           <View style={styles.flex}>
             <Text style={typography.label}>YOUR STARTING LEVEL</Text>
             <Text style={[typography.subtitle, styles.levelTitle]}>{level.title}</Text>
@@ -47,8 +58,8 @@ export function HomePlaceholderScreen() {
         <Text style={typography.label}>YOUR COURSE</Text>
         {course ? (
           <View style={styles.row}>
-            <View style={[styles.badge, { backgroundColor: accent.soft }]}>
-              <Text style={styles.emoji}>{course.emoji}</Text>
+            <View style={styles.badge}>
+              <CourseIcon courseId={course.id} size={44} />
             </View>
             <View style={styles.flex}>
               <Text style={typography.subtitle}>{course.name}</Text>
@@ -62,23 +73,49 @@ export function HomePlaceholderScreen() {
 
       <View style={styles.dualRow}>
         <View style={[styles.card, styles.half, shadows.sm]}>
-          <Text style={typography.label}>DAILY GOAL</Text>
-          <Text style={[typography.subtitle, styles.dualValue]}>
-            {goal ? `${goal.minutes} min` : '—'}
-          </Text>
-          <Text style={typography.caption}>{goal ? goal.tag : 'per day'}</Text>
+          <Text style={typography.label}>GOAL SCORE</Text>
+          {goal ? (
+            <>
+              <View style={styles.tileIcon}>
+                <ScoreGoalIcon id={goal.id} color={colors.primary} size={24} />
+              </View>
+              <Text style={[typography.bodyStrong, styles.tileValue]} numberOfLines={2}>
+                {goal.label}
+              </Text>
+            </>
+          ) : (
+            <Text style={[typography.subtitle, styles.tileValue]}>—</Text>
+          )}
         </View>
         <View style={[styles.card, styles.half, shadows.sm]}>
-          <Text style={typography.label}>EXPERIENCE</Text>
-          <Text style={[typography.subtitle, styles.dualValue]} numberOfLines={2}>
-            {experience ? experience.label : '—'}
-          </Text>
+          <Text style={typography.label}>AP EXAM</Text>
+          {exam ? (
+            <>
+              <View style={styles.tileIcon}>
+                <ExamIcon id={exam.id} color={colors.primary} size={24} />
+              </View>
+              <Text style={[typography.bodyStrong, styles.tileValue]} numberOfLines={2}>
+                {exam.label}
+              </Text>
+            </>
+          ) : (
+            <Text style={[typography.subtitle, styles.tileValue]}>—</Text>
+          )}
         </View>
+      </View>
+
+      <View style={[styles.card, shadows.sm]}>
+        <Text style={typography.label}>EXPERIENCE</Text>
+        <Text style={[typography.subtitle, styles.dualValue]} numberOfLines={2}>
+          {experience ? experience.label : '—'}
+        </Text>
       </View>
 
       {/* Placeholder for the future lesson path */}
       <View style={styles.pathCard}>
-        <Text style={styles.pathEmoji}>🗺️</Text>
+        <View style={styles.pathIcon}>
+          <MapIcon color={colors.primary} size={34} />
+        </View>
         <Text style={[typography.subtitle, styles.pathTitle]}>Your lesson path</Text>
         <Text style={[typography.body, styles.pathBody]}>
           Lessons, XP, streaks, and review battles will appear here soon.
@@ -103,7 +140,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },
-  levelEmoji: { fontSize: 34 },
+  levelTile: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   levelTitle: { color: colors.primaryDark },
 
   card: {
@@ -116,12 +160,13 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, gap: spacing.md },
   badge: { width: 52, height: 52, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 26 },
   muted: { marginTop: spacing.sm, color: colors.textMuted },
 
   dualRow: { flexDirection: 'row', gap: spacing.lg },
   half: { flex: 1 },
   dualValue: { marginTop: spacing.sm },
+  tileIcon: { marginTop: spacing.md, marginBottom: spacing.xs },
+  tileValue: { marginTop: 2 },
 
   pathCard: {
     backgroundColor: colors.primaryTint,
@@ -133,7 +178,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.xs,
   },
-  pathEmoji: { fontSize: 40, marginBottom: spacing.sm },
+  pathIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
   pathTitle: { color: colors.primaryDark },
   pathBody: { textAlign: 'center', marginTop: spacing.xs },
 });

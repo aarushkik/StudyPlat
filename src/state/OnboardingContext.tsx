@@ -1,9 +1,10 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type {
-  DailyGoalId,
+  ExamTimeframeId,
   ExperienceLevelId,
   OnboardingState,
   PlacementLevelId,
+  ScoreGoalId,
   StartChoice,
 } from '@/types';
 
@@ -18,7 +19,8 @@ import type {
 interface OnboardingContextValue extends OnboardingState {
   setCourseId: (id: string) => void;
   setExperienceLevelId: (id: ExperienceLevelId) => void;
-  setDailyGoalId: (id: DailyGoalId) => void;
+  setGoalScoreId: (id: ScoreGoalId) => void;
+  setExamTimeframeId: (id: ExamTimeframeId) => void;
   setStartChoice: (choice: StartChoice) => void;
   setPlacementLevelId: (id: PlacementLevelId) => void;
   reset: () => void;
@@ -27,7 +29,8 @@ interface OnboardingContextValue extends OnboardingState {
 const EMPTY: OnboardingState = {
   courseId: null,
   experienceLevelId: null,
-  dailyGoalId: null,
+  goalScoreId: null,
+  examTimeframeId: null,
   startChoice: null,
   placementLevelId: null,
 };
@@ -43,7 +46,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       ...state,
       setCourseId: (courseId) => patch({ courseId }),
       setExperienceLevelId: (experienceLevelId) => patch({ experienceLevelId }),
-      setDailyGoalId: (dailyGoalId) => patch({ dailyGoalId }),
+      setGoalScoreId: (goalScoreId) => patch({ goalScoreId }),
+      setExamTimeframeId: (examTimeframeId) => patch({ examTimeframeId }),
       setStartChoice: (startChoice) => patch({ startChoice }),
       setPlacementLevelId: (placementLevelId) => patch({ placementLevelId }),
       reset: () => setState(EMPTY),

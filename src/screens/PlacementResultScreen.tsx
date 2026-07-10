@@ -4,9 +4,9 @@ import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppButton, Mascot, ScreenContainer } from '@/components';
+import { AppButton, CourseIcon, Mascot, PlacementIcon, ScreenContainer } from '@/components';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
-import { getCourse, getDailyGoal, PLACEMENT_LEVELS } from '@/data';
+import { getCourse, getScoreGoal, PLACEMENT_LEVELS } from '@/data';
 import { useOnboarding } from '@/state/OnboardingContext';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -15,10 +15,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'PlacementResult'>;
 /** Screen 6: celebrate and reveal the recommended starting level. */
 export function PlacementResultScreen() {
   const navigation = useNavigation<Nav>();
-  const { courseId, dailyGoalId, placementLevelId } = useOnboarding();
+  const { courseId, goalScoreId, placementLevelId } = useOnboarding();
 
   const course = getCourse(courseId);
-  const goal = getDailyGoal(dailyGoalId);
+  const goal = getScoreGoal(goalScoreId);
   const level = PLACEMENT_LEVELS[placementLevelId ?? 'beginner'];
 
   const scale = useRef(new Animated.Value(0.5)).current;
@@ -46,11 +46,13 @@ export function PlacementResultScreen() {
         </Animated.View>
 
         <Animated.View style={{ opacity: fade, transform: [{ translateY: shift }] }}>
-          <Text style={[typography.title, styles.title]}>Your AP starting point is ready.</Text>
+          <Text style={[typography.title, styles.title]}>Your AP quest is mapped!</Text>
 
           <View style={styles.levelCard}>
-            <Text style={styles.levelEmoji}>{level.emoji}</Text>
-            <Text style={styles.levelLabel}>RECOMMENDED START</Text>
+            <View style={styles.levelTile}>
+              <PlacementIcon id={level.id} color={colors.primary} size={38} />
+            </View>
+            <Text style={styles.levelLabel}>YOUR STARTING POINT</Text>
             <Text style={typography.heading}>{level.title}</Text>
             <Text style={[typography.bodyStrong, styles.headline]}>{level.headline}</Text>
             <Text style={[typography.body, styles.desc]}>{level.description}</Text>
@@ -58,15 +60,13 @@ export function PlacementResultScreen() {
 
           <View style={styles.summary}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryEmoji}>{course?.emoji ?? '📘'}</Text>
+              {course ? <CourseIcon courseId={course.id} color={colors.primary} size={20} /> : null}
               <Text style={styles.summaryText}>{course?.name ?? 'Your course'}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.summaryRow}>
-              <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
-              <Text style={styles.summaryText}>
-                {goal ? `${goal.minutes} min / day` : 'Daily goal'}
-              </Text>
+              <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
+              <Text style={styles.summaryText}>{goal ? goal.label : 'Your goal'}</Text>
             </View>
           </View>
         </Animated.View>
@@ -92,15 +92,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.sm,
   },
-  levelEmoji: { fontSize: 44, marginBottom: spacing.sm },
+  levelTile: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
   levelLabel: { ...typography.label, color: colors.primary, marginBottom: spacing.xs },
   headline: { color: colors.primaryDark, textAlign: 'center', marginTop: spacing.xs },
   desc: { textAlign: 'center', marginTop: spacing.sm },
 
   summary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'stretch',
     marginTop: spacing.xl,
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
@@ -110,9 +116,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  summaryEmoji: { fontSize: 20 },
-  summaryText: { ...typography.bodyStrong },
-  divider: { width: 1, height: 24, backgroundColor: colors.border, marginHorizontal: spacing.lg },
+  summaryText: { ...typography.bodyStrong, flexShrink: 1 },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
 
   footer: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
 });

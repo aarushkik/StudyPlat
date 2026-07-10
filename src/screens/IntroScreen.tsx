@@ -22,7 +22,11 @@ export function IntroScreen() {
       <TopBackButton onPress={() => navigation.goBack()} />
 
       <View style={styles.center}>
-        <SpeechBubble text="Let’s set up your AP study path." tail="bottom" style={styles.bubble} />
+        <SpeechBubble
+          text="Hi, I’m Stu! Let’s build your AP quest — just a few quick questions."
+          tail="bottom"
+          style={styles.bubble}
+        />
         <View style={styles.gap} />
         <Mascot size={170} expression="excited" animated />
       </View>

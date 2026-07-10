@@ -13,7 +13,6 @@ export interface APCourse {
   name: string;
   /** Compact label for tight spaces, e.g. "Biology". */
   shortName: string;
-  emoji: string;
   blurb: string;
   accent: AccentName;
   category: CourseCategory;

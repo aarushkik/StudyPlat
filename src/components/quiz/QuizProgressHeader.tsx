@@ -1,42 +1,45 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ProgressBar } from '@/components/ui';
-import { colors, palette, spacing } from '@/theme';
+import { Mascot } from '@/components/Mascot';
+import type { MascotExpression } from '@/components/Mascot';
+import { colors, spacing } from '@/theme';
+import { STREAK_VISIBLE_THRESHOLD } from '@/utils/streaks';
+import { StreakBadge } from './StreakBadge';
 
 interface QuizProgressHeaderProps {
+  /** Current correct-answer streak; badge shows at 2+. */
+  currentCorrectStreak: number;
   onClose: () => void;
-  /** 0–1 quiz progress. */
-  progress: number;
-  /** 0–1 running "confidence" (share of answers correct so far). */
-  confidence: number;
+  /** Stu reacts here as answers are checked. */
+  mascotExpression: MascotExpression;
 }
 
-/** Quiz top bar: close button, animated progress, and a confidence meter. */
-export function QuizProgressHeader({ onClose, progress, confidence }: QuizProgressHeaderProps) {
+/**
+ * Quiz top row: close button, the streak badge, and a small reacting Stu.
+ * The lesson progress bar lives separately as a vertical bar on the left edge
+ * (see `VerticalProgressBar`).
+ */
+export function QuizProgressHeader({ currentCorrectStreak, onClose, mascotExpression }: QuizProgressHeaderProps) {
+  const showStreak = currentCorrectStreak >= STREAK_VISIBLE_THRESHOLD;
+
   return (
     <View style={styles.row}>
       <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close quiz">
         <Ionicons name="close" size={28} color={colors.textMuted} />
       </Pressable>
 
-      <View style={styles.bar}>
-        <ProgressBar progress={progress} color={colors.primary} />
+      <View style={styles.badgeSlot}>
+        <StreakBadge streakCount={currentCorrectStreak} visible={showStreak} />
       </View>
 
-      <View style={styles.confidence}>
-        <Ionicons name="flash" size={16} color={palette.amber} />
-        <View style={styles.miniTrack}>
-          <ProgressBar progress={confidence} color={colors.success} height={8} />
-        </View>
-      </View>
+      <Mascot size={46} expression={mascotExpression} accessory="none" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
-  bar: { flex: 1 },
-  confidence: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  miniTrack: { width: 40 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+  // Grows to fill the middle; badge is left-aligned near the bar.
+  badgeSlot: { flex: 1, paddingLeft: spacing.md, justifyContent: 'center' },
 });

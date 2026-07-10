@@ -61,7 +61,6 @@ export interface PlacementLevel {
   title: string;
   headline: string;
   description: string;
-  emoji: string;
 }
 
 /** Outcome of scoring the quiz. */

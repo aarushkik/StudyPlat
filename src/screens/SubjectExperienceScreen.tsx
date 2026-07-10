@@ -19,12 +19,12 @@ export function SubjectExperienceScreen() {
   const [selected, setSelected] = useState<ExperienceLevelId | null>(null);
 
   const course = getCourse(courseId);
-  const question = `How much ${course?.name ?? 'this course'} do you know?`;
+  const question = `How much ${course?.name ?? 'this course'} is already in your head?`;
 
   const onContinue = () => {
     if (!selected) return;
     setExperienceLevelId(selected);
-    navigation.navigate('DailyGoal');
+    navigation.navigate('GoalScore');
   };
 
   return (
@@ -32,8 +32,9 @@ export function SubjectExperienceScreen() {
       <StatusBar style="dark" />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
-        progress={0.15}
+        progress={0.28}
         question={question}
+        subtitle="Be honest — it just helps Stu place you."
         mascotExpression="thinking"
         mascotAccessory="book"
       />

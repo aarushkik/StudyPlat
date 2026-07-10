@@ -1,13 +1,5 @@
-import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from 'react-native';
+import React, { useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
 
 type Variant = 'primary' | 'secondary';
@@ -26,8 +18,8 @@ const DEPTH = 6;
 
 /**
  * The signature stuAP button: chunky, rounded, and tactile. A colored bottom
- * lip makes it feel raised; pressing sinks the face down onto the lip. The
- * bounding-box height stays constant, so surrounding layout never jumps.
+ * lip makes it feel raised; pressing gives a quick spring-down (scale + dip)
+ * via transforms only — no layout/margin shifts, so nothing can clip.
  */
 export function AppButton({
   label,
@@ -37,32 +29,35 @@ export function AppButton({
   loading = false,
   style,
 }: AppButtonProps) {
-  const [pressed, setPressed] = useState(false);
+  const press = useRef(new Animated.Value(0)).current;
   const inactive = disabled || loading;
   const scheme = inactive ? SCHEMES.disabled : SCHEMES[variant];
+
+  const to = (v: number) =>
+    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+
+  const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
+  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, 2] });
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive }}
       disabled={inactive}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
+      onPressIn={() => to(1)}
+      onPressOut={() => to(0)}
       onPress={onPress}
       style={style}
     >
-      <View
+      <Animated.View
         style={[
           styles.face,
           {
             backgroundColor: scheme.face,
             borderColor: scheme.border,
             borderBottomColor: scheme.edge,
+            transform: [{ scale }, { translateY }],
           },
-          // Sink the face onto the lip while pressed; keep total height constant.
-          pressed && !inactive
-            ? { borderBottomWidth: 2, marginTop: DEPTH - 2 }
-            : { borderBottomWidth: DEPTH, marginTop: 0 },
         ]}
       >
         {loading ? (
@@ -70,7 +65,7 @@ export function AppButton({
         ) : (
           <Text style={[typography.button, styles.label, { color: scheme.text }]}>{label}</Text>
         )}
-      </View>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -86,6 +81,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: radius.lg,
     borderWidth: 2,
+    borderBottomWidth: DEPTH,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',

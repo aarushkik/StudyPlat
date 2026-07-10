@@ -15,16 +15,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppButton } from '@/components/ui';
+import { AppButton, VerticalProgressBar } from '@/components/ui';
 import { Mascot } from '@/components/Mascot';
 import type { MascotExpression } from '@/components/Mascot';
 import { AnswerChoice, type ChoiceState } from './AnswerChoice';
 import { QuestionCard } from './QuestionCard';
 import { QuizFeedbackPanel } from './QuizFeedbackPanel';
 import { QuizProgressHeader } from './QuizProgressHeader';
+import { StreakMilestoneOverlay } from './StreakMilestoneOverlay';
 import { colors, spacing, typography } from '@/theme';
 import { getPlacementQuiz } from '@/data';
 import { scorePlacement, type AnsweredQuestion } from '@/utils/placementScoring';
+import { isStreakMilestone } from '@/utils/streaks';
 import { useOnboarding } from '@/state/OnboardingContext';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -41,7 +43,7 @@ const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
  */
 export function PlacementQuizScreen() {
   const navigation = useNavigation<Nav>();
-  const { courseId, setPlacementLevelId } = useOnboarding();
+  const { courseId, setPlacementLevelId, setStartChoice } = useOnboarding();
   const quiz = useMemo(() => getPlacementQuiz(courseId), [courseId]);
   const questions = quiz.questions;
   const total = questions.length;
@@ -55,12 +57,18 @@ export function PlacementQuizScreen() {
   const [answered, setAnswered] = useState<AnsweredQuestion[]>([]);
   const [expression, setExpression] = useState<MascotExpression>('thinking');
 
+  // Correct-answer streak / combo tracking (reusable for future lessons).
+  const [currentCorrectStreak, setCurrentCorrectStreak] = useState(0);
+  const [bestCorrectStreak, setBestCorrectStreak] = useState(0);
+  const [totalCorrect, setTotalCorrect] = useState(0);
+  const [totalAnswered, setTotalAnswered] = useState(0);
+  const [milestoneStreak, setMilestoneStreak] = useState(0);
+  const [overlayVisible, setOverlayVisible] = useState(false);
+
   const qAnim = useRef(new Animated.Value(1)).current;
 
   const question = questions[index];
   const isChoiceBased = !!question.choices;
-  const correctCount = answered.filter((a) => a.correct).length;
-  const confidence = answered.length ? correctCount / answered.length : 0;
   const progress = (index + (checked ? 1 : 0)) / total;
 
   const canCheck = isChoiceBased ? selectedChoiceId !== null : textAnswer.trim().length > 0;
@@ -76,7 +84,25 @@ export function PlacementQuizScreen() {
     const correct = evaluate();
     setIsCorrect(correct);
     setChecked(true);
-    setExpression(correct ? 'excited' : 'worried');
+    setTotalAnswered((t) => t + 1);
+
+    if (correct) {
+      const nextStreak = currentCorrectStreak + 1;
+      setCurrentCorrectStreak(nextStreak);
+      setBestCorrectStreak((b) => Math.max(b, nextStreak));
+      setTotalCorrect((t) => t + 1);
+      if (isStreakMilestone(nextStreak)) {
+        setMilestoneStreak(nextStreak);
+        setOverlayVisible(true);
+        setExpression('celebrating');
+      } else {
+        setExpression('excited');
+      }
+    } else {
+      setCurrentCorrectStreak(0);
+      setExpression('worried');
+    }
+
     setAnswered((prev) => [...prev, { question, correct }]);
   };
 
@@ -113,7 +139,18 @@ export function PlacementQuizScreen() {
   const qOpacity = qAnim;
   const qTranslate = qAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
 
-  // --- Intro phase ---
+  const startQuest = () => {
+    setStartChoice('find_level');
+    setPhase('quiz');
+  };
+
+  const skipToUnitOne = () => {
+    setStartChoice('scratch');
+    setPlacementLevelId('beginner');
+    navigation.replace('PlacementResult');
+  };
+
+  // --- Intro phase: choose to take the placement quest or skip to Unit 1 ---
   if (phase === 'intro') {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -124,12 +161,15 @@ export function PlacementQuizScreen() {
           </Pressable>
         </View>
         <View style={styles.introBody}>
-          <Mascot size="large" expression="excited" accessory="pencil" animated />
-          <Text style={[typography.title, styles.introTitle]}>Find your level</Text>
+          <Mascot size="large" expression="excited" accessory="wand" animated />
+          <Text style={[typography.title, styles.introTitle]}>Ready for a quick challenge?</Text>
           <Text style={[typography.body, styles.introText]}>{quiz.intro}</Text>
         </View>
         <View style={styles.footer}>
-          <AppButton label="Start quiz" onPress={() => setPhase('quiz')} />
+          <AppButton label="Start the challenge" onPress={startQuest} />
+          <Pressable onPress={skipToUnitOne} hitSlop={8} style={styles.skip}>
+            <Text style={styles.skipText}>Skip — start me at Unit 1</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -137,16 +177,17 @@ export function PlacementQuizScreen() {
 
   // --- Quiz phase ---
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.headerWrap}>
-          <QuizProgressHeader onClose={() => navigation.goBack()} progress={progress} confidence={confidence} />
-        </View>
-
-        <View style={styles.mascotWrap}>
-          <Mascot size={84} expression={expression} accessory="none" />
-        </View>
+    <View style={styles.screen}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <StatusBar style="dark" />
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.headerWrap}>
+            <QuizProgressHeader
+              onClose={() => navigation.goBack()}
+              currentCorrectStreak={currentCorrectStreak}
+              mascotExpression={expression}
+            />
+          </View>
 
         <ScrollView
           style={styles.flex}
@@ -201,23 +242,36 @@ export function PlacementQuizScreen() {
             <AppButton label="Check" disabled={!canCheck} onPress={onCheck} />
           </View>
         )}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+
+        <VerticalProgressBar progress={progress} style={styles.vbar} />
+      </SafeAreaView>
+
+      <StreakMilestoneOverlay
+        visible={overlayVisible}
+        streakCount={milestoneStreak}
+        onAnimationComplete={() => setOverlayVisible(false)}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  // Vertical lesson progress bar pinned to the left edge, on top of content.
+  vbar: { position: 'absolute', left: 6, top: spacing.sm, bottom: spacing.sm, zIndex: 10, elevation: 10 },
 
   introTop: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
   introBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
-  introTitle: { marginTop: spacing.lg },
+  introTitle: { marginTop: spacing.lg, textAlign: 'center' },
   introText: { textAlign: 'center', marginTop: spacing.md, paddingHorizontal: spacing.sm },
+  skip: { alignSelf: 'center', paddingVertical: spacing.md, marginTop: spacing.xs },
+  skipText: { ...typography.bodyStrong, color: colors.textSecondary },
 
   headerWrap: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
-  mascotWrap: { alignItems: 'center', marginTop: spacing.sm },
-  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.xxl },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.huge },
 
   input: {
     backgroundColor: colors.surface,
