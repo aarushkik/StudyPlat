@@ -1,6 +1,6 @@
 export { Scenery } from './Scenery';
-export { TrailSegment } from './TrailSegment';
-export { QuestNodeButton, NODE_SIZE, BOSS_SIZE } from './QuestNodeButton';
+export { TrailSegment, segmentHeight } from './TrailSegment';
+export { QuestNodeButton, NODE_SIZE, BOSS_SIZE, nodeSizeFor } from './QuestNodeButton';
 export { UnitBanner } from './UnitBanner';
 export { QuestHud } from './QuestHud';
 export { QuestTabBar } from './QuestTabBar';

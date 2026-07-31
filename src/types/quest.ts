@@ -1,11 +1,14 @@
 import type { AccentName } from '@/theme';
+import type { BiomeId } from '@/theme/biomes';
 
 /**
- * The quest map: the course laid out as a walkable trail of units.
+ * The quest map: the course laid out as a walkable trail of areas.
  *
- * A unit is one region of the map; its nodes are the stops along the trail.
- * Node *kind* is purely about what the student does there (and drives the art),
- * while node *state* is derived from progress — see `deriveNodeState`.
+ * A unit is one *area* of the map, drawn in its own biome. Each area is split
+ * into six stages, and every stage ends in a boss — so a unit is a ladder of
+ * six fights, not one. Node *kind* is about what the student does there (and
+ * drives the art), while node *state* is derived from progress — see
+ * `deriveNodeState`.
  */
 
 /** What happens at a stop on the trail. */
@@ -13,6 +16,12 @@ export type QuestNodeKindId = 'lesson' | 'practice' | 'reading' | 'treasure' | '
 
 /** Where the student is relative to a node. Derived, never stored. */
 export type QuestNodeState = 'locked' | 'current' | 'complete';
+
+/**
+ * Boss rank within an area, 1–6. The sixth is the area's own boss and is the
+ * one that opens the next area; the first five are the climb to it.
+ */
+export type BossTier = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface QuestNode {
   id: string;
@@ -24,25 +33,32 @@ export interface QuestNode {
   skills: string[];
   xp: number;
   minutes: number;
+  /** Which of the area's six stages this stop belongs to, 1–6. */
+  stage: number;
+  /** Rank of the fight, on boss nodes only. */
+  tier?: BossTier;
+  /** How hard this stop is meant to feel, 1–10. Drives question count. */
+  difficulty: number;
 }
 
 export interface QuestUnit {
   id: string;
-  /** e.g. "Section 1". */
+  /** e.g. "Area 3". */
   section: string;
-  /** e.g. "Unit 2". */
+  /** e.g. "Unit 3". */
   unit: string;
   title: string;
   /** Short flavor line under the unit title on the banner. */
   blurb: string;
   accent: AccentName;
-  /** Which landscape this region is drawn in. */
-  biome: Biome;
+  /** Which landscape this area is drawn in. */
+  biome: BiomeId;
+  /** Display name of the landscape, e.g. "Ochre Dunes". */
+  areaName: string;
+  /** Zero-based position in the course. */
+  index: number;
   nodes: QuestNode[];
 }
-
-/** Landscapes the trail passes through, one per unit, so regions feel distinct. */
-export type Biome = 'meadow' | 'forest' | 'highland' | 'summit';
 
 export interface QuestMap {
   courseId: string;

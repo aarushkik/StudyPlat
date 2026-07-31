@@ -1,6 +1,8 @@
 /** Single import surface for the design system. */
 export { colors, palette, accents, gradients, scenery, questNode } from './colors';
 export type { AccentName, Accent, QuestNodeKind } from './colors';
+export { biomes, isDarkBiome } from './biomes';
+export type { BiomeId, BiomeTheme, DecorKind } from './biomes';
 export { spacing } from './spacing';
 export { radius } from './radius';
 export { shadows, glow } from './shadows';

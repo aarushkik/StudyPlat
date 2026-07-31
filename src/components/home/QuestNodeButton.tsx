@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, glow, questNode, radius, shadows, spacing, typography } from '@/theme';
+import { BOSS_TIERS } from '@/data/questMap';
 import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
 
 /**
@@ -15,8 +16,30 @@ import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
  */
 
 export const NODE_SIZE = 74;
-export const BOSS_SIZE = 100;
+export const BOSS_SIZE = 106;
 const LIP = 7;
+
+/**
+ * The six boss ranks in an area, in order. Each one is bigger and hotter than
+ * the last: the Sentry is a purple shield you can beat on the way past, the
+ * Overlord is red, crowned, and the thing standing between you and the next
+ * area. Rank is legible from the silhouette alone while scrolling.
+ */
+const BOSS_TIER_STYLE = [
+  { size: 88, face: '#8A7FB5', deep: '#453A6E', edge: '#372C5C', ring: '#D8D0F0' },
+  { size: 92, face: '#7E6FB8', deep: '#3E3070', edge: '#31245C', ring: '#D4CCF2' },
+  { size: 96, face: '#8A5FB5', deep: '#3F2560', edge: '#2F1A4A', ring: '#DDC8F2' },
+  { size: 100, face: '#9A4FA8', deep: '#4A1E58', edge: '#371244', ring: '#EEC6EE' },
+  { size: 103, face: '#B0417E', deep: '#561640', edge: '#400E2E', ring: '#F8C2DE' },
+  { size: 106, face: '#C4402E', deep: '#5E1610', edge: '#450C08', ring: '#FFC8B4' },
+] as const;
+
+const tierStyle = (tier?: number) => BOSS_TIER_STYLE[Math.min(5, Math.max(0, (tier ?? 1) - 1))];
+
+/** Diameter a stop occupies, so the trail can place it before rendering. */
+export function nodeSizeFor(node: Pick<QuestNode, 'kind' | 'tier'>): number {
+  return node.kind === 'boss' ? tierStyle(node.tier).size : NODE_SIZE;
+}
 
 const KIND_GLYPH: Record<QuestNodeKindId, GlyphName> = {
   lesson: 'book',
@@ -34,9 +57,14 @@ interface QuestNodeButtonProps {
 
 export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) {
   const isBoss = node.kind === 'boss';
-  const size = isBoss ? BOSS_SIZE : NODE_SIZE;
+  const tier = tierStyle(node.tier);
+  const size = nodeSizeFor(node);
   const locked = state === 'locked';
-  const scheme = locked ? questNode.locked : questNode[node.kind];
+  const scheme = locked
+    ? questNode.locked
+    : isBoss
+      ? { face: tier.face, edge: tier.edge, ring: tier.ring }
+      : questNode[node.kind];
 
   const press = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -84,7 +112,7 @@ export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) 
           ]}
         >
           {isBoss ? (
-            <BossFace size={size} locked={locked} glyph={glyph} />
+            <BossFace size={size} locked={locked} glyph={glyph} tier={tier} />
           ) : (
             <View style={[styles.disc, { width: size, height: size, borderRadius: size, backgroundColor: scheme.face }]}>
               <View style={[styles.discSheen, { borderRadius: size }]} />
@@ -96,7 +124,14 @@ export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) 
 
       {state === 'complete' && !isBoss ? <View style={[styles.clearedRing, { width: size + 14, height: size + 14, borderRadius: size }]} pointerEvents="none" /> : null}
       {state === 'current' ? <StartFlag /> : null}
-      {isBoss ? <BossRibbon locked={locked} cleared={state === 'complete'} /> : null}
+      {isBoss ? (
+        <BossRibbon
+          locked={locked}
+          cleared={state === 'complete'}
+          label={BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))]}
+          tone={tier.deep}
+        />
+      ) : null}
     </View>
   );
 }
@@ -132,8 +167,18 @@ function PulseRing({ pulse, size, color }: { pulse: Animated.Value; size: number
  */
 const SHIELD = 'M50 4 L92 18 V50 C92 74 74 90 50 97 C26 90 8 74 8 50 V18 Z';
 
-function BossFace({ size, locked, glyph }: { size: number; locked: boolean; glyph: GlyphName }) {
-  const id = locked ? 'bossLocked' : 'bossLive';
+function BossFace({
+  size,
+  locked,
+  glyph,
+  tier,
+}: {
+  size: number;
+  locked: boolean;
+  glyph: GlyphName;
+  tier: (typeof BOSS_TIER_STYLE)[number];
+}) {
+  const id = `boss-${locked ? 'locked' : tier.face.slice(1)}`;
   const height = size + LIP;
   // Extend the viewBox by the lip so the lower copy is not clipped.
   const viewH = 100 + (LIP / size) * 100;
@@ -143,15 +188,15 @@ function BossFace({ size, locked, glyph }: { size: number; locked: boolean; glyp
       <Svg width={size} height={height} viewBox={`0 0 100 ${viewH}`} style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id={id} x1="0.2" y1="0" x2="0.8" y2="1">
-            <Stop offset="0" stopColor={locked ? '#D6CBD4' : '#8A5FB5'} />
-            <Stop offset="1" stopColor={locked ? '#B9AAB7' : '#3F2560'} />
+            <Stop offset="0" stopColor={locked ? '#D6CBD4' : tier.face} />
+            <Stop offset="1" stopColor={locked ? '#B9AAB7' : tier.deep} />
           </LinearGradient>
         </Defs>
-        <Path d={SHIELD} fill={locked ? '#A293A0' : '#2A1440'} transform={`translate(0 ${viewH - 100})`} />
+        <Path d={SHIELD} fill={locked ? '#A293A0' : tier.edge} transform={`translate(0 ${viewH - 100})`} />
         <Path
           d={SHIELD}
           fill={`url(#${id})`}
-          stroke={locked ? '#A293A0' : '#2A1440'}
+          stroke={locked ? '#A293A0' : tier.edge}
           strokeWidth={4}
           strokeLinejoin="round"
         />
@@ -164,12 +209,23 @@ function BossFace({ size, locked, glyph }: { size: number; locked: boolean; glyp
   );
 }
 
-/** Small banner naming the boss so its stakes are legible while scrolling. */
-function BossRibbon({ locked, cleared }: { locked: boolean; cleared: boolean }) {
+/** Small banner naming the boss's rank so its stakes read while scrolling. */
+function BossRibbon({
+  locked,
+  cleared,
+  label,
+  tone,
+}: {
+  locked: boolean;
+  cleared: boolean;
+  label: string;
+  tone: string;
+}) {
+  const background = locked ? '#BDAFBB' : cleared ? colors.goldDark : tone;
   return (
-    <View style={[styles.ribbon, locked && styles.ribbonLocked, cleared && styles.ribbonCleared]}>
-      <Text style={[styles.ribbonText, locked && styles.ribbonTextLocked]}>
-        {cleared ? 'Cleared' : 'Boss'}
+    <View style={[styles.ribbon, { backgroundColor: background }]}>
+      <Text style={[styles.ribbonText, locked && styles.ribbonTextLocked]} numberOfLines={1}>
+        {cleared ? 'Cleared' : label}
       </Text>
     </View>
   );
@@ -242,13 +298,10 @@ const styles = StyleSheet.create({
   ribbon: {
     position: 'absolute',
     bottom: -9,
-    backgroundColor: '#2F1B45',
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 3,
   },
-  ribbonLocked: { backgroundColor: '#BDAFBB' },
-  ribbonCleared: { backgroundColor: colors.goldDark },
   ribbonText: { ...typography.overline, color: colors.gold, fontSize: 10 },
   ribbonTextLocked: { color: '#F3EDF2' },
 });

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, duration, easing, questNode, radius, shadows, spacing, typography } from '@/theme';
+import { BOSS_TIERS } from '@/data/questMap';
 import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
 
 interface LessonSheetProps {
@@ -50,6 +51,9 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
   const scheme = questNode[node.kind];
   const cleared = state === 'complete';
   const isBoss = node.kind === 'boss';
+  const isAreaBoss = isBoss && node.tier === 6;
+  // Bosses are named by rank, so the sheet's kicker says which fight this is.
+  const label = isBoss ? `${BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))]} battle` : kind.label;
 
   const translateY = rise.interpolate({ inputRange: [0, 1], outputRange: [420, 0] });
 
@@ -70,8 +74,8 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
               <Glyph name={kind.glyph} size={30} color={colors.white} strokeWidth={2.4} />
             </View>
             <View style={styles.headText}>
-              <Text style={styles.kicker}>
-                {unitTitle} · {kind.label}
+              <Text style={styles.kicker} numberOfLines={1}>
+                {unitTitle} · {label}
               </Text>
               <Text style={typography.heading} numberOfLines={2}>
                 {node.title}
@@ -89,13 +93,17 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
           {isBoss ? (
             <View style={styles.bossNote}>
               <LinearGradient
-                colors={['#4B2C70', '#2F1B45']}
+                colors={isAreaBoss ? ['#8E2418', '#4A100C'] : ['#4B2C70', '#2F1B45']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
               <Glyph name="shield" size={22} color={colors.gold} strokeWidth={2.2} />
-              <Text style={styles.bossText}>Clearing this opens the next region of the map.</Text>
+              <Text style={styles.bossText}>
+                {isAreaBoss
+                  ? 'The last fight in this area. Clearing it opens the next one.'
+                  : `Fight ${node.tier} of 6 in this area. Clearing it opens the next stretch of trail.`}
+              </Text>
             </View>
           ) : null}
 

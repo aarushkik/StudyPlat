@@ -1,169 +1,31 @@
 import type { AccentName } from '@/theme';
-import type { Biome, QuestMap, QuestNode, QuestNodeKindId, QuestUnit } from '@/types/quest';
+import { biomes, type BiomeId } from '@/theme/biomes';
+import type { BossTier, QuestMap, QuestNode, QuestNodeKindId, QuestUnit } from '@/types/quest';
 import type { CourseCategory, PlacementLevelId } from '@/types';
 import { apCourses } from './apCourses';
+import { BIOME_ROUTES, COURSE_UNITS, DEFAULT_ROUTE, DEFAULT_UNITS, type UnitSpec } from './courseUnits';
 
 /**
- * The quest map for each AP course.
+ * Builds the quest map for a course.
  *
- * Every course contributes three regions, each with four lesson topics. The
- * trail *shape* — where practice, a source study, a bonus cache, and the unit
- * boss fall — is identical everywhere, so it lives in one pattern below rather
- * than being retyped 24 times. Only the subject-specific titles are data.
+ * Every course is ten *areas*, and every area is six stages. A stage is always
+ * the same three beats — learn it, work it, then fight for it — so a unit ends
+ * up with six lessons, six support stops, and six bosses. The trail *shape* is
+ * identical everywhere; only the subject topics and the landscape change, which
+ * is why the map can cover eight courses without eight hand-built layouts.
  *
- * All content is original study scaffolding, not real exam material.
+ * Difficulty ramps on two axes at once: across the ten areas, and again across
+ * the six stages inside each one. The last boss of area 10 is the hardest thing
+ * on the map by a wide margin.
  */
 
-interface UnitSpec {
-  title: string;
-  blurb: string;
-  /** Four lesson topics, in teaching order. */
-  lessons: string[];
-}
+const STAGES_PER_UNIT = 6;
 
-const UNITS: Record<string, [UnitSpec, UnitSpec, UnitSpec]> = {
-  'ap-biology': [
-    {
-      title: 'Cells & Energy',
-      blurb: 'Where every living thing starts.',
-      lessons: ['Cell structure basics', 'Membranes and transport', 'Enzymes at work', 'Photosynthesis and respiration'],
-    },
-    {
-      title: 'Genetics & Heredity',
-      blurb: 'How traits get handed down.',
-      lessons: ['DNA and replication', 'Transcription and translation', 'Mendelian crosses', 'Gene regulation'],
-    },
-    {
-      title: 'Evolution & Ecology',
-      blurb: 'Life at the scale of populations.',
-      lessons: ['Natural selection', 'Speciation', 'Population dynamics', 'Energy in ecosystems'],
-    },
-  ],
-  'ap-calc-ab': [
-    {
-      title: 'Limits & Continuity',
-      blurb: 'The idea the whole course rests on.',
-      lessons: ['Limits from graphs', 'Algebraic limits', 'One-sided limits', 'Continuity and the IVT'],
-    },
-    {
-      title: 'Derivatives',
-      blurb: 'Measuring change, precisely.',
-      lessons: ['Defining the derivative', 'Power and product rules', 'The chain rule', 'Implicit differentiation'],
-    },
-    {
-      title: 'Integrals & Applications',
-      blurb: 'Adding up infinitely many pieces.',
-      lessons: ['Riemann sums', 'The fundamental theorem', 'U-substitution', 'Area between curves'],
-    },
-  ],
-  'ap-world': [
-    {
-      title: 'The Global Tapestry',
-      blurb: 'States and beliefs, 1200 to 1450.',
-      lessons: ['Empires of Afro-Eurasia', 'Belief systems', 'State building in Africa', 'The Americas before 1500'],
-    },
-    {
-      title: 'Networks of Exchange',
-      blurb: 'The routes that rewired the world.',
-      lessons: ['The Silk Roads', 'Indian Ocean trade', 'Trans-Saharan routes', 'Consequences of connection'],
-    },
-    {
-      title: 'Land & Sea Empires',
-      blurb: 'Gunpowder, ships, new hierarchies.',
-      lessons: ['Gunpowder empires', 'Maritime exploration', 'The Columbian Exchange', 'Coerced labor systems'],
-    },
-  ],
-  'ap-us-history': [
-    {
-      title: 'Colonies to Revolution',
-      blurb: 'How thirteen colonies became a cause.',
-      lessons: ['Contact and colonization', 'Colonial societies', 'The imperial crisis', 'Revolution and its limits'],
-    },
-    {
-      title: 'A New Republic',
-      blurb: 'Building — and straining — a nation.',
-      lessons: ['Constitution and compromise', 'The market revolution', 'Reform movements', 'Sectional conflict'],
-    },
-    {
-      title: 'Civil War & Reconstruction',
-      blurb: 'Union, emancipation, unfinished work.',
-      lessons: ['Secession', 'Turning points of the war', 'Emancipation', 'Reconstruction and retreat'],
-    },
-  ],
-  'ap-csa': [
-    {
-      title: 'Java Foundations',
-      blurb: 'Types, logic, and your first programs.',
-      lessons: ['Primitive types', 'Expressions and operators', 'Conditionals', 'Iteration and loops'],
-    },
-    {
-      title: 'Objects & Classes',
-      blurb: 'Learning to think in objects.',
-      lessons: ['Writing a class', 'Constructors and this', 'Inheritance', 'Polymorphism'],
-    },
-    {
-      title: 'Data & Algorithms',
-      blurb: 'Storing things, then finding them again.',
-      lessons: ['Arrays', 'ArrayList', 'Two-dimensional arrays', 'Searching and sorting'],
-    },
-  ],
-  'ap-chem': [
-    {
-      title: 'Atoms & Bonding',
-      blurb: 'What matter is actually made of.',
-      lessons: ['Atomic structure', 'Periodic trends', 'Ionic and covalent bonds', 'Molecular geometry'],
-    },
-    {
-      title: 'Reactions & Stoichiometry',
-      blurb: 'Counting atoms you can never see.',
-      lessons: ['The mole', 'Balancing equations', 'Limiting reactants', 'Solution stoichiometry'],
-    },
-    {
-      title: 'Equilibrium & Energy',
-      blurb: 'Which way a reaction goes, and why.',
-      lessons: ['Reaction rates', 'Equilibrium constants', 'Acids and bases', 'Enthalpy and entropy'],
-    },
-  ],
-  'ap-psych': [
-    {
-      title: 'Brain & Behavior',
-      blurb: 'The biology under every thought.',
-      lessons: ['Neurons and signals', 'Brain structures', 'Sensation', 'Perception'],
-    },
-    {
-      title: 'Learning & Cognition',
-      blurb: 'How minds take in and hold on.',
-      lessons: ['Classical conditioning', 'Operant conditioning', 'Memory systems', 'Thinking and bias'],
-    },
-    {
-      title: 'Development & Disorders',
-      blurb: 'People across a whole lifetime.',
-      lessons: ['Developmental stages', 'Personality theories', 'Psychological disorders', 'Treatment approaches'],
-    },
-  ],
-  'ap-eng-lang': [
-    {
-      title: 'Reading Rhetoric',
-      blurb: 'Seeing the moves a writer makes.',
-      lessons: ['The rhetorical situation', 'Audience and purpose', 'Rhetorical appeals', 'Tone and diction'],
-    },
-    {
-      title: 'Building Arguments',
-      blurb: 'Claims that actually hold weight.',
-      lessons: ['Claims and thesis', 'Choosing evidence', 'Commentary and reasoning', 'Handling counterargument'],
-    },
-    {
-      title: 'Synthesis & Style',
-      blurb: 'Many sources, one clear voice.',
-      lessons: ['Reading a source set', 'Synthesizing positions', 'Sentence style', 'Revision moves'],
-    },
-  ],
-};
+/** The support stop that sits between each lesson and its boss. */
+const SUPPORT_CYCLE: QuestNodeKindId[] = ['practice', 'reading', 'practice', 'treasure', 'reading', 'practice'];
 
-/** The trail shape every unit follows. `lesson` entries consume the next topic. */
-const PATTERN: QuestNodeKindId[] = ['lesson', 'lesson', 'practice', 'lesson', 'reading', 'lesson', 'treasure', 'boss'];
-
-const BIOMES: Biome[] = ['meadow', 'forest', 'highland', 'summit'];
+/** Boss ranks within an area. The sixth opens the next area. */
+export const BOSS_TIERS = ['Sentry', 'Warden', 'Enforcer', 'Champion', 'Vanguard', 'Overlord'] as const;
 
 /** The "study a source" stop is named for how the subject actually reads. */
 const READING_BY_CATEGORY: Record<CourseCategory, { title: string; summary: string }> = {
@@ -172,56 +34,120 @@ const READING_BY_CATEGORY: Record<CourseCategory, { title: string; summary: stri
   english: { title: 'Close reading', summary: 'Take one passage apart line by line and name the moves in it.' },
 };
 
-const XP: Record<QuestNodeKindId, number> = { lesson: 20, practice: 25, reading: 25, treasure: 15, boss: 60 };
-const MINUTES: Record<QuestNodeKindId, number> = { lesson: 5, practice: 7, reading: 8, treasure: 3, boss: 12 };
+const BASE_XP: Record<QuestNodeKindId, number> = { lesson: 20, practice: 25, reading: 25, treasure: 15, boss: 60 };
+const BASE_MINUTES: Record<QuestNodeKindId, number> = { lesson: 5, practice: 7, reading: 8, treasure: 3, boss: 12 };
 
-function buildUnit(courseId: string, category: CourseCategory, accent: AccentName, spec: UnitSpec, index: number): QuestUnit {
-  let lessonCursor = 0;
+/** Rounds to the nearest 5 so reward numbers stay readable. */
+const round5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
+
+const clampDifficulty = (n: number) => Math.min(10, Math.max(1, Math.round(n)));
+
+/**
+ * How hard a stop should feel, 1–10, from its position on the whole map.
+ * Both the area index and the stage inside it push it up.
+ */
+function difficultyFor(unitIndex: number, stage: number, kind: QuestNodeKindId): number {
+  const base = 1 + unitIndex * 0.85 + (stage - 1) * 0.3;
+  return clampDifficulty(kind === 'boss' ? base + 0.8 : base);
+}
+
+/** How many questions a stop is worth. Bosses grow with their rank. */
+export function questionCountFor(node: QuestNode): number {
+  if (node.kind === 'boss') return 6 + (node.tier ?? 1);
+  if (node.kind === 'treasure') return 4;
+  if (node.kind === 'practice') return 6;
+  return 5;
+}
+
+function buildStage(
+  courseId: string,
+  category: CourseCategory,
+  biome: BiomeId,
+  unitIndex: number,
+  spec: UnitSpec,
+  stage: number,
+): QuestNode[] {
+  const topic = spec.topics[stage - 1];
+  const area = biomes[biome].area;
+  const tier = stage as BossTier;
+  const idBase = `${courseId}-u${unitIndex + 1}-s${stage}`;
+  const xpScale = 1 + unitIndex * 0.12;
+
+  const lesson: QuestNode = {
+    id: `${idBase}-lesson`,
+    kind: 'lesson',
+    title: topic,
+    // Topics lead the sentence rather than being lowercased into it — half of
+    // them are proper nouns ("Song China", "DNA structure", "Hess's law").
+    summary: `${topic} — learn it, then practice it right away.`,
+    skills: [topic],
+    xp: round5(BASE_XP.lesson * xpScale),
+    minutes: BASE_MINUTES.lesson,
+    stage,
+    difficulty: difficultyFor(unitIndex, stage, 'lesson'),
+  };
+
+  const supportKind = SUPPORT_CYCLE[(stage - 1) % SUPPORT_CYCLE.length];
   const reading = READING_BY_CATEGORY[category];
+  const support: QuestNode = {
+    id: `${idBase}-${supportKind}`,
+    kind: supportKind,
+    title:
+      supportKind === 'practice' ? 'Skill drill' : supportKind === 'reading' ? reading.title : 'Bonus cache',
+    summary:
+      supportKind === 'practice'
+        ? `Mixed questions: ${topic}, plus everything before it in this area.`
+        : supportKind === 'reading'
+          ? reading.summary
+          : 'A short bonus round off the main trail. Clear it for extra XP.',
+    skills: supportKind === 'treasure' ? ['Bonus'] : spec.topics.slice(0, stage),
+    xp: round5(BASE_XP[supportKind] * xpScale),
+    minutes: BASE_MINUTES[supportKind],
+    stage,
+    difficulty: difficultyFor(unitIndex, stage, supportKind),
+  };
 
-  const nodes: QuestNode[] = PATTERN.map((kind, i) => {
-    const id = `${courseId}-u${index + 1}-n${i + 1}`;
-    const base = { id, kind, xp: XP[kind], minutes: MINUTES[kind] };
+  const isFinal = stage === STAGES_PER_UNIT;
+  const boss: QuestNode = {
+    id: `${idBase}-boss`,
+    kind: 'boss',
+    tier,
+    title: `${BOSS_TIERS[stage - 1]} of ${area}`,
+    summary: isFinal
+      ? `The area boss — all of ${spec.title} at once. Beat it to open the next area.`
+      : `A timed fight: ${topic}, plus everything up to it. Clear it to move deeper into ${area}.`,
+    skills: spec.topics.slice(0, stage),
+    xp: round5((BASE_XP.boss + tier * 10 + unitIndex * 8) * (isFinal ? 1.25 : 1)),
+    minutes: BASE_MINUTES.boss + tier,
+    stage,
+    difficulty: difficultyFor(unitIndex, stage, 'boss'),
+  };
 
-    if (kind === 'lesson') {
-      const topic = spec.lessons[lessonCursor++];
-      return { ...base, title: topic, summary: `Learn ${topic.toLowerCase()} and practice it right away.`, skills: [topic] };
-    }
-    if (kind === 'practice') {
-      return {
-        ...base,
-        title: 'Skill drill',
-        summary: 'Mixed questions from everything you have unlocked in this region.',
-        skills: spec.lessons.slice(0, lessonCursor),
-      };
-    }
-    if (kind === 'reading') {
-      return { ...base, title: reading.title, summary: reading.summary, skills: [spec.title] };
-    }
-    if (kind === 'treasure') {
-      return {
-        ...base,
-        title: 'Bonus cache',
-        summary: 'A short bonus round off the main trail. Clear it for extra XP.',
-        skills: ['Bonus'],
-      };
-    }
-    return {
-      ...base,
-      title: `${spec.title} boss`,
-      summary: 'A timed unit exam. Beat it to open the next region of the map.',
-      skills: spec.lessons,
-    };
-  });
+  return [lesson, support, boss];
+}
+
+function buildUnit(
+  courseId: string,
+  category: CourseCategory,
+  accent: AccentName,
+  spec: UnitSpec,
+  biome: BiomeId,
+  index: number,
+): QuestUnit {
+  const nodes = Array.from({ length: STAGES_PER_UNIT }, (_, i) =>
+    buildStage(courseId, category, biome, index, spec, i + 1),
+  ).flat();
 
   return {
     id: `${courseId}-u${index + 1}`,
-    section: 'Section 1',
+    section: `Area ${index + 1}`,
     unit: `Unit ${index + 1}`,
     title: spec.title,
     blurb: spec.blurb,
     accent,
-    biome: BIOMES[index % BIOMES.length],
+    biome,
+    areaName: biomes[biome].name,
+    index,
     nodes,
   };
 }
@@ -229,28 +155,36 @@ function buildUnit(courseId: string, category: CourseCategory, accent: AccentNam
 /** Build the full quest map for a course. Falls back to AP Biology. */
 export function getQuestMap(courseId: string | null): QuestMap {
   const course = apCourses.find((c) => c.id === courseId) ?? apCourses[0];
-  const specs = UNITS[course.id] ?? UNITS['ap-biology'];
-  const units = specs.map((spec, i) => buildUnit(course.id, course.category, course.accent, spec, i));
+  const specs = COURSE_UNITS[course.id] ?? DEFAULT_UNITS;
+  const route = BIOME_ROUTES[course.id] ?? DEFAULT_ROUTE;
+
+  const units = specs.map((spec, i) =>
+    buildUnit(course.id, course.category, course.accent, spec, route[i % route.length], i),
+  );
+
   return { courseId: course.id, units, order: units.flatMap((u) => u.nodes.map((n) => n.id)) };
 }
 
+/** Nodes in one area — used to size the placement head start. */
+const NODES_PER_UNIT = STAGES_PER_UNIT * 3;
+
 /**
- * How far into the map a placement result drops the student. Passing the quiz
- * at a higher level should visibly skip ground, so the map opens on a trail
- * that already has history behind it.
+ * How far into the map a placement result drops the student. Passing at a
+ * higher level should visibly skip ground, so the map opens on a trail that
+ * already has areas behind it rather than a few stops.
  */
 const HEAD_START: Record<PlacementLevelId, number> = {
   beginner: 0,
-  builder: 3,
-  ap_ready: 9,
-  advanced_review: 15,
+  builder: Math.round(NODES_PER_UNIT * 0.5),
+  ap_ready: NODES_PER_UNIT * 2,
+  advanced_review: NODES_PER_UNIT * 4,
 };
 
 export function headStartFor(level: PlacementLevelId | null): number {
   return level ? HEAD_START[level] : 0;
 }
 
-/** Look up a node (and the unit it belongs to) anywhere in a map. */
+/** Look up a node (and the area it belongs to) anywhere in a map. */
 export function findNode(map: QuestMap, nodeId: string): { unit: QuestUnit; node: QuestNode } | undefined {
   for (const unit of map.units) {
     const node = unit.nodes.find((n) => n.id === nodeId);
