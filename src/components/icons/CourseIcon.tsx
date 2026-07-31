@@ -88,7 +88,9 @@ const BIO_RUNGS = [
 ];
 function BiologyIcon({ size, animate }: { size: number; animate: boolean }) {
   const flip = usePing(1800, true, animate);
-  const scaleX = flip.interpolate({ inputRange: [0, 1], outputRange: [1, -1] });
+  // Squash rather than flip: a true edge-on turn would pass through zero width
+  // and the icon would blink out of existence for a frame.
+  const scaleX = flip.interpolate({ inputRange: [0, 1], outputRange: [1, 0.34] });
   return (
     <Animated.View style={{ width: size, height: size, transform: [{ scaleX }] }}>
       <Canvas size={size}>

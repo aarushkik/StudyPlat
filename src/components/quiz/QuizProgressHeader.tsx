@@ -1,45 +1,58 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Mascot } from '@/components/Mascot';
-import type { MascotExpression } from '@/components/Mascot';
-import { colors, spacing } from '@/theme';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ProgressBar } from '@/components/ui';
+import { Glyph } from '@/components/icons';
+import { colors, radius, spacing, typography } from '@/theme';
 import { STREAK_VISIBLE_THRESHOLD } from '@/utils/streaks';
 import { StreakBadge } from './StreakBadge';
 
 interface QuizProgressHeaderProps {
-  /** Current correct-answer streak; badge shows at 2+. */
+  /** 0–1 through the question set. */
+  progress: number;
+  /** e.g. "3 / 8". */
+  counter: string;
+  /** Current correct-answer streak; the badge appears at 2+. */
   currentCorrectStreak: number;
   onClose: () => void;
-  /** Stu reacts here as answers are checked. */
-  mascotExpression: MascotExpression;
 }
 
 /**
- * Quiz top row: close button, the streak badge, and a small reacting Stu.
- * The lesson progress bar lives separately as a vertical bar on the left edge
- * (see `VerticalProgressBar`).
+ * The quiz's top row: leave, how far along you are, and the running combo.
+ * Everything the student needs mid-question and nothing else — the mascot lives
+ * in the feedback panel, where it has something to react to.
  */
-export function QuizProgressHeader({ currentCorrectStreak, onClose, mascotExpression }: QuizProgressHeaderProps) {
-  const showStreak = currentCorrectStreak >= STREAK_VISIBLE_THRESHOLD;
-
+export function QuizProgressHeader({ progress, counter, currentCorrectStreak, onClose }: QuizProgressHeaderProps) {
   return (
-    <View style={styles.row}>
-      <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close quiz">
-        <Ionicons name="close" size={28} color={colors.textMuted} />
-      </Pressable>
+    <View>
+      <View style={styles.row}>
+        <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Leave quiz">
+          <Glyph name="close" size={24} color={colors.textMuted} strokeWidth={2.6} />
+        </Pressable>
 
-      <View style={styles.badgeSlot}>
-        <StreakBadge streakCount={currentCorrectStreak} visible={showStreak} />
+        <ProgressBar progress={progress} height={14} style={styles.bar} />
+
+        <View style={styles.counter}>
+          <Text style={styles.counterText}>{counter}</Text>
+        </View>
       </View>
 
-      <Mascot size={46} expression={mascotExpression} accessory="none" />
+      <View style={styles.badgeSlot}>
+        <StreakBadge streakCount={currentCorrectStreak} visible={currentCorrectStreak >= STREAK_VISIBLE_THRESHOLD} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
-  // Grows to fill the middle; badge is left-aligned near the bar.
-  badgeSlot: { flex: 1, paddingLeft: spacing.md, justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  bar: { flex: 1 },
+  counter: {
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+  },
+  counterText: { ...typography.label, color: colors.textSecondary },
+  // Fixed height so the bar never shifts when the combo badge appears.
+  badgeSlot: { height: 18, justifyContent: 'center', paddingLeft: spacing.xxxl },
 });

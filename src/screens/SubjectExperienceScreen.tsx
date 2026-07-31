@@ -32,7 +32,8 @@ export function SubjectExperienceScreen() {
       <StatusBar style="dark" />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
-        progress={0.28}
+        step={2}
+        total={5}
         question={question}
         subtitle="Be honest — it just helps Stu place you."
         mascotExpression="thinking"
@@ -44,6 +45,7 @@ export function SubjectExperienceScreen() {
           <LevelOptionCard
             key={level.id}
             label={level.label}
+            hint={level.hint}
             bars={level.bars}
             selected={selected === level.id}
             onPress={() => setSelected(level.id)}
@@ -59,5 +61,5 @@ export function SubjectExperienceScreen() {
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
-  pad: { height: spacing.md },
+  pad: { height: spacing.giant },
 });

@@ -25,7 +25,8 @@ export function AchievementPreviewScreen() {
       <StatusBar style="dark" />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
-        progress={0.82}
+        step={5}
+        total={5}
         question="Your AP quest ahead"
         subtitle="Here’s the path Stu will build with you."
         mascotExpression="excited"
@@ -48,12 +49,12 @@ export function AchievementPreviewScreen() {
         <View style={styles.pad} />
       </ScrollView>
 
-      <AppButton label="Continue" onPress={() => navigation.navigate('PlacementQuiz')} />
+      <AppButton label="Continue" onPress={() => navigation.navigate('Quiz')} />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   timeline: { flex: 1 },
-  pad: { height: spacing.md },
+  pad: { height: spacing.giant },
 });

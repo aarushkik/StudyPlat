@@ -3,12 +3,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ProgressBar, TopBackButton } from '@/components/ui';
 import { Mascot } from '@/components/Mascot';
 import type { MascotAccessory, MascotExpression } from '@/components/Mascot';
-import { spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 
 interface SetupQuestionHeaderProps {
   onBack: () => void;
-  /** 0–1 onboarding progress. */
-  progress: number;
+  /** 1-based position in the setup flow, shown as a "Step n of total" chip. */
+  step: number;
+  total: number;
   /** The screen's headline question. */
   question: string;
   /** Optional supporting line under the headline. */
@@ -18,13 +19,15 @@ interface SetupQuestionHeaderProps {
 }
 
 /**
- * Shared top block for the setup screens: back button + progress bar, then a
- * bold headline with Stu as a small friendly accent. Deliberately a clean
- * headline layout (not a mascot speech bubble) to feel original.
+ * Shared top block for the setup screens: back control and progress bar, a
+ * step chip so the flow always feels finite, then the headline with Stu as a
+ * small reacting accent. Deliberately a clean headline rather than a speech
+ * bubble — the bubble is saved for moments where Stu is actually talking.
  */
 export function SetupQuestionHeader({
   onBack,
-  progress,
+  step,
+  total,
   question,
   subtitle,
   mascotExpression = 'happy',
@@ -34,24 +37,38 @@ export function SetupQuestionHeader({
     <View>
       <View style={styles.topRow}>
         <TopBackButton onPress={onBack} style={styles.back} />
-        <ProgressBar progress={progress} />
+        <ProgressBar progress={step / total} />
       </View>
 
       <View style={styles.headlineRow}>
         <View style={styles.textCol}>
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>
+              Step {step} of {total}
+            </Text>
+          </View>
           <Text style={typography.title}>{question}</Text>
           {subtitle ? <Text style={[typography.body, styles.subtitle]}>{subtitle}</Text> : null}
         </View>
-        <Mascot size={68} expression={mascotExpression} accessory={mascotAccessory} />
+        <Mascot size={72} expression={mascotExpression} accessory={mascotAccessory} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
-  back: { marginLeft: -spacing.sm, marginRight: spacing.sm },
-  headlineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.xl },
-  textCol: { flex: 1, paddingRight: spacing.md, paddingTop: spacing.xs },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+  back: { marginLeft: -spacing.md, marginRight: spacing.xs },
+  headlineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg },
+  textCol: { flex: 1, paddingRight: spacing.md },
+  chip: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primaryTint,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    marginBottom: spacing.sm,
+  },
+  chipText: { ...typography.overline, color: colors.primary },
   subtitle: { marginTop: spacing.sm },
 });

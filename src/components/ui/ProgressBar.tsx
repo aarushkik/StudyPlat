@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, ViewStyle } from 'react-native';
-import { colors, radius } from '@/theme';
+import { colors, duration, easing, radius } from '@/theme';
 
 interface ProgressBarProps {
   /** 0–1 fill amount. Animates smoothly whenever it changes. */
@@ -11,11 +11,11 @@ interface ProgressBarProps {
   style?: ViewStyle;
 }
 
-/** Slim, rounded progress bar for the onboarding step indicator. */
+/** Slim, rounded progress bar with a glossy fill. */
 export function ProgressBar({
   progress,
   color = colors.primary,
-  trackColor = colors.border,
+  trackColor = colors.disabledBg,
   height = 14,
   style,
 }: ProgressBarProps) {
@@ -23,15 +23,23 @@ export function ProgressBar({
   const anim = useRef(new Animated.Value(target)).current;
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: target, duration: 450, useNativeDriver: false }).start();
+    Animated.timing(anim, {
+      toValue: target,
+      duration: duration.slow,
+      easing: easing.out,
+      useNativeDriver: false,
+    }).start();
   }, [target, anim]);
 
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
   return (
-    <View style={[styles.track, { backgroundColor: trackColor, height, borderRadius: height }, style]}>
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(target * 100) }}
+      style={[styles.track, { backgroundColor: trackColor, height, borderRadius: height }, style]}
+    >
       <Animated.View style={[styles.fill, { backgroundColor: color, width, borderRadius: height }]}>
-        {/* subtle top highlight for a glossy, premium feel */}
         <View style={styles.sheen} />
       </Animated.View>
     </View>
@@ -39,8 +47,9 @@ export function ProgressBar({
 }
 
 const styles = StyleSheet.create({
-  track: { width: '100%', overflow: 'hidden' },
+  track: { flex: 1, overflow: 'hidden' },
   fill: { height: '100%', justifyContent: 'flex-start', minWidth: 14 },
+  // Highlight along the top of the fill, so it reads as a rounded surface.
   sheen: {
     height: 4,
     marginTop: 3,

@@ -1,12 +1,12 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
+import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 
 interface QuestStepProps {
   index: number;
   total: number;
-  icon: string;
+  icon: GlyphName;
   title: string;
   description: string;
   /** Node color + connector tint. */
@@ -16,8 +16,8 @@ interface QuestStepProps {
 
 /**
  * A single milestone in the "quest ahead" timeline: a numbered node on a
- * connecting rail beside a content card. Reads as a journey/path — distinct
- * from a plain feature list.
+ * connecting rail beside a content card. Reads as a journey rather than a
+ * bulleted feature list — the same visual language as the quest map itself.
  */
 export function QuestStep({ index, total, icon, title, description, color, tint }: QuestStepProps) {
   const isLast = index === total - 1;
@@ -26,12 +26,13 @@ export function QuestStep({ index, total, icon, title, description, color, tint 
       <View style={styles.rail}>
         {!isLast ? <View style={[styles.line, { backgroundColor: tint }]} /> : null}
         <View style={[styles.node, { backgroundColor: color }]}>
-          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.white} />
+          <Glyph name={icon} size={21} color={colors.white} strokeWidth={2.2} />
         </View>
+        <View style={[styles.nodeRing, { borderColor: tint }]} pointerEvents="none" />
       </View>
 
       <View style={[styles.card, shadows.sm]}>
-        <Text style={[styles.step, { color }]}>STEP {index + 1}</Text>
+        <Text style={[styles.step, { color }]}>Step {index + 1}</Text>
         <Text style={typography.subtitle}>{title}</Text>
         <Text style={[typography.body, styles.desc]}>{description}</Text>
       </View>
@@ -39,27 +40,37 @@ export function QuestStep({ index, total, icon, title, description, color, tint 
   );
 }
 
+const NODE = 46;
+
 const styles = StyleSheet.create({
   row: { flexDirection: 'row' },
   rowGap: { paddingBottom: spacing.lg },
-  rail: { width: 44, alignItems: 'center', position: 'relative' },
-  line: { position: 'absolute', top: 22, bottom: 0, left: 20, width: 4, borderRadius: radius.pill },
+  rail: { width: NODE, alignItems: 'center' },
+  line: { position: 'absolute', top: NODE / 2, bottom: -spacing.lg, width: 4, borderRadius: radius.pill },
   node: {
-    width: 44,
-    height: 44,
+    width: NODE,
+    height: NODE,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  nodeRing: {
+    position: 'absolute',
+    top: -4,
+    width: NODE + 8,
+    height: NODE + 8,
+    borderRadius: radius.pill,
+    borderWidth: 3,
+  },
   card: {
     flex: 1,
-    marginLeft: spacing.md,
+    marginLeft: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.lg,
   },
-  step: { ...typography.label, marginBottom: 2 },
+  step: { ...typography.overline, marginBottom: 2 },
   desc: { marginTop: 2 },
 });

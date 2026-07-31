@@ -1,8 +1,9 @@
 export { ScreenContainer } from './ScreenContainer';
 export { AppButton } from './AppButton';
+export type { ButtonTone } from './AppButton';
 export { Wordmark } from './Wordmark';
 export { ProgressBar } from './ProgressBar';
-export { VerticalProgressBar } from './VerticalProgressBar';
 export { SpeechBubble } from './SpeechBubble';
 export { TopBackButton } from './TopBackButton';
+export { SelectRow } from './SelectRow';
 export { CourseCard } from './CourseCard';

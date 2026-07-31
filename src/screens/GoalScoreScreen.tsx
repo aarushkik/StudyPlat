@@ -29,7 +29,8 @@ export function GoalScoreScreen() {
       <StatusBar style="dark" />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
-        progress={0.38}
+        step={3}
+        total={5}
         question="What score are you chasing?"
         subtitle="We’ll aim your quest at this target."
         mascotExpression="excited"
@@ -57,5 +58,5 @@ export function GoalScoreScreen() {
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
-  pad: { height: spacing.md },
+  pad: { height: spacing.giant },
 });

@@ -32,7 +32,7 @@ export function WelcomeScreen() {
         <View style={styles.gap} />
         <AppButton
           label="I already have an account"
-          variant="secondary"
+          tone="secondary"
           onPress={() => navigation.navigate('Home')}
         />
       </View>
@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
-  actions: { paddingBottom: spacing.md },
+  actions: { paddingBottom: spacing.xl },
   gap: { height: spacing.md },
 });

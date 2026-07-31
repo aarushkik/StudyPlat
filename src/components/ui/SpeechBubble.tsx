@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 
-type Tail = 'bottom' | 'left' | 'none';
+type Tail = 'bottom' | 'bottomLeft' | 'left' | 'none';
 
 interface SpeechBubbleProps {
   text?: string;
@@ -13,11 +13,12 @@ interface SpeechBubbleProps {
   textStyle?: StyleProp<TextStyle>;
 }
 
-const TAIL = 12;
+const TAIL = 16;
 
 /**
- * A rounded speech bubble the mascot "says". Supports a downward tail (bubble
- * above the mascot) or a left tail (mascot beside the bubble).
+ * A rounded speech bubble the mascot "says". The pointer is a rotated square
+ * that reuses the bubble's own border on two edges, so the outline runs
+ * unbroken around the tail instead of stopping at a seam.
  */
 export function SpeechBubble({ text, children, tail = 'bottom', style, textStyle }: SpeechBubbleProps) {
   return (
@@ -25,11 +26,22 @@ export function SpeechBubble({ text, children, tail = 'bottom', style, textStyle
       <View style={[styles.bubble, shadows.sm, style]}>
         {text ? <Text style={[typography.subtitle, styles.text, textStyle]}>{text}</Text> : children}
       </View>
-      {tail === 'bottom' ? <View style={styles.tailBottom} /> : null}
-      {tail === 'left' ? <View style={styles.tailLeft} /> : null}
+      {tail !== 'none' ? <View style={[styles.tail, TAIL_POSITION[tail]]} /> : null}
     </View>
   );
 }
+
+// Rotating a square 45° puts one corner on each axis: the bottom-right corner
+// points straight down, the top-left corner points straight left. Only the two
+// edges meeting at the outward corner carry the border.
+const POINT_DOWN: ViewStyle = { borderRightWidth: 2, borderBottomWidth: 2, borderBottomRightRadius: 4 };
+const POINT_LEFT: ViewStyle = { borderLeftWidth: 2, borderTopWidth: 2, borderTopLeftRadius: 4 };
+
+const TAIL_POSITION: Record<Exclude<Tail, 'none'>, ViewStyle> = {
+  bottom: { ...POINT_DOWN, bottom: -TAIL / 2, left: '50%', marginLeft: -TAIL / 2 },
+  bottomLeft: { ...POINT_DOWN, bottom: -TAIL / 2, left: spacing.xxxl },
+  left: { ...POINT_LEFT, left: -TAIL / 2, top: '50%', marginTop: -TAIL / 2 },
+};
 
 const styles = StyleSheet.create({
   wrapper: { alignSelf: 'stretch' },
@@ -40,34 +52,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
+    zIndex: 2,
   },
   text: { color: colors.textPrimary },
-  tailBottom: {
+  tail: {
     position: 'absolute',
-    bottom: -TAIL + 1,
-    left: '50%',
-    marginLeft: -TAIL,
-    width: 0,
-    height: 0,
-    borderLeftWidth: TAIL,
-    borderRightWidth: TAIL,
-    borderTopWidth: TAIL,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: colors.surface,
-  },
-  tailLeft: {
-    position: 'absolute',
-    left: -TAIL + 1,
-    top: '50%',
-    marginTop: -TAIL,
-    width: 0,
-    height: 0,
-    borderTopWidth: TAIL,
-    borderBottomWidth: TAIL,
-    borderRightWidth: TAIL,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderRightColor: colors.surface,
+    width: TAIL,
+    height: TAIL,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    transform: [{ rotate: '45deg' }],
+    zIndex: 1,
   },
 });

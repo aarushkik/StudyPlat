@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius } from '@/theme';
+import { colors, fonts } from '@/theme';
 
 interface WordmarkProps {
   /** Font size of "stu"; the AP badge scales from it. */

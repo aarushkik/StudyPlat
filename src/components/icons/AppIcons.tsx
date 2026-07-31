@@ -166,16 +166,3 @@ export function PlacementIcon({ id, color = colors.primary, size = 28 }: IconPro
   );
 }
 
-// --- Misc --------------------------------------------------------------------
-
-export function MapIcon({ color = colors.primary, size = 28 }: IconProps) {
-  return (
-    <Frame size={size}>
-      <Stroked color={color}>
-        <Path d="M5 19 C5 14 12 15 12 11 C12 8 9 8 9 8" strokeDasharray="1.5 2.5" />
-        <Path d="M12 3 C9.2 3 7 5.2 7 8 C7 11.5 12 15 12 15 C12 15 17 11.5 17 8 C17 5.2 14.8 3 12 3 Z" />
-      </Stroked>
-      <Circle cx={12} cy={8} r={2} fill={color} />
-    </Frame>
-  );
-}

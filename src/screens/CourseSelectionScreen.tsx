@@ -28,7 +28,8 @@ export function CourseSelectionScreen() {
       <StatusBar style="dark" />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
-        progress={0.12}
+        step={1}
+        total={5}
         question="Which AP are we taking on?"
         subtitle="Pick your course — you can add more later."
         mascotExpression="happy"
@@ -54,5 +55,5 @@ export function CourseSelectionScreen() {
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
-  pad: { height: spacing.md },
+  pad: { height: spacing.giant },
 });

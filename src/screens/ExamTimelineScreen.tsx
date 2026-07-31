@@ -29,7 +29,8 @@ export function ExamTimelineScreen() {
       <StatusBar style="dark" />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
-        progress={0.52}
+        step={4}
+        total={5}
         question="When’s your AP exam?"
         subtitle="So Stu can pace the quest just right."
         mascotExpression="thinking"
@@ -57,5 +58,5 @@ export function ExamTimelineScreen() {
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
-  pad: { height: spacing.md },
+  pad: { height: spacing.giant },
 });

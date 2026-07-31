@@ -1,56 +1,79 @@
-# stuAP 🐤
+# stuAP
 
 **Master AP classes one quest at a time.**
 
-stuAP is a Duolingo-inspired study app for AP courses — short lessons, streaks,
-XP, progress paths, and animated review battles that make exam prep feel like a
-game. The mascot is **Stu**, a friendly pink student bird in an "STU" cap.
+stuAP is a study app for AP courses built around a map you actually travel:
+short lessons, streaks, XP, and unit boss battles. The mascot is **Stu**, a pink
+platypus scholar in a graduation cap.
 
-> **Milestones so far: the first-run experience + the "Find Your Level"
-> placement flow.** The full app (real lessons, XP, streaks, boss battles) is
-> intentionally still out of scope — this is a polished, animated foundation.
-
----
-
-## ✨ What's implemented
-
-A complete, animated onboarding + placement flow:
-
-1. **Splash** — warm rose brand screen; Stu pops in, wordmark settles, auto-advances.
-2. **Welcome** — big mascot, tagline, two chunky buttons.
-3. **Intro** — Stu introduces setup via a speech bubble.
-4. **Course selection** — selectable grid of 8 AP courses.
-5. **Subject experience** — "How much AP Biology do you know?" (name adapts to the course), five levels with increasing-bar icons.
-6. **Daily goal** — 5–30 min/day options; commits with "I'm committed".
-7. **Achievement preview** — three "what you'll achieve in 3 months" rows, tailored to the subject family (STEM / history & social science / English).
-8. **Start choice** — "Start from scratch" or "Find my level" (recommended).
-9. **Find Your Level quiz** — a reusable placement engine: multiple-choice, short-answer, and stimulus questions (paragraph, code, formula, chart/image placeholders) across four difficulties, with supportive per-answer feedback and a running confidence meter.
-10. **Placement result** — weighted scoring places the student into **Beginner / Builder / AP Ready / Advanced Review**, with a celebrating Stu and a summary.
-11. **Home placeholder** — confirms course, daily goal, experience, and placement result carried through.
-
-"Start from scratch" skips the quiz and places you at Beginner; "Find my level"
-runs the quiz and scores it.
+> **Milestones so far: the first-run experience, the "Find Your Level" placement
+> flow, and the quest map you land on afterwards.** Lessons reuse the placement
+> question bank rather than having content of their own — that's the next
+> milestone.
 
 ---
 
-## 🔥 Streaks & progress (quiz)
+## What's implemented
 
-The placement quiz tracks a **correct-answer streak (combo)** and celebrates
-milestones with an original animation — no Duolingo lightning.
+### Setup and placement
 
-- **Streak state** ([`utils/streaks.ts`](src/utils/streaks.ts)) — the quiz tracks `currentCorrectStreak`, `bestCorrectStreak`, `totalCorrect`, `totalAnswered`. A correct answer increments the streak; a wrong one resets it to 0.
-- **Progress header** ([`QuizProgressHeader`](src/components/quiz/QuizProgressHeader.tsx)) — left-weighted: close button → a column with the **streak badge** ("N IN A ROW", accent color, appears at 2+) sitting just above an animated rose progress bar (soft-gray rounded track) → a small reacting Stu.
-- **Milestone celebration** ([`StreakMilestoneOverlay`](src/components/quiz/StreakMilestoneOverlay.tsx)) — at 5 / 10 / 15 / 20 (every 5, extensible) a turquoise **"knowledge splash"** blooms from Stu's wand: an SVG splash blob, an expanding ripple, flying droplets, and a bold label, then it fades out. It's non-blocking (`pointerEvents="none"`), self-completing (`onAnimationComplete`), and honors the device's **reduce-motion** setting (falls back to a quick fade). Reusable via `variant` (`water` implemented).
+1. **Splash** — rose brand screen; Stu springs in over pulsing rings while drawn
+   study motifs drift behind him.
+2. **Welcome** — hero mascot, wordmark, two entry actions.
+3. **Intro** — Stu introduces setup from a speech bubble.
+4. **Course selection** — eight AP courses, each with its own animated icon.
+5. **Subject experience** — "How much AP Biology is already in your head?"
+   (the name adapts), five levels with rising bars.
+6. **Goal score** — the AP score being chased.
+7. **Exam timeline** — when the exam is, so pacing can adapt.
+8. **Quest preview** — three milestones tailored to the subject family.
+9. **Find Your Level** — multiple-choice, short-answer, and stimulus questions
+   across four difficulties, with supportive per-answer feedback.
+10. **Placement result** — a weighted score places the student into Beginner /
+    Builder / AP Ready / Advanced Review, and says how far into the map that
+    opens.
 
-The streak system is built to be reused by full lessons and longer practice
-sessions later, where higher milestones (10/15/20+) will naturally trigger.
+Each setup screen shows a "Step n of 5" chip so the flow always feels finite.
+
+### The quest map
+
+Home is a scrolling illustrated trail through the course.
+
+- **Regions** — each unit is a biome (meadow, forest, highland, summit) with its
+  own landscape, and its banner pins to the top while you're inside it.
+- **Stops** — lesson, skill drill, source study, bonus cache, and unit boss.
+  Ordinary stops are chunky discs; the **boss is a shield** with its own dark
+  palette, a pulsing aura, and a ribbon, so it never reads as just another
+  lesson.
+- **State is derived, never stored** — a stop is complete if it's in the cleared
+  set, *current* if it's the first one that isn't, and locked after that. The map
+  can't show two "start here" nodes or strand a reachable one behind a gate.
+- **Placement carries through** — a higher placement opens the map further along
+  the trail, so the route already has history behind it.
+- **Starting a lesson** — tapping a stop opens a sheet with what you're about to
+  do, what it's worth, and one button. Finishing returns through a completion
+  screen that banks XP and clears the stop.
+
+Three more tabs hang off the same progress state: **Train** (drills that don't
+cost a stop), **Battles** (every unit boss, and what's blocking the locked ones),
+and **You** (streak, XP, gems, stops cleared, and the plan set during setup).
+
+### Streaks
+
+The quiz tracks a correct-answer combo and celebrates every fifth in a row with
+an original turquoise "knowledge splash" — an SVG blob, an expanding ripple,
+flying droplets, and a bold label. It's non-blocking, self-completing, and honors
+the device's reduce-motion setting.
 
 ---
 
-## 🚀 Run it
+## Run it
 
 ```bash
 npm install
+```
+
+```bash
 npm start
 ```
 
@@ -58,89 +81,107 @@ Then press **i** (iOS), **a** (Android), or scan the QR with **Expo Go**
 (this project targets **Expo SDK 54**).
 
 ```bash
-npx tsc --noEmit  # type-check
+npx tsc --noEmit
 ```
 
 ---
 
-## 🗂 Project structure
+## Project structure
 
 ```
 src/
   components/
-    Mascot/        Mascot.tsx, Mascot.types.ts   (expression | accessory | size)
-    onboarding/    SetupQuestionHeader, LevelOptionCard, DailyGoalCard,
-                   AchievementRow, StartChoiceCard, LevelBars, useCardAnimation
-    quiz/          PlacementQuizScreen, QuestionCard, AnswerChoice,
-                   QuizFeedbackPanel, QuizProgressHeader
+    Mascot/        Mascot (motion) + StuArt (the drawing) + types
+    home/          Scenery, TrailSegment, QuestNodeButton, UnitBanner,
+                   QuestHud, QuestTabBar, LessonSheet, Train/Battles/Profile
+    icons/         Glyph (the icon set), CourseIcon, AppIcons
+    onboarding/    SetupQuestionHeader, LevelOptionCard, ChoiceCard,
+                   QuestStep, LevelBars, useCardAnimation
+    quiz/          QuestionCard, AnswerChoice, QuizFeedbackPanel,
+                   QuizProgressHeader, StreakBadge, StreakMilestoneOverlay
     ui/            AppButton, ProgressBar, SpeechBubble, ScreenContainer,
-                   TopBackButton, CourseCard
-  data/            apCourses.ts, onboardingGoals.ts, placementQuestions.ts
-  navigation/      RootNavigator.tsx, types.ts
-  screens/         SubjectExperience, DailyGoal, AchievementPreview,
-                   StartChoice, PlacementResult, HomePlaceholder,
-                   Splash, Welcome, Intro, CourseSelection
-  state/           OnboardingContext.tsx   (course, experience, goal, start, placement)
-  theme/           colors, spacing, typography, radius, shadows
-  types/           course.ts, onboarding.ts, quiz.ts
-  utils/           placementScoring.ts
+                   SelectRow, CourseCard, TopBackButton, Wordmark
+  data/            apCourses, onboardingGoals, placementQuestions, questMap
+  navigation/      RootNavigator, types
+  screens/         Splash, Welcome, Intro, CourseSelection, SubjectExperience,
+                   GoalScore, ExamTimeline, AchievementPreview, Quiz,
+                   PlacementResult, LessonComplete, Home
+  state/           OnboardingContext (setup), QuestContext (map progress)
+  theme/           colors, spacing, typography, radius, shadows, motion
+  types/           course, onboarding, quiz, quest
+  utils/           placementScoring, streaks
 ```
 
-Imports use the `@/` alias → `src/`.
+Imports use the `@/` alias for `src/`.
 
 ---
 
-## 🧩 Placement quiz data model
+## Data models
 
-Types live in [`src/types`](src/types); questions in
+### Placement quiz
+
+Types live in [`src/types/quiz.ts`](src/types/quiz.ts); questions in
 [`placementQuestions.ts`](src/data/placementQuestions.ts). A `PlacementQuestion`
-carries `id`, `courseId`, `difficulty` (`foundation` → `advanced`), `type`
-(`multiple_choice` / `short_answer` / `stimulus`), `prompt`, optional
-`stimulus`, `choices` + `correctAnswerId` (or `acceptedAnswers`), `explanation`,
-and `skillTag`.
+carries `id`, `courseId`, `difficulty`, `type`, `prompt`, an optional `stimulus`,
+`choices` + `correctAnswerId` (or `acceptedAnswers`), `explanation`, and
+`skillTag`.
 
-All **eight** subjects (Biology, Calculus AB, World History, U.S. History, CS A,
-Chemistry, Psychology, English Language) have an original 8-question quiz with
-its own intro, spanning the subject's key skills and every difficulty. **All
-questions are original placeholder content — never real exam questions.** Add
-questions to a subject's array; the engine picks them up automatically.
+All eight subjects have an original eight-question quiz spanning their key
+skills and every difficulty. **Every question is original placeholder content —
+never real exam material.** Scoring
+([`placementScoring.ts`](src/utils/placementScoring.ts)) weights correct answers
+by difficulty (1/2/3/4) and maps the 0–1 score onto a starting level.
 
-Scoring ([`placementScoring.ts`](src/utils/placementScoring.ts)) weights correct
-answers by difficulty (1/2/3/4) and maps the 0–1 score onto a starting level.
+### Quest map
 
----
-
-## 🐤 The mascot
-
-[`Mascot`](src/components/Mascot/Mascot.tsx) is a clean vector (react-native-svg)
-with props:
-
-- `expression`: `happy` · `thinking` · `excited` · `worried` · `celebrating`
-- `accessory`: `none` · `book` · `pencil` · `wand` · `hat`
-- `size`: `small` · `medium` · `large` (or a number)
-
-When `animated`, it idles with a breathing loop and occasional blink, **bounces**
-on happy expressions (correct answers), and gives a **gentle tilt/shake** on
-worried ones (wrong answers) — supportive, never harsh.
+[`questMap.ts`](src/data/questMap.ts) builds three regions per course from four
+lesson topics each. The *shape* of a region — where the drill, the source study,
+the bonus cache, and the boss fall — is one shared pattern, so only the
+subject-specific titles are data.
 
 ---
 
-## 🎨 Design system
+## The mascot
 
-Tokens in [`src/theme`](src/theme): a soft rose brand (`#FF5E9C`) on warm cream,
-per-course accents, and success/danger feedback colors. The signature
-**`AppButton`** has a chunky bottom lip that sinks on press.
+[`Mascot`](src/components/Mascot/Mascot.tsx) owns motion;
+[`StuArt`](src/components/Mascot/StuArt.tsx) owns the drawing. Stu is a single
+rounded blob so his silhouette holds up from a 44px avatar to a full-screen hero.
+
+- `expression`: `happy` · `thinking` · `excited` · `worried` · `celebrating` ·
+  `focused` · `proud` · `sleepy`
+- `accessory`: `none` · `book` · `pencil` · `wand` · `lantern`
+- `size`: `tiny` · `small` · `medium` · `large` · `xl`, or a raw number
+
+He idles with breathing, swaying, and bobbing on three mismatched periods so he
+never looks metronomic, blinks on a randomized cadence, hops on joyful
+expressions, and tilts on worried ones. A contact shadow tightens as he leaves
+the ground.
 
 ---
 
-## 🛣 What to improve / build next
+## Design system
 
-- **Persist** onboarding + placement (AsyncStorage), and skip setup for returning users.
-- Deeper placement: adaptive difficulty, per-skill breakdown, more questions per subject.
-- Real **home dashboard** → lessons → boss battles (the next milestones).
-- Custom brand font, dark theme, and richer motion (Reanimated: confetti on the result screen, page transitions).
-- Backend + auth once the data shapes are stable.
+Tokens in [`src/theme`](src/theme): a soft rose brand on warm cream, per-course
+accents, a quest-map scenery range, feedback colors, gradients, and a shared
+motion vocabulary. The signature `AppButton` rides on a chunky lip it sinks onto
+when pressed — the same physics the answer choices and map nodes use.
+
+Icons are an original set ([`Glyph`](src/components/icons/Glyph.tsx)) drawn on a
+shared 24×24 grid. The app ships no emoji and no stock icon font.
 
 ---
 
-Built with Expo, React Native, and TypeScript. 💗
+## What to build next
+
+- **Real lesson content**, so map stops teach rather than reusing placement
+  questions.
+- **Persist** setup and map progress (AsyncStorage), and skip setup for returning
+  users.
+- Adaptive placement difficulty and a per-skill breakdown.
+- Timers and hearts for boss battles, so they actually feel like exams.
+- Dark theme, and richer motion via Reanimated.
+- Backend and auth once the data shapes settle.
+
+---
+
+Built with Expo, React Native, and TypeScript.

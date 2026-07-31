@@ -1,4 +1,4 @@
-/** Route map for the onboarding + placement stack. Choices flow through OnboardingContext. */
+/** Route map for the app. Choices flow through OnboardingContext / QuestContext. */
 export type RootStackParamList = {
   Splash: undefined;
   Welcome: undefined;
@@ -8,8 +8,21 @@ export type RootStackParamList = {
   GoalScore: undefined;
   ExamTimeline: undefined;
   AchievementPreview: undefined;
-  PlacementQuiz: undefined;
+  /**
+   * The question engine. With no params it runs the placement quest; with
+   * params it runs one map stop or one training drill.
+   */
+  Quiz:
+    | {
+        /** Set when the session came from a stop on the map, so it can be cleared. */
+        nodeId?: string;
+        title?: string;
+        xp?: number;
+        count?: number;
+      }
+    | undefined;
   PlacementResult: undefined;
+  LessonComplete: { title: string; correct: number; total: number; xp: number };
   Home: undefined;
 };
 

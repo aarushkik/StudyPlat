@@ -9,13 +9,15 @@ import {
   Fredoka_700Bold,
 } from '@expo-google-fonts/fredoka';
 import { OnboardingProvider } from '@/state/OnboardingContext';
+import { QuestProvider } from '@/state/QuestContext';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { colors } from '@/theme';
 
 /**
  * App entry point. Loads the Fredoka brand font, then wires up providers, the
- * navigation theme, and the onboarding stack. Onboarding choices live in
- * <OnboardingProvider> — swap it for a backend profile / persistence later.
+ * navigation theme, and the stack. Setup choices live in <OnboardingProvider>
+ * and map progress in <QuestProvider>, which reads from it — swap either for a
+ * backend profile later without touching a screen.
  */
 
 // Match the navigation background to our themed cream to avoid white flashes.
@@ -46,9 +48,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <OnboardingProvider>
-        <NavigationContainer theme={navTheme}>
-          <RootNavigator />
-        </NavigationContainer>
+        <QuestProvider>
+          <NavigationContainer theme={navTheme}>
+            <RootNavigator />
+          </NavigationContainer>
+        </QuestProvider>
       </OnboardingProvider>
     </SafeAreaProvider>
   );

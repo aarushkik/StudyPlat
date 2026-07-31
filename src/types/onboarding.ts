@@ -1,3 +1,4 @@
+import type { GlyphName } from '@/components/icons/Glyph';
 import type { PlacementLevelId } from './quiz';
 
 /** How much the student already knows about the chosen subject. */
@@ -6,6 +7,8 @@ export type ExperienceLevelId = 'new' | 'basic' | 'several_units' | 'ap_question
 export interface ExperienceLevel {
   id: ExperienceLevelId;
   label: string;
+  /** Plain-language read on what the level means, shown under the label. */
+  hint: string;
   /** 1–5 filled bars shown as the level icon. */
   bars: number;
 }
@@ -33,8 +36,7 @@ export type StartChoice = 'scratch' | 'find_level';
 
 /** One "quest ahead" milestone on the preview screen. */
 export interface Achievement {
-  /** Ionicons name for the milestone's icon. */
-  icon: string;
+  icon: GlyphName;
   title: string;
   description: string;
 }
