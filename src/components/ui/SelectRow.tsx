@@ -35,10 +35,10 @@ export function SelectRow({
   tint = colors.primaryTint,
   bareLeading = false,
 }: SelectRowProps) {
-  const { scale, onPressIn, onPressOut } = useCardAnimation(selected);
+  const { scale, translateY, onPressIn, onPressOut } = useCardAnimation(selected);
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={{ transform: [{ translateY }, { scale }] }}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ selected }}
