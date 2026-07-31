@@ -28,7 +28,7 @@ const KEYS = ['A', 'B', 'C', 'D', 'E'];
  */
 export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerChoiceProps) {
   const shake = useRef(new Animated.Value(0)).current;
-  const pop = useRef(new Animated.Value(1)).current;
+  const pop = useRef(new Animated.Value(0)).current;
   const press = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -41,10 +41,10 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
         Animated.timing(shake, { toValue: 0, duration: 70, useNativeDriver: true }),
       ]).start();
     } else if (state === 'correct') {
-      pop.setValue(1);
+      pop.setValue(0);
       Animated.sequence([
-        Animated.spring(pop, { toValue: 1.04, useNativeDriver: true, speed: 40, bounciness: 14 }),
         Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 14 }),
+        Animated.spring(pop, { toValue: 0, useNativeDriver: true, speed: 40, bounciness: 14 }),
       ]).start();
     }
   }, [state, shake, pop]);
@@ -52,12 +52,19 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
   const s = STATE[state];
   const translateX = shake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
   const sink = press.interpolate({ inputRange: [0, 1], outputRange: [0, 3] });
+  /**
+   * Correct answers *lift* rather than scale. These cards run the full width of
+   * the screen's padding, so a springy scale — which overshoots its target by
+   * design — pushed the card past both edges and made it look broken at the
+   * exact moment the student got it right.
+   */
+  const lift = pop.interpolate({ inputRange: [0, 1], outputRange: [0, -7] });
 
   const to = (v: number) =>
     Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
 
   return (
-    <Animated.View style={[styles.holder, { transform: [{ translateX }, { scale: pop }] }]}>
+    <Animated.View style={[styles.holder, { transform: [{ translateX }, { translateY: lift }] }]}>
       <View style={[styles.lip, { backgroundColor: s.edge }]} />
       <Animated.View style={{ transform: [{ translateY: sink }] }}>
         <Pressable
