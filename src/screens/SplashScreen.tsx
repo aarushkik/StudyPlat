@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Svg, { Circle, G, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { Mascot, Wordmark } from '@/components';
 import { palette, spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
@@ -14,23 +14,32 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 const HOLD_MS = 2400;
 
 /**
- * Faint study motifs drifting behind the emblem. Each is drawn as a vector so
- * it inherits the brand palette and stays crisp — the app ships no emoji.
+ * The backdrop is a contour map.
+ *
+ * stuAP is a trail through ten areas, so the splash says that before a word is
+ * read: soft topographic rings radiating out from Stu, like the map you are
+ * about to walk. It replaced a scatter of outlined study icons — beakers,
+ * books, compasses — which read as stock clip-art and, worse, all drifted off
+ * one shared value so the whole field breathed in lockstep.
+ *
+ * Ring count is deliberately low and the wobble is deterministic, so the same
+ * landscape is drawn every launch.
  */
-type MotifKind = 'orbit' | 'flask' | 'helix' | 'curve' | 'compass' | 'book' | 'prism' | 'quill';
+const RINGS = 7;
 
-type Pct = `${number}%`;
-
-const MOTIFS: { kind: MotifKind; top: Pct; left: Pct; size: number; dir: 1 | -1 }[] = [
-  { kind: 'orbit', top: '11%', left: '12%', size: 44, dir: 1 },
-  { kind: 'curve', top: '17%', left: '76%', size: 50, dir: -1 },
-  { kind: 'helix', top: '32%', left: '6%', size: 40, dir: -1 },
-  { kind: 'flask', top: '27%', left: '83%', size: 42, dir: 1 },
-  { kind: 'compass', top: '68%', left: '9%', size: 44, dir: 1 },
-  { kind: 'prism', top: '73%', left: '79%', size: 46, dir: -1 },
-  { kind: 'quill', top: '85%', left: '24%', size: 38, dir: 1 },
-  { kind: 'book', top: '60%', left: '71%', size: 40, dir: -1 },
-];
+/** One closed, slightly irregular contour — polar samples with two harmonics. */
+function contourPath(radius: number, wobble: number, phase: number, steps = 72): string {
+  let d = '';
+  for (let i = 0; i <= steps; i += 1) {
+    const a = (i / steps) * Math.PI * 2;
+    const r = radius * (1 + wobble * Math.sin(a * 3 + phase) + wobble * 0.55 * Math.sin(a * 5 - phase * 1.6));
+    const x = Math.cos(a) * r;
+    // Squashed slightly, so the rings read as ground seen at an angle.
+    const y = Math.sin(a) * r * 0.78;
+    d += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return `${d}Z`;
+}
 
 /**
  * Brand splash. A warm rose backdrop scattered with drifting study motifs, Stu
@@ -123,24 +132,7 @@ export function SplashScreen() {
         end={{ x: 0.9, y: 1 }}
       />
 
-      {MOTIFS.map((m) => (
-        <Animated.View
-          key={m.kind}
-          style={[
-            styles.motif,
-            {
-              top: m.top,
-              left: m.left,
-              opacity: float.interpolate({ inputRange: [0, 1], outputRange: m.dir > 0 ? [0.18, 0.34] : [0.34, 0.18] }),
-              transform: [
-                { translateY: float.interpolate({ inputRange: [0, 1], outputRange: [-7 * m.dir, 7 * m.dir] }) },
-              ],
-            },
-          ]}
-        >
-          <Motif kind={m.kind} size={m.size} />
-        </Animated.View>
-      ))}
+      <ContourField float={float} />
 
       <View style={styles.center}>
         <Animated.View style={{ opacity: emblemOpacity, transform: [{ scale: emblemScale }] }}>
@@ -176,64 +168,57 @@ export function SplashScreen() {
   );
 }
 
-/** One drifting study motif, stroked in white on the rose backdrop. */
-function Motif({ kind, size }: { kind: MotifKind; size: number }) {
+/**
+ * The contour backdrop. Every ring is driven by the one `float` value but with
+ * its own amplitude and direction, so the field breathes unevenly the way real
+ * terrain would rather than pulsing as a single unit.
+ */
+function ContourField({ float }: { float: Animated.Value }) {
+  const rings = [];
+  for (let i = 0; i < RINGS; i += 1) {
+    const radius = 74 + i * 52;
+    const outward = i / (RINGS - 1);
+    const dir = i % 2 === 0 ? 1 : -1;
+    rings.push(
+      <Animated.View
+        key={i}
+        style={[
+          styles.ringLayer,
+          {
+            opacity: 0.3 - outward * 0.19,
+            transform: [
+              {
+                scale: float.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: dir > 0 ? [1, 1.035 + outward * 0.02] : [1.035 + outward * 0.02, 1],
+                }),
+              },
+              {
+                rotate: float.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: dir > 0 ? ['0deg', '3deg'] : ['3deg', '0deg'],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Svg width={radius * 2.4} height={radius * 2.4} viewBox={`${-radius * 1.2} ${-radius * 1.2} ${radius * 2.4} ${radius * 2.4}`}>
+          <Path
+            d={contourPath(radius, 0.045 + i * 0.006, i * 1.9)}
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            fill="none"
+          />
+        </Svg>
+      </Animated.View>,
+    );
+  }
+
   return (
-    <Svg width={size} height={size} viewBox="0 0 32 32">
-      <G stroke="#FFFFFF" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round">
-        {kind === 'orbit' ? (
-          <G>
-            <Circle cx={16} cy={16} r={4} fill="#FFFFFF" stroke="none" />
-            <Path d="M16 4 A12 6 -28 1 1 16 28 A12 6 -28 1 1 16 4 Z" />
-            <Path d="M16 4 A12 6 28 1 1 16 28 A12 6 28 1 1 16 4 Z" />
-          </G>
-        ) : null}
-        {kind === 'curve' ? (
-          <G>
-            <Path d="M5 27 V5 M5 27 H28" />
-            <Path d="M6 24 C13 24 12 9 27 8" />
-          </G>
-        ) : null}
-        {kind === 'helix' ? (
-          <G>
-            <Path d="M10 3 C24 9 10 23 24 29" />
-            <Path d="M24 3 C10 9 24 23 10 29" />
-            <Path d="M13 9 H21 M11 16 H21 M13 23 H21" />
-          </G>
-        ) : null}
-        {kind === 'flask' ? (
-          <G>
-            <Path d="M13 4 H19 V13 L26 26 A2 2 0 0 1 24 29 H8 A2 2 0 0 1 6 26 L13 13 Z" />
-            <Path d="M11 4 H21" />
-            <Path d="M9.5 20 H22.5" />
-          </G>
-        ) : null}
-        {kind === 'compass' ? (
-          <G>
-            <Circle cx={16} cy={16} r={12} />
-            <Path d="M21 11 L18 18 L11 21 L14 14 Z" />
-          </G>
-        ) : null}
-        {kind === 'prism' ? (
-          <G>
-            <Path d="M16 5 L28 26 H4 Z" />
-            <Path d="M2 17 H10 M22 15 L30 11 M22 19 L30 21" />
-          </G>
-        ) : null}
-        {kind === 'quill' ? (
-          <G>
-            <Path d="M28 4 C17 5 10 11 8 20 C7.5 23 8 25 9 26 C13 21 18 17 24 15" />
-            <Path d="M9 26 L4 30" />
-          </G>
-        ) : null}
-        {kind === 'book' ? (
-          <G>
-            <Path d="M16 9 C13 6.5 8 6 4 7 V25 C8 24 13 24.5 16 27 C19 24.5 24 24 28 25 V7 C24 6 19 6.5 16 9 Z" />
-            <Path d="M16 9 V27" />
-          </G>
-        ) : null}
-      </G>
-    </Svg>
+    <View pointerEvents="none" style={styles.contours}>
+      {rings}
+    </View>
   );
 }
 
@@ -241,7 +226,9 @@ const EMBLEM = 226;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.rose500 },
-  motif: { position: 'absolute' },
+  // Centred on the emblem so the contours radiate out from Stu.
+  contours: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  ringLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emblemWrap: { width: EMBLEM, height: EMBLEM, alignItems: 'center', justifyContent: 'center' },
   pulse: {
