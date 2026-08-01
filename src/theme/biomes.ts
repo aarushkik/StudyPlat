@@ -51,6 +51,55 @@ export type DecorKind =
   | 'emberRock'
   | 'obelisk';
 
+/** Small ground clutter scattered thickly along the verges. */
+export type GroundKind =
+  | 'grass'
+  | 'flower'
+  | 'pebble'
+  | 'shell'
+  | 'moss'
+  | 'crack'
+  | 'bone'
+  | 'iceChip'
+  | 'emberBit'
+  | 'reedTuft';
+
+/**
+ * The one landmark that belongs to this biome and nowhere else. Every area
+ * gets exactly one, large and off to the side, so an area is recognisable at a
+ * glance instead of reading as recoloured hills.
+ */
+export type LandmarkKind =
+  | 'windmill'
+  | 'lighthouse'
+  | 'cabin'
+  | 'stiltHut'
+  | 'acacia'
+  | 'ruin'
+  | 'wreck'
+  | 'pyramid'
+  | 'rockArch'
+  | 'watchtower'
+  | 'crystalCluster'
+  | 'cairn'
+  | 'iceArch'
+  | 'standingStones'
+  | 'volcanoCone'
+  | 'summitFlag';
+
+/** What drifts through the air in this biome. Drawn in `AreaAmbience`. */
+export type AmbienceKind =
+  | 'petal'
+  | 'leaf'
+  | 'firefly'
+  | 'bubble'
+  | 'sand'
+  | 'snow'
+  | 'ember'
+  | 'rain'
+  | 'pollen'
+  | 'sparkle';
+
 export interface BiomeTheme {
   /** Display name of the landscape, e.g. "Sunlit Meadow". */
   name: string;
@@ -75,6 +124,12 @@ export interface BiomeTheme {
   gate: readonly [string, string];
   /** Three decoration shapes this biome is built from. */
   decor: readonly [DecorKind, DecorKind, DecorKind];
+  /** Two kinds of small clutter scattered along the verges. */
+  ground: readonly [GroundKind, GroundKind];
+  /** The single large feature unique to this biome. */
+  landmark: LandmarkKind;
+  /** What drifts through the air here, and how much of it. */
+  ambience: { kind: AmbienceKind; color: string; count: number };
   /** Harshness, 1–10. Courses sequence their areas by this. */
   ramp: number;
 }
@@ -93,6 +148,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#8FC94F', '#57972A'],
     gate: ['#C9A87A', '#9A7648'],
     decor: ['roundTree', 'bloom', 'shrub'],
+    ground: ['grass', 'flower'],
+    landmark: 'windmill',
+    ambience: { kind: 'petal', color: '#FFB8D4', count: 12 },
     ramp: 1,
   },
   coast: {
@@ -108,6 +166,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#43B7D8', '#1A7FA3'],
     gate: ['#D6C7A6', '#A99372'],
     decor: ['palm', 'dune', 'rock'],
+    ground: ['shell', 'pebble'],
+    landmark: 'lighthouse',
+    ambience: { kind: 'sparkle', color: '#FFFFFF', count: 10 },
     ramp: 2,
   },
   forest: {
@@ -123,6 +184,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#4E9C42', '#2C6A2C'],
     gate: ['#A2764A', '#74512F'],
     decor: ['pine', 'roundTree', 'mushroom'],
+    ground: ['grass', 'moss'],
+    landmark: 'cabin',
+    ambience: { kind: 'leaf', color: '#7FBF62', count: 12 },
     ramp: 3,
   },
   wetland: {
@@ -138,6 +202,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#4E9070', '#2C6350'],
     gate: ['#8E7B54', '#645436'],
     decor: ['reed', 'shrub', 'mushroom'],
+    ground: ['reedTuft', 'moss'],
+    landmark: 'stiltHut',
+    ambience: { kind: 'firefly', color: '#C8F06E', count: 11 },
     ramp: 4,
   },
   savanna: {
@@ -153,6 +220,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#DFA63A', '#A87215'],
     gate: ['#C2A06A', '#907240'],
     decor: ['palm', 'shrub', 'boulder'],
+    ground: ['grass', 'pebble'],
+    landmark: 'acacia',
+    ambience: { kind: 'pollen', color: '#FFD98A', count: 12 },
     ramp: 4,
   },
   jungle: {
@@ -168,6 +238,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#2FA95E', '#137038'],
     gate: ['#8C6A40', '#5F4726'],
     decor: ['palm', 'roundTree', 'bloom'],
+    ground: ['moss', 'flower'],
+    landmark: 'ruin',
+    ambience: { kind: 'leaf', color: '#4FBF6A', count: 13 },
     ramp: 5,
   },
   reef: {
@@ -183,6 +256,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#2CB6C4', '#0E7C90'],
     gate: ['#C4B48E', '#948462'],
     decor: ['coral', 'kelp', 'rock'],
+    ground: ['shell', 'pebble'],
+    landmark: 'wreck',
+    ambience: { kind: 'bubble', color: '#FFFFFF', count: 14 },
     ramp: 5,
   },
   desert: {
@@ -198,6 +274,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#E2963A', '#AC6417'],
     gate: ['#CBA97A', '#9A7A4E'],
     decor: ['cactus', 'dune', 'rock'],
+    ground: ['crack', 'bone'],
+    landmark: 'pyramid',
+    ambience: { kind: 'sand', color: '#E8C68A', count: 13 },
     ramp: 6,
   },
   canyon: {
@@ -213,6 +292,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#C86A3C', '#8E4020'],
     gate: ['#B07850', '#7E502E'],
     decor: ['obelisk', 'cactus', 'boulder'],
+    ground: ['crack', 'pebble'],
+    landmark: 'rockArch',
+    ambience: { kind: 'sand', color: '#D69C78', count: 12 },
     ramp: 6,
   },
   highland: {
@@ -228,6 +310,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#8A6ABE', '#583E8C'],
     gate: ['#9C8AAE', '#6E5E80'],
     decor: ['pine', 'boulder', 'shrub'],
+    ground: ['grass', 'pebble'],
+    landmark: 'watchtower',
+    ambience: { kind: 'pollen', color: '#D8C4EE', count: 11 },
     ramp: 7,
   },
   caverns: {
@@ -243,6 +328,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#6A4EA8', '#3A2470'],
     gate: ['#6E5A90', '#453660'],
     decor: ['crystal', 'rock', 'mushroom'],
+    ground: ['pebble', 'moss'],
+    landmark: 'crystalCluster',
+    ambience: { kind: 'firefly', color: '#7ADCE8', count: 14 },
     ramp: 8,
   },
   tundra: {
@@ -258,6 +346,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#6E96B8', '#3E6688'],
     gate: ['#A8B2BE', '#78848E'],
     decor: ['snowPine', 'rock', 'shrub'],
+    ground: ['iceChip', 'pebble'],
+    landmark: 'cairn',
+    ambience: { kind: 'snow', color: '#FFFFFF', count: 13 },
     ramp: 8,
   },
   glacier: {
@@ -273,6 +364,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#40A4D8', '#1C6E9E'],
     gate: ['#A8CEE2', '#749CB4'],
     decor: ['iceSpire', 'snowPine', 'rock'],
+    ground: ['iceChip', 'pebble'],
+    landmark: 'iceArch',
+    ambience: { kind: 'snow', color: '#FFFFFF', count: 15 },
     ramp: 9,
   },
   storm: {
@@ -288,6 +382,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#4A5280', '#252A48'],
     gate: ['#5A6084', '#383C58'],
     decor: ['pine', 'obelisk', 'boulder'],
+    ground: ['grass', 'pebble'],
+    landmark: 'standingStones',
+    ambience: { kind: 'rain', color: '#AEC0E8', count: 16 },
     ramp: 9,
   },
   volcano: {
@@ -303,6 +400,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#C4442C', '#7A1E14'],
     gate: ['#6E4438', '#442622'],
     decor: ['emberRock', 'obelisk', 'rock'],
+    ground: ['emberBit', 'crack'],
+    landmark: 'volcanoCone',
+    ambience: { kind: 'ember', color: '#FF8A3C', count: 14 },
     ramp: 10,
   },
   summit: {
@@ -320,6 +420,9 @@ export const biomes: Record<BiomeId, BiomeTheme> = {
     banner: ['#7E86C8', '#4A5290'],
     gate: ['#B4BAD6', '#8288A8'],
     decor: ['snowPine', 'iceSpire', 'rock'],
+    ground: ['iceChip', 'pebble'],
+    landmark: 'summitFlag',
+    ambience: { kind: 'snow', color: '#FFFFFF', count: 14 },
     ramp: 10,
   },
 };
