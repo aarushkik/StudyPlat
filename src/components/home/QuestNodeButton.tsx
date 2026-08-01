@@ -49,19 +49,30 @@ const KIND_GLYPH: Record<QuestNodeKindId, GlyphName> = {
   boss: 'swords',
 };
 
+/**
+ * Sealed stops in an underground or night-time biome. The daylight grey reads
+ * as a row of glowing white blobs against a dark cavern and pulls the eye away
+ * from the one stop you can actually play.
+ */
+const LOCKED_DARK = { face: '#5C5078', edge: '#3B3153', ring: '#6E6090' } as const;
+
 interface QuestNodeButtonProps {
   node: QuestNode;
   state: QuestNodeState;
+  /** True in the night-time biomes, so sealed stops darken to match. */
+  dark?: boolean;
   onPress: () => void;
 }
 
-export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) {
+export function QuestNodeButton({ node, state, dark = false, onPress }: QuestNodeButtonProps) {
   const isBoss = node.kind === 'boss';
   const tier = tierStyle(node.tier);
   const size = nodeSizeFor(node);
   const locked = state === 'locked';
   const scheme = locked
-    ? questNode.locked
+    ? dark
+      ? LOCKED_DARK
+      : questNode.locked
     : isBoss
       ? { face: tier.face, edge: tier.edge, ring: tier.ring }
       : questNode[node.kind];
@@ -87,7 +98,7 @@ export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) 
   );
 
   const glyph: GlyphName = locked ? 'lock' : state === 'complete' ? (isBoss ? 'crown' : 'check') : KIND_GLYPH[node.kind];
-  const glyphColor = locked ? '#9C8E9A' : colors.white;
+  const glyphColor = locked ? (dark ? '#A99CC4' : '#9C8E9A') : colors.white;
 
   return (
     <View style={styles.slot} pointerEvents="box-none">
@@ -112,7 +123,7 @@ export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) 
           ]}
         >
           {isBoss ? (
-            <BossFace size={size} locked={locked} glyph={glyph} tier={tier} />
+            <BossFace size={size} locked={locked} dark={dark} glyph={glyph} tier={tier} />
           ) : (
             <View style={[styles.disc, { width: size, height: size, borderRadius: size, backgroundColor: scheme.face }]}>
               <View style={[styles.discSheen, { borderRadius: size }]} />
@@ -130,6 +141,7 @@ export function QuestNodeButton({ node, state, onPress }: QuestNodeButtonProps) 
           cleared={state === 'complete'}
           label={BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))]}
           tone={tier.deep}
+          dark={dark}
         />
       ) : null}
     </View>
@@ -170,15 +182,22 @@ const SHIELD = 'M50 4 L92 18 V50 C92 74 74 90 50 97 C26 90 8 74 8 50 V18 Z';
 function BossFace({
   size,
   locked,
+  dark,
   glyph,
   tier,
 }: {
   size: number;
   locked: boolean;
+  dark: boolean;
   glyph: GlyphName;
   tier: (typeof BOSS_TIER_STYLE)[number];
 }) {
-  const id = `boss-${locked ? 'locked' : tier.face.slice(1)}`;
+  // Sealed shields follow the same daylight/night split as the plain stops.
+  const sealed = dark
+    ? { top: '#6A5C88', bottom: '#4A3E66', edge: '#332A49', glyph: '#A99CC4' }
+    : { top: '#D6CBD4', bottom: '#B9AAB7', edge: '#A293A0', glyph: '#9C8E9A' };
+
+  const id = `boss-${locked ? (dark ? 'sealed-dark' : 'sealed') : tier.face.slice(1)}`;
   const height = size + LIP;
   // Extend the viewBox by the lip so the lower copy is not clipped.
   const viewH = 100 + (LIP / size) * 100;
@@ -188,22 +207,22 @@ function BossFace({
       <Svg width={size} height={height} viewBox={`0 0 100 ${viewH}`} style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id={id} x1="0.2" y1="0" x2="0.8" y2="1">
-            <Stop offset="0" stopColor={locked ? '#D6CBD4' : tier.face} />
-            <Stop offset="1" stopColor={locked ? '#B9AAB7' : tier.deep} />
+            <Stop offset="0" stopColor={locked ? sealed.top : tier.face} />
+            <Stop offset="1" stopColor={locked ? sealed.bottom : tier.deep} />
           </LinearGradient>
         </Defs>
-        <Path d={SHIELD} fill={locked ? '#A293A0' : tier.edge} transform={`translate(0 ${viewH - 100})`} />
+        <Path d={SHIELD} fill={locked ? sealed.edge : tier.edge} transform={`translate(0 ${viewH - 100})`} />
         <Path
           d={SHIELD}
           fill={`url(#${id})`}
-          stroke={locked ? '#A293A0' : tier.edge}
+          stroke={locked ? sealed.edge : tier.edge}
           strokeWidth={4}
           strokeLinejoin="round"
         />
         <Path d="M50 10 L86 22 V38 C70 26 58 18 50 14 Z" fill="#FFFFFF" opacity={0.14} />
       </Svg>
       <View style={{ marginBottom: LIP }}>
-        <Glyph name={glyph} size={36} color={locked ? '#9C8E9A' : colors.gold} strokeWidth={2.4} />
+        <Glyph name={glyph} size={36} color={locked ? sealed.glyph : colors.gold} strokeWidth={2.4} />
       </View>
     </View>
   );
@@ -215,13 +234,15 @@ function BossRibbon({
   cleared,
   label,
   tone,
+  dark,
 }: {
   locked: boolean;
   cleared: boolean;
   label: string;
   tone: string;
+  dark: boolean;
 }) {
-  const background = locked ? '#BDAFBB' : cleared ? colors.goldDark : tone;
+  const background = locked ? (dark ? '#4A3E66' : '#BDAFBB') : cleared ? colors.goldDark : tone;
   return (
     <View style={[styles.ribbon, { backgroundColor: background }]}>
       <Text style={[styles.ribbonText, locked && styles.ribbonTextLocked]} numberOfLines={1}>
