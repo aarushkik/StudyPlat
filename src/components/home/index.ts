@@ -1,4 +1,5 @@
 export { Scenery } from './Scenery';
+export { AreaAmbience } from './AreaAmbience';
 export { TrailSegment, segmentHeight } from './TrailSegment';
 export { QuestNodeButton, NODE_SIZE, BOSS_SIZE, nodeSizeFor } from './QuestNodeButton';
 export { UnitBanner } from './UnitBanner';
