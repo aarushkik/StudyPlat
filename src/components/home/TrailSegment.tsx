@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { G, Path, Rect } from 'react-native-svg';
 import { Mascot } from '@/components/Mascot';
-import { biomes, isDarkBiome } from '@/theme/biomes';
+import { biomes, isDarkBiome, type BiomeId, type BiomeTheme } from '@/theme/biomes';
 import type { QuestNode, QuestNodeState, QuestUnit } from '@/types/quest';
 import { NODE_SIZE, QuestNodeButton, nodeSizeFor } from './QuestNodeButton';
+import { AreaAmbience } from './AreaAmbience';
 import { Scenery } from './Scenery';
 
 /**
@@ -33,6 +34,9 @@ interface TrailSegmentProps {
   unit: QuestUnit;
   width: number;
   index: number;
+  /** Neighbouring landscapes, so this area's ends can dissolve into them. */
+  biomeAbove?: BiomeId;
+  biomeBelow?: BiomeId;
   stateOf: (nodeId: string) => QuestNodeState;
   onSelect: (node: QuestNode) => void;
 }
@@ -42,23 +46,45 @@ export function segmentHeight(nodeCount: number): number {
   return TOP_PAD + (nodeCount - 1) * SPACING + BOTTOM_PAD;
 }
 
-export function TrailSegment({ unit, width, index, stateOf, onSelect }: TrailSegmentProps) {
+/**
+ * Memoised: an area is a few hundred SVG shapes plus its ambience, and the map
+ * re-renders on every scroll tick to move the pinned banner. Without this the
+ * list warns that it is slow to update, because each tick rebuilds every
+ * mounted landscape. The props are all stable between progress changes, so the
+ * mounted areas now only re-render when progress actually moves.
+ */
+export const TrailSegment = React.memo(TrailSegmentImpl);
+
+function TrailSegmentImpl({ unit, width, index, biomeAbove, biomeBelow, stateOf, onSelect }: TrailSegmentProps) {
   const theme = biomes[unit.biome];
   const dark = isDarkBiome(unit.biome);
 
-  // Sized so the widest node (the boss) still clears the margins where the
-  // scenery lives.
-  const amplitude = Math.min(width * 0.21, 82);
+  // A tighter weave than the road strictly needs. The trail used to swing wide
+  // enough that scenery was squeezed into two ~50px strips at the screen edges,
+  // which is why areas read as empty; pulling it in gives the landscape most of
+  // the width back without making the route feel straight.
+  const amplitude = Math.min(width * 0.155, 58);
+  const phase = index * 1.3;
+
   const points = useMemo(
     () =>
       unit.nodes.map((_, i) => ({
-        x: width / 2 + amplitude * Math.sin(i * WEAVE + index * 1.3),
+        x: width / 2 + amplitude * Math.sin(i * WEAVE + phase),
         y: TOP_PAD + i * SPACING,
       })),
-    [unit.nodes, width, amplitude, index],
+    [unit.nodes, width, amplitude, phase],
   );
 
   const height = segmentHeight(unit.nodes.length);
+
+  // Where the road is at any height — the scenery uses this to fill every gap
+  // beside the path instead of hugging the screen edges.
+  const trailXAt = useMemo(
+    () => (y: number) => width / 2 + amplitude * Math.sin(((y - TOP_PAD) / SPACING) * WEAVE + phase),
+    [width, amplitude, phase],
+  );
+  // Half the widest stop, plus breathing room.
+  const clearance = 68;
 
   // Run the road off both edges of the segment so it reads as one continuous
   // route passing behind the area banners rather than restarting each area.
@@ -72,11 +98,24 @@ export function TrailSegment({ unit, width, index, stateOf, onSelect }: TrailSeg
 
   return (
     <View style={{ width, height }}>
-      <Scenery width={width} height={height} biome={unit.biome} seed={index + 1} />
+      <Scenery
+        width={width}
+        height={height}
+        biome={unit.biome}
+        seed={index + 1}
+        trailXAt={trailXAt}
+        clearance={clearance}
+        groundAbove={biomeAbove ? biomes[biomeAbove].hills[0] : undefined}
+        groundBelow={biomeBelow ? biomes[biomeBelow].hills[0] : undefined}
+      />
 
       <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+        {/* A soft dark verge where the cover meets the road, so the path looks
+            cut through the canopy rather than laid on top of it. */}
+        <Path d={trail} stroke="#000000" strokeWidth={34} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.13} />
         <Path d={trail} stroke={theme.trail.edge} strokeWidth={26} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         <Path d={trail} stroke={theme.trail.face} strokeWidth={19} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <TrailBank trail={trail} theme={theme} />
         <Path
           d={trail}
           stroke={dark ? '#FFFFFF' : '#FFFFFF'}
@@ -87,6 +126,8 @@ export function TrailSegment({ unit, width, index, stateOf, onSelect }: TrailSeg
           opacity={dark ? 0.5 : 0.85}
         />
       </Svg>
+
+      <AreaAmbience width={width} height={height} biome={unit.biome} seed={index + 1} />
 
       <AreaGate unit={unit} width={width} x={points[0].x} />
 
@@ -99,7 +140,7 @@ export function TrailSegment({ unit, width, index, stateOf, onSelect }: TrailSeg
             key={node.id}
             style={[styles.slot, { left: points[i].x - size / 2, top: points[i].y - size / 2, width: size }]}
           >
-            <QuestNodeButton node={node} state={stateOf(node.id)} onPress={() => onSelect(node)} />
+            <QuestNodeButton node={node} state={stateOf(node.id)} dark={dark} onPress={() => onSelect(node)} />
           </View>
         );
       })}
@@ -137,6 +178,39 @@ function AreaGate({ unit, width, x }: { unit: QuestUnit; width: number; x: numbe
         <Rect x={w / 2 - 9} y={6} width={18} height={15} rx={4} fill={deep} />
       </Svg>
     </View>
+  );
+}
+
+/**
+ * Loose stones along both banks.
+ *
+ * Drawn as a single dashed stroke rather than dozens of placed circles: one
+ * dashed path offset either side of the road gives the same broken gravel edge
+ * for two SVG nodes instead of sixty, which matters when three areas are
+ * mounted at once.
+ */
+function TrailBank({ trail, theme }: { trail: string; theme: BiomeTheme }) {
+  return (
+    <G opacity={0.55}>
+      <Path
+        d={trail}
+        stroke={theme.trail.edge}
+        strokeWidth={30}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray="7 13"
+        opacity={0.75}
+      />
+      <Path
+        d={trail}
+        stroke={theme.stone[0]}
+        strokeWidth={27}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray="4 17"
+        opacity={0.6}
+      />
+    </G>
   );
 }
 
