@@ -22,6 +22,21 @@ interface UnitBannerProps {
  * changes with the landscape — and it counts bosses, because six of them are
  * what actually stands between here and the next area.
  */
+/**
+ * Real AP unit names run long — "Consequences of Industrialization" is 33
+ * characters — and at the banner's display size anything past ~21 was being
+ * cut to an ellipsis. Step the type down instead of truncating: the unit name
+ * is the one thing on the banner a student needs to read in full.
+ */
+function titleSizeFor(title: string): { fontSize: number; lineHeight: number } {
+  if (title.length > 32) return { fontSize: 14, lineHeight: 20 };
+  if (title.length > 30) return { fontSize: 15, lineHeight: 22 };
+  if (title.length > 27) return { fontSize: 16, lineHeight: 23 };
+  if (title.length > 23) return { fontSize: 18, lineHeight: 25 };
+  if (title.length > 19) return { fontSize: 20, lineHeight: 28 };
+  return { fontSize: 22, lineHeight: 30 };
+}
+
 export function UnitBanner({ unit, cleared, bossesCleared, onOpenGuide }: UnitBannerProps) {
   const theme = biomes[unit.biome];
   const total = unit.nodes.length;
@@ -39,7 +54,7 @@ export function UnitBanner({ unit, cleared, bossesCleared, onOpenGuide }: UnitBa
           <Text style={styles.kicker} numberOfLines={1}>
             {unit.section} · {theme.name}
           </Text>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, titleSizeFor(unit.title)]} numberOfLines={1}>
             {unit.title}
           </Text>
           <View style={styles.progressRow}>
@@ -80,7 +95,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  body: { flex: 1, paddingRight: spacing.md },
+  body: { flex: 1, paddingRight: spacing.sm },
   kicker: { ...typography.overline, color: 'rgba(255,255,255,0.82)' },
   title: { ...typography.heading, color: colors.white, marginTop: 1 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
