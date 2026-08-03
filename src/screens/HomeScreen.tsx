@@ -104,9 +104,19 @@ export function HomeScreen() {
 
   const renderSegment = useCallback(
     ({ item, index }: { item: QuestUnit; index: number }) => (
-      <TrailSegment unit={item} index={index} width={width} stateOf={quest.stateOf} onSelect={setSelected} />
+      <TrailSegment
+        unit={item}
+        index={index}
+        width={width}
+        // Each area knows its neighbours so its ends can dissolve into them
+        // instead of butting up as a hard colour seam.
+        biomeAbove={units[index - 1]?.biome}
+        biomeBelow={units[index + 1]?.biome}
+        stateOf={quest.stateOf}
+        onSelect={setSelected}
+      />
     ),
-    [width, quest.stateOf],
+    [width, quest.stateOf, units],
   );
 
   const getItemLayout = useCallback(
