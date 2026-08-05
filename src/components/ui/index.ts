@@ -1,6 +1,8 @@
 export { ScreenContainer } from './ScreenContainer';
 export { AppButton } from './AppButton';
 export type { ButtonTone } from './AppButton';
+export { ChunkyCard, StatChip, PrizeChip, SegmentedProgress } from './Chunky';
+export { Confetti } from './Confetti';
 export { Wordmark } from './Wordmark';
 export { ProgressBar } from './ProgressBar';
 export { SpeechBubble } from './SpeechBubble';
