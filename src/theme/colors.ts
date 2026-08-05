@@ -1,161 +1,211 @@
 /**
- * stuAP color palette — warm, academic, and playful.
+ * StudyPlat colour system.
  *
- * A soft rose brand on a warm cream canvas, with a set of gentle accent colors
- * used to give each AP course its own identity, plus a dedicated "quest map"
- * range for the adventure path. All raw values live here so screens/components
- * never hardcode a hex — retheming stays a one-file change.
+ * Ink on cream with a turquoise brand — the palette is read straight from the
+ * Claude Design build, not invented here. Two things carry the whole look:
+ *
+ * 1. **Ink is on everything.** `#12303C` is the border of every card, button,
+ *    chip and stop on the map, and most of the text. It is what makes the UI
+ *    read as chunky stickers rather than flat panels.
+ * 2. **Orange means "you are here".** Turquoise is the brand, but `#F5A02B` is
+ *    reserved for the one stop the student should tap next and for in-progress
+ *    state. Spending it anywhere else costs the map its focal point.
+ *
+ * Twelve screens render on the night ground instead of cream — splash, the
+ * session summary, level up, unlock moments, all four boss screens, the
+ * placement result, world complete, and review. See `nightScreens` below.
  */
 
 export const palette = {
-  // Brand — the rose scale
-  rose50: '#FFF3F8',
-  rose100: '#FFE1EC',
-  rose200: '#FFC2DA',
-  rose300: '#FF9CC2',
-  rose400: '#FF7DAE', // mascot body
-  rose500: '#FF5E9C', // primary brand
-  rose600: '#EC4488', // button edge / pressed
-  rose700: '#C72E6E',
-  rose800: '#9E2255',
+  // The line. On borders, on text, on shadows.
+  ink: '#12303C',
+  inkSoft: '#0B4A56',
+  inkDeep: '#052F37',
 
-  // Warm neutrals
-  cream: '#FFFCF7', // app background
-  parchment: '#FBF4EA',
-  ink: '#3B2E3A', // primary text (warm plum)
-  slate: '#7A7080', // secondary text
-  mist: '#A89FA8', // muted text
-  border: '#EFE7EE',
+  // Brand turquoise, sampled from the app icon.
+  turquoise: '#05B1C9',
+  turquoiseLight: '#7FE0EC',
+  turquoiseDeep: '#037D91',
+  turquoiseTint: '#EAF9FB',
+  turquoiseSky: '#D6F2F6',
+
+  // "You are here" and in-progress.
+  orange: '#F5A02B',
+  orangeDeep: '#C77812',
+  orangeDark: '#5A3708',
+
+  // Warm grounds.
+  cream: '#FFFDF7',
+  parchment: '#FBF1E2',
+  sand: '#EADDC6',
+  sandDeep: '#CFC0A4',
+  locked: '#EFE3CD',
+  lockedInk: '#AE9F84',
+
+  // Night ground for the twelve dark screens.
+  night: '#0B2029',
+  nightRaised: '#12303C',
+
+  // Muted text tiers, warm-biased so they sit on cream without going grey.
+  muted: '#7C9199',
+  mutedDeep: '#6D858C',
+  mutedDark: '#5D767E',
+  mutedLight: '#96A8AD',
+
+  // Support hues used by tracks, prizes and characters.
+  violet: '#6B4AA0',
+  violetLight: '#C9A6F2',
+  violetMid: '#A796C2',
+  ember: '#D9552F',
+  green: '#3E9E63',
+  greenDeep: '#2A6E45',
+
   white: '#FFFFFF',
-  black: '#241B22',
+} as const;
 
-  // Accents
-  amber: '#FFB02E',
-  amberDark: '#F2921E',
-  amberDeep: '#D97706',
-  hatTan: '#CE9A6B',
-  hatBrown: '#A9723F',
-  hatCream: '#FFF3E6',
+export const colors = {
+  // Structure
+  ink: palette.ink,
+  border: palette.ink,
+  background: palette.parchment,
+  surface: palette.cream,
+  surfaceSelected: palette.turquoiseTint,
+  night: palette.night,
+  nightRaised: palette.nightRaised,
 
-  // Feedback
-  success: '#37C98B',
-  successDark: '#12946A',
-  successSoft: '#DDF6EC',
-  danger: '#FF5A6A',
-  dangerDark: '#D53344',
-  dangerSoft: '#FFE3E6',
+  // Brand
+  primary: palette.turquoise,
+  primaryLight: palette.turquoiseLight,
+  primaryDeep: palette.turquoiseDeep,
+  primaryTint: palette.turquoiseTint,
 
-  // Streak celebration (turquoise — its own identity)
-  splash: '#2FC6D6',
-  splashDeep: '#1799AC',
-  splashMid: '#8AE0EA',
-  splashSoft: '#D6F4F8',
+  // Progress
+  current: palette.orange,
+  currentDeep: palette.orangeDeep,
+  locked: palette.locked,
+  lockedText: palette.lockedInk,
 
-  disabledBg: '#EDE7EC',
-  disabledEdge: '#DED6DD',
-  disabledText: '#B7AEB6',
+  // Text
+  textPrimary: palette.ink,
+  textSecondary: palette.mutedDark,
+  textMuted: palette.muted,
+  textFaint: palette.mutedLight,
+  textOnInk: palette.parchment,
+  textOnPrimary: palette.inkDeep,
+
+  // Feedback. Correct borrows the track green, wrong the ember.
+  success: palette.green,
+  successDeep: palette.greenDeep,
+  successDark: palette.greenDeep,
+  successSoft: '#DDEFE2',
+  danger: palette.ember,
+  dangerDark: '#A93B1C',
+  dangerSoft: '#FBE1DA',
+
+  gold: palette.orange,
+  goldDeep: palette.orangeDeep,
+  goldDark: palette.orangeDeep,
+
+  // Sunken wells and inset tiles.
+  surfaceSunken: palette.parchment,
+
+  // Disabled / sealed.
+  disabledBg: palette.locked,
+  disabledEdge: palette.sandDeep,
+  disabledText: palette.lockedInk,
+
+  /**
+   * The streak celebration keeps its own identity, and now that the brand is
+   * turquoise it simply *is* the brand — the old palette had to reach for a
+   * separate colour to avoid clashing with rose.
+   */
+  splash: palette.turquoise,
+  splashDeep: palette.turquoiseDeep,
+  splashMid: palette.turquoiseLight,
+  splashSoft: palette.turquoiseSky,
+
+  primaryDark: palette.turquoiseDeep,
+  primarySoft: palette.turquoiseSky,
+
+  black: palette.ink,
+  white: palette.white,
 } as const;
 
 /**
- * Quest-map scenery. One warm, storybook landscape range shared by the
- * backdrop, the trail, and the node art so the map always reads as one place.
+ * Per-course accent pairs. Courses still colour-code their icon and selected
+ * state; these are the old accent keys retuned to sit beside turquoise and ink
+ * rather than rose.
  */
-export const scenery = {
-  skyHigh: '#FFF1F6',
-  skyLow: '#FFFAF3',
-  hillFar: '#F4E6F1',
-  hillMid: '#EAF2E0',
-  hillNear: '#DDECCD',
-  canopy: '#8FCB6E',
-  canopyDeep: '#63A64C',
-  trunk: '#B98457',
-  trunkDeep: '#96683F',
-  ridge: '#DACDE5',
-  ridgeDeep: '#C0B0CF',
-  snow: '#FFFBFF',
-  water: '#AADEF0',
-  waterDeep: '#7CC5E0',
-  trail: '#F3E4D0',
-  trailEdge: '#E0CBAE',
-  stone: '#D0C5CF',
-  stoneDeep: '#AA9CAA',
-  cloud: '#FFFFFF',
-} as const;
-
-/** Node styling for the quest map, keyed by node kind. */
-export const questNode = {
-  lesson: { face: '#FF7DAE', edge: '#D93F78', ring: '#FFD3E5' },
-  practice: { face: '#7FC8F0', edge: '#3E90C4', ring: '#D7EEFB' },
-  reading: { face: '#F5B94B', edge: '#C98B1B', ring: '#FCEBCC' },
-  treasure: { face: '#9C89F5', edge: '#6B54D1', ring: '#E6E0FE' },
-  boss: { face: '#5A3B7A', edge: '#2F1B45', ring: '#C9A6E8' },
-  locked: { face: '#DED4DC', edge: '#BDAFBB', ring: '#F0E9EF' },
-} as const;
-
-export type QuestNodeKind = keyof typeof questNode;
-
-export const colors = {
-  primary: palette.rose500,
-  primaryDark: palette.rose600,
-  primaryDeep: palette.rose700,
-  primarySoft: palette.rose100,
-  primaryTint: palette.rose50,
-
-  background: palette.cream,
-  surface: palette.white,
-  surfaceSunken: palette.parchment,
-  border: palette.border,
-
-  textPrimary: palette.ink,
-  textSecondary: palette.slate,
-  textMuted: palette.mist,
-  textOnPrimary: palette.white,
-
-  success: palette.success,
-  successDark: palette.successDark,
-  successSoft: palette.successSoft,
-  danger: palette.danger,
-  dangerDark: palette.dangerDark,
-  dangerSoft: palette.dangerSoft,
-  splash: palette.splash,
-  splashDeep: palette.splashDeep,
-  splashMid: palette.splashMid,
-  splashSoft: palette.splashSoft,
-
-  gold: palette.amber,
-  goldDark: palette.amberDark,
-
-  disabledBg: palette.disabledBg,
-  disabledEdge: palette.disabledEdge,
-  disabledText: palette.disabledText,
-
-  white: palette.white,
-  black: palette.black,
-} as const;
-
-/** Two-stop gradients, ready to spread into <LinearGradient colors={...} />. */
-export const gradients = {
-  brand: [palette.rose400, palette.rose600] as const,
-  brandDeep: [palette.rose500, palette.rose700] as const,
-  dawn: [palette.rose300, palette.amber] as const,
-  sky: [scenery.skyHigh, scenery.skyLow] as const,
-  gold: [palette.amber, palette.amberDeep] as const,
-  boss: ['#7A4FA8', '#3B2258'] as const,
-  success: [palette.success, palette.successDark] as const,
-  glass: ['rgba(255,255,255,0.94)', 'rgba(255,255,255,0.74)'] as const,
-} as const;
-
-/** Soft accent pairs used to color-code AP courses. */
 export const accents = {
-  green: { base: '#38C793', soft: '#DFF6EC', deep: '#1F9A6E' },
-  violet: { base: '#8B7BFF', soft: '#E7E3FF', deep: '#5E4BD6' },
-  coral: { base: '#FF7A66', soft: '#FFE3DD', deep: '#D84E38' },
-  amber: { base: '#F2A03D', soft: '#FCEBD4', deep: '#C4740F' },
-  sky: { base: '#3CA7FF', soft: '#DDEEFF', deep: '#1173C4' },
-  lime: { base: '#7DC94B', soft: '#E8F5D8', deep: '#4F9422' },
-  pink: { base: '#FF6FB0', soft: '#FFE0EF', deep: '#D33F84' },
-  gold: { base: '#E0A800', soft: '#FBF0CC', deep: '#A87A00' },
+  green: { base: palette.green, soft: '#DEEFE1', deep: palette.greenDeep },
+  violet: { base: palette.violet, soft: '#E8DFF7', deep: '#4A3070' },
+  coral: { base: palette.ember, soft: '#FBE1DA', deep: '#A93B1C' },
+  amber: { base: palette.orange, soft: '#FBE6C7', deep: palette.orangeDeep },
+  sky: { base: '#3F63B5', soft: '#DEE7F8', deep: '#2B457F' },
+  lime: { base: '#6FA83C', soft: '#E6F0D6', deep: '#4C7626' },
+  pink: { base: '#B04A87', soft: '#F5E2EE', deep: '#7C3160' },
+  gold: { base: '#8A7A4E', soft: '#EAE5D6', deep: '#615436' },
 } as const;
 
 export type AccentName = keyof typeof accents;
 export type Accent = (typeof accents)[AccentName];
+
+/**
+ * Stop colours on the path, keyed by what happens there.
+ *
+ * The design does not tint stops by kind the way the old map did — a stop is
+ * cream when available, the track's deep tone when cleared, orange when it is
+ * the one to play next, and sand when sealed. Kind is carried by the emblem
+ * inside, not by the fill.
+ */
+export const stopColors = {
+  available: { face: palette.cream, edge: palette.ink },
+  current: { face: palette.orange, edge: palette.orangeDeep },
+  locked: { face: palette.locked, edge: palette.ink },
+} as const;
+
+/**
+ * Per-kind colour, used where a stop needs to *say* what it is rather than
+ * where it sits — the crest on the stop sheet, legends, the practice list.
+ * On the path itself the fill carries state and the emblem carries kind.
+ */
+export const questNode = {
+  lesson: { face: palette.turquoise, edge: palette.turquoiseDeep, ring: palette.turquoiseSky },
+  drill: { face: palette.violet, edge: '#4A3070', ring: '#E8DFF7' },
+  study: { face: palette.green, edge: palette.greenDeep, ring: '#DEEFE1' },
+  bonus: { face: palette.orange, edge: palette.orangeDeep, ring: '#FBE6C7' },
+  boss: { face: palette.ember, edge: '#A93B1C', ring: '#FBE1DA' },
+  locked: { face: palette.locked, edge: palette.sandDeep, ring: palette.sand },
+} as const;
+
+export type QuestNodeKind = keyof typeof questNode;
+
+/**
+ * Screens that render on the night ground. The mascot must use its
+ * transparent art on these — the cream-backed copies show a visible square.
+ */
+export const nightScreens = [
+  'Splash',
+  'Summary',
+  'LevelUp',
+  'UnlockMoment',
+  'BossIntro',
+  'BossFight',
+  'Victory',
+  'Defeat',
+  'PlacementResult',
+  'WorldDone',
+  'Review',
+  'ReviewDone',
+] as const;
+
+export type NightScreen = (typeof nightScreens)[number];
+
+/** Confetti chip colours, in the order the design cycles them. */
+export const confettiColors = [
+  palette.parchment,
+  palette.orange,
+  palette.turquoiseLight,
+  palette.white,
+  palette.violet,
+] as const;

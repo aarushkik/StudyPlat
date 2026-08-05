@@ -16,7 +16,7 @@ const HOLD_MS = 2400;
 /**
  * The backdrop is a contour map.
  *
- * stuAP is a trail through ten areas, so the splash says that before a word is
+ * StudyPlat is a trail through ten areas, so the splash says that before a word is
  * read: soft topographic rings radiating out from Stu, like the map you are
  * about to walk. It replaced a scatter of outlined study icons — beakers,
  * books, compasses — which read as stock clip-art and, worse, all drifted off
@@ -126,7 +126,7 @@ export function SplashScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <LinearGradient
-        colors={[palette.rose400, palette.rose600]}
+        colors={[palette.night, palette.ink]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
@@ -225,7 +225,7 @@ function ContourField({ float }: { float: Animated.Value }) {
 const EMBLEM = 226;
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.rose500 },
+  root: { flex: 1, backgroundColor: palette.night },
   // Centred on the emblem so the contours radiate out from Stu.
   contours: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   ringLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   wordWrap: { alignItems: 'center', marginTop: spacing.xxl },
-  tagline: { ...typography.tagline, color: palette.rose100, marginTop: spacing.sm },
+  tagline: { ...typography.tagline, color: palette.turquoiseLight, marginTop: spacing.sm },
   loader: {
     position: 'absolute',
     bottom: spacing.giant,

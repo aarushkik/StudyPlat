@@ -1,4 +1,4 @@
-/** Corner-radius scale. stuAP leans on generous, rounded corners. */
+/** Corner-radius scale. StudyPlat leans on generous, rounded corners. */
 export const radius = {
   xs: 6,
   sm: 10,

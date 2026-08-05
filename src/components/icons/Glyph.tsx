@@ -3,7 +3,7 @@ import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { colors } from '@/theme';
 
 /**
- * The stuAP glyph set — one original, cohesive icon family drawn on a shared
+ * The StudyPlat glyph set — one original, cohesive icon family drawn on a shared
  * 24×24 grid with rounded joins. Outline glyphs inherit `strokeWidth`; a few
  * (flame, gem, heart, star, crown) are solid because they read better as small
  * badges in the map HUD. Nothing here comes from a stock icon font, so every

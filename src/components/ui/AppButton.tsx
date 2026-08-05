@@ -25,7 +25,7 @@ interface AppButtonProps {
 const DEPTH = 5;
 
 /**
- * The signature stuAP button: chunky, rounded, and tactile. A darker lip sits
+ * The signature StudyPlat button: chunky, rounded, and tactile. A darker lip sits
  * behind the face; pressing springs the face down onto it. The travel is
  * transform-only, so nothing reflows and neighbouring layout can never jump.
  */

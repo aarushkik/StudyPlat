@@ -3,7 +3,7 @@ import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { colors } from '@/theme';
 
 /**
- * Custom stuAP icon set — original, cohesive line-art glyphs drawn in the
+ * Custom StudyPlat icon set — original, cohesive line-art glyphs drawn in the
  * course/step accent color. Replaces stock emoji so every surface feels
  * designed. All icons share a 24×24 grid, rounded strokes, and a transparent
  * background (screens supply the tinted tile behind them).

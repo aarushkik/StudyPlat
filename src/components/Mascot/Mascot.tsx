@@ -5,7 +5,7 @@ import { StuArt } from './StuArt';
 import { MASCOT_ASPECT, MASCOT_SIZES, type MascotProps } from './Mascot.types';
 
 /**
- * Stu — the stuAP mascot. A soft pink platypus scholar drawn as a single
+ * Stu — the StudyPlat mascot. A soft pink platypus scholar drawn as a single
  * rounded blob so the silhouette stays legible from a 44px avatar up to a
  * full-screen hero.
  *

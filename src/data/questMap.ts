@@ -22,7 +22,7 @@ import { BIOME_ROUTES, COURSE_UNITS, DEFAULT_ROUTE, DEFAULT_UNITS, type UnitSpec
 const STAGES_PER_UNIT = 6;
 
 /** The support stop that sits between each lesson and its boss. */
-const SUPPORT_CYCLE: QuestNodeKindId[] = ['practice', 'reading', 'practice', 'treasure', 'reading', 'practice'];
+const SUPPORT_CYCLE: QuestNodeKindId[] = ['drill', 'study', 'drill', 'bonus', 'study', 'drill'];
 
 /** Boss ranks within an area. The sixth opens the next area. */
 export const BOSS_TIERS = ['Sentry', 'Warden', 'Enforcer', 'Champion', 'Vanguard', 'Overlord'] as const;
@@ -34,8 +34,8 @@ const READING_BY_CATEGORY: Record<CourseCategory, { title: string; summary: stri
   english: { title: 'Close reading', summary: 'Take one passage apart line by line and name the moves in it.' },
 };
 
-const BASE_XP: Record<QuestNodeKindId, number> = { lesson: 20, practice: 25, reading: 25, treasure: 15, boss: 60 };
-const BASE_MINUTES: Record<QuestNodeKindId, number> = { lesson: 5, practice: 7, reading: 8, treasure: 3, boss: 12 };
+const BASE_XP: Record<QuestNodeKindId, number> = { lesson: 20, drill: 25, study: 25, bonus: 15, boss: 60 };
+const BASE_MINUTES: Record<QuestNodeKindId, number> = { lesson: 5, drill: 7, study: 8, bonus: 3, boss: 12 };
 
 /** Rounds to the nearest 5 so reward numbers stay readable. */
 const round5 = (n: number) => Math.max(5, Math.round(n / 5) * 5);
@@ -54,8 +54,8 @@ function difficultyFor(unitIndex: number, stage: number, kind: QuestNodeKindId):
 /** How many questions a stop is worth. Bosses grow with their rank. */
 export function questionCountFor(node: QuestNode): number {
   if (node.kind === 'boss') return 6 + (node.tier ?? 1);
-  if (node.kind === 'treasure') return 4;
-  if (node.kind === 'practice') return 6;
+  if (node.kind === 'bonus') return 4;
+  if (node.kind === 'drill') return 6;
   return 5;
 }
 
@@ -93,14 +93,14 @@ function buildStage(
     id: `${idBase}-${supportKind}`,
     kind: supportKind,
     title:
-      supportKind === 'practice' ? 'Skill drill' : supportKind === 'reading' ? reading.title : 'Bonus cache',
+      supportKind === 'drill' ? 'Skill drill' : supportKind === 'study' ? reading.title : 'Bonus cache',
     summary:
-      supportKind === 'practice'
+      supportKind === 'drill'
         ? `Mixed questions: ${topic}, plus everything before it in this area.`
-        : supportKind === 'reading'
+        : supportKind === 'study'
           ? reading.summary
           : 'A short bonus round off the main trail. Clear it for extra XP.',
-    skills: supportKind === 'treasure' ? ['Bonus'] : spec.topics.slice(0, stage),
+    skills: supportKind === 'bonus' ? ['Bonus'] : spec.topics.slice(0, stage),
     xp: round5(BASE_XP[supportKind] * xpScale),
     minutes: BASE_MINUTES[supportKind],
     stage,

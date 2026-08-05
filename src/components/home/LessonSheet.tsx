@@ -20,9 +20,9 @@ interface LessonSheetProps {
 /** Per-kind framing: what to call it, and what the button should promise. */
 const KIND: Record<QuestNodeKindId, { label: string; glyph: GlyphName; cta: string; again: string }> = {
   lesson: { label: 'Lesson', glyph: 'book', cta: 'Start lesson', again: 'Practice again' },
-  practice: { label: 'Drill', glyph: 'bolt', cta: 'Start drill', again: 'Run it again' },
-  reading: { label: 'Study', glyph: 'page', cta: 'Open study', again: 'Read it again' },
-  treasure: { label: 'Bonus', glyph: 'chest', cta: 'Open the cache', again: 'Open again' },
+  drill: { label: 'Drill', glyph: 'bolt', cta: 'Start drill', again: 'Run it again' },
+  study: { label: 'Study', glyph: 'page', cta: 'Open study', again: 'Read it again' },
+  bonus: { label: 'Bonus', glyph: 'chest', cta: 'Open the cache', again: 'Open again' },
   boss: { label: 'Boss battle', glyph: 'swords', cta: 'Enter the battle', again: 'Rematch' },
 };
 

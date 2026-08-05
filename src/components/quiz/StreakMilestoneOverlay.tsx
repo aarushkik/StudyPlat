@@ -12,7 +12,7 @@ interface StreakMilestoneOverlayProps {
 }
 
 /**
- * stuAP's original full-screen "knowledge splash" streak celebration.
+ * StudyPlat's original full-screen "knowledge splash" streak celebration.
  *
  * A turquoise water splash bursts from the center and floods the whole screen
  * with a squash-and-stretch pop, throws a spray of foam droplets, floats a few

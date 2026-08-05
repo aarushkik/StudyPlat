@@ -10,7 +10,7 @@ import type { RootStackParamList } from '@/navigation/types';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Welcome'>;
 
 /**
- * Welcome screen. Big friendly mascot, the stuAP wordmark + tagline, and the
+ * Welcome screen. Big friendly mascot, the StudyPlat wordmark + tagline, and the
  * two entry actions. Primary starts setup; secondary is the returning-user path.
  */
 export function WelcomeScreen() {

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "stuAP",
-    "slug": "stuap",
+    "name": "StudyPlat",
+    "slug": "studyplat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -43,9 +43,9 @@ export function nodeSizeFor(node: Pick<QuestNode, 'kind' | 'tier'>): number {
 
 const KIND_GLYPH: Record<QuestNodeKindId, GlyphName> = {
   lesson: 'book',
-  practice: 'bolt',
-  reading: 'page',
-  treasure: 'chest',
+  drill: 'bolt',
+  study: 'page',
+  bonus: 'chest',
   boss: 'swords',
 };
 

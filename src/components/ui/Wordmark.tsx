@@ -10,7 +10,7 @@ interface WordmarkProps {
 }
 
 /**
- * The stuAP wordmark: "stu" + an "AP" badge. Highlighting AP as a chip is the
+ * The StudyPlat wordmark: "stu" + an "AP" badge. Highlighting AP as a chip is the
  * brand's signature — a distinctive lockup rather than a plain word.
  */
 export function Wordmark({ size = 34, variant = 'brand' }: WordmarkProps) {

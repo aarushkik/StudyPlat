@@ -12,7 +12,7 @@ import type { BiomeId } from '@/theme/biomes';
  */
 
 /** What happens at a stop on the trail. */
-export type QuestNodeKindId = 'lesson' | 'practice' | 'reading' | 'treasure' | 'boss';
+export type QuestNodeKindId = 'lesson' | 'drill' | 'study' | 'bonus' | 'boss';
 
 /** Where the student is relative to a node. Derived, never stored. */
 export type QuestNodeState = 'locked' | 'current' | 'complete';
