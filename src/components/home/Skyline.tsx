@@ -1,18 +1,22 @@
 import React from 'react';
+import Svg, { Ellipse, G, Path, Rect } from 'react-native-svg';
 import { StyleSheet, View } from 'react-native';
 import type { SkylineKind } from '@/data/tracks';
 
 /**
  * The silhouette standing behind a track.
  *
- * Ten sets of three to five blocks, ported from the design build. Each is the
- * track's own dark tone at 20% over its sky, anchored to the bottom of the
- * band — so it reads as a distant skyline rather than as decoration sitting on
- * the path.
+ * Ten sets of three to five shapes, ported from the design build. Each is the
+ * track's own dark tone at 20% over its sky, sitting on the ground line — so
+ * it reads as a distant skyline rather than decoration on the path.
  *
- * Deliberately cheap. This is what replaced a procedural canopy renderer that
- * cost several hundred SVG nodes per track; a skyline is a handful of plain
- * Views and says "which place is this?" just as clearly at a glance.
+ * Drawn in SVG rather than as plain Views. The design's waves and hills are
+ * *ellipses* — a 180×54 swell — and React Native clamps `borderRadius` to half
+ * the shorter side, which turns every one of them into a pill. Three pills in
+ * a row merge into a single flat bar with no horizon in it at all.
+ *
+ * Still cheap: three to five nodes per track, against the several hundred the
+ * procedural canopy it replaced needed.
  */
 
 interface Block {
@@ -21,35 +25,39 @@ interface Block {
   bottom: number;
   width: number;
   height: number;
-  /** Uniform radius, or `dome` for a half-round top, or `arch` for a flat cap. */
-  radius: number | 'dome' | 'cap';
+  /**
+   * `ellipse` — a full swell or disc.
+   * `cap` — a dome: half-ellipse on a flat base, for hills and islands.
+   * a number — a rectangle with that corner radius, for built things.
+   */
+  shape: number | 'ellipse' | 'cap';
 }
 
-const S = (left: number, bottom: number, width: number, height: number, radius: Block['radius']): Block => ({
+const S = (left: number, bottom: number, width: number, height: number, shape: Block['shape']): Block => ({
   left,
   bottom,
   width,
   height,
-  radius,
+  shape,
 });
 
 const SETS: Record<SkylineKind, Block[]> = {
   // Rolling swells — coasts and shorelines.
-  waves: [S(-30, 4, 180, 54, 'dome'), S(120, 0, 210, 60, 'dome'), S(268, 10, 150, 44, 'dome')],
+  waves: [S(-30, 4, 180, 54, 'ellipse'), S(120, 0, 210, 60, 'ellipse'), S(268, 10, 150, 44, 'ellipse')],
   // A city block of flat-topped buildings.
   towers: [S(10, 0, 44, 118, 8), S(60, 0, 30, 84, 6), S(96, 0, 38, 104, 6), S(248, 0, 50, 138, 10), S(304, 0, 34, 92, 6)],
   // Round-capped industrial stacks.
   chimneys: [S(4, 0, 54, 118, 26), S(68, 0, 34, 76, 16), S(258, 0, 46, 138, 22), S(312, 0, 62, 90, 30)],
   // Flat-topped rock, softly cornered.
   mesa: [S(-24, 0, 186, 92, 14), S(146, 0, 118, 136, 12), S(276, 0, 160, 78, 14)],
-  // Full circles, floating clear of the ground.
-  gears: [S(14, 8, 88, 88, 'dome'), S(114, -14, 70, 70, 'dome'), S(276, 12, 112, 112, 'dome')],
-  // Low domes sitting on the waterline.
+  // Full discs, floating clear of the ground.
+  gears: [S(14, 8, 88, 88, 'ellipse'), S(114, -14, 70, 70, 'ellipse'), S(276, 12, 112, 112, 'ellipse')],
+  // Low domes on the waterline.
   islands: [S(-6, 0, 150, 58, 'cap'), S(156, 0, 108, 42, 'cap'), S(286, 0, 140, 68, 'cap')],
   // Big soft hills.
   ridge: [S(-44, 0, 200, 116, 'cap'), S(116, 0, 178, 146, 'cap'), S(266, 0, 190, 96, 'cap')],
   // Thin stalks over a low bank.
-  reeds: [S(26, 0, 13, 116, 8), S(52, 0, 13, 88, 8), S(298, 0, 13, 136, 8), S(324, 0, 13, 98, 8), S(-14, 0, 200, 38, 'dome')],
+  reeds: [S(26, 0, 13, 116, 8), S(52, 0, 13, 88, 8), S(298, 0, 13, 136, 8), S(324, 0, 13, 98, 8), S(-14, 0, 200, 38, 'ellipse')],
   // Masts with crossbars.
   pylons: [S(38, 0, 10, 146, 4), S(298, 0, 10, 166, 4), S(18, 116, 52, 10, 4), S(276, 136, 52, 10, 4)],
   // Two big summits. The end of every course.
@@ -73,27 +81,33 @@ export function Skyline({ kind, color, width, height }: SkylineProps) {
 
   return (
     <View pointerEvents="none" style={[styles.band, { height }]}>
-      {SETS[kind].map((b, i) => {
-        const w = b.width * scale;
-        const h = b.height * scale;
-        const radius =
-          b.radius === 'dome'
-            ? { borderRadius: Math.min(w, h) / 2 }
-            : b.radius === 'cap'
-              ? { borderTopLeftRadius: w / 2, borderTopRightRadius: w / 2 }
-              : { borderRadius: b.radius * scale };
+      <Svg width={width} height={height}>
+        <G opacity={0.2}>
+          {SETS[kind].map((b, i) => {
+            const w = b.width * scale;
+            const h = b.height * scale;
+            const x = b.left * scale;
+            // Blocks are anchored to the bottom of the band.
+            const yBottom = height - b.bottom * scale;
+            const y = yBottom - h;
 
-        return (
-          <View
-            key={i}
-            style={[
-              styles.block,
-              radius,
-              { left: b.left * scale, bottom: b.bottom * scale, width: w, height: h, backgroundColor: color },
-            ]}
-          />
-        );
-      })}
+            if (b.shape === 'ellipse') {
+              return <Ellipse key={i} cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} fill={color} />;
+            }
+            if (b.shape === 'cap') {
+              // Half-ellipse: one arc from the left foot to the right foot.
+              return (
+                <Path
+                  key={i}
+                  d={`M${x} ${yBottom} A ${w / 2} ${h} 0 0 1 ${x + w} ${yBottom} Z`}
+                  fill={color}
+                />
+              );
+            }
+            return <Rect key={i} x={x} y={y} width={w} height={h} rx={b.shape * scale} fill={color} />;
+          })}
+        </G>
+      </Svg>
     </View>
   );
 }
@@ -103,5 +117,4 @@ const styles = StyleSheet.create({
   // thousand points tall, so a bottom-anchored skyline sits far below the fold
   // and is never seen; at the top it greets you as you cross in.
   band: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
-  block: { position: 'absolute', opacity: 0.2 },
 });

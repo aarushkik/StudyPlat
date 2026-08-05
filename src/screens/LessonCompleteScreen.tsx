@@ -33,9 +33,15 @@ export function LessonCompleteScreen() {
   const rise = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
-    Animated.sequence([
+    // Staggered in parallel rather than sequenced — the same fix as the
+    // placement result. `pop` also drives the copy's opacity, so gating it
+    // behind a bouncy spring settling risks a summary the student cannot read.
+    Animated.parallel([
       Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 6, bounciness: 14 }),
-      Animated.spring(rise, { toValue: 0, useNativeDriver: true, speed: 12, bounciness: 6 }),
+      Animated.sequence([
+        Animated.delay(240),
+        Animated.spring(rise, { toValue: 0, useNativeDriver: true, speed: 12, bounciness: 6 }),
+      ]),
     ]).start();
   }, [pop, rise]);
 

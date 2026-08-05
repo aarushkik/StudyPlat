@@ -35,7 +35,11 @@ const CURRENT_PAD = 58;
  * also the run-in before the first stop so the two do not collide.
  */
 const SKYLINE_BAND = 250;
-const TOP_PAD = 96;
+/**
+ * The first stop has to clear the skyline band, or the silhouette cuts through
+ * it and reads as a stray horizontal bar rather than a horizon.
+ */
+const TOP_PAD = SKYLINE_BAND + 30;
 const BOTTOM_PAD = 64;
 
 interface TrailSegmentProps {
