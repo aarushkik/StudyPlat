@@ -33,8 +33,7 @@ export function ExamTimelineScreen() {
         total={5}
         question="When’s your AP exam?"
         subtitle="So Stu can pace the quest just right."
-        mascotExpression="thinking"
-        mascotAccessory="none"
+        mascotPose="thinking"
       />
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>

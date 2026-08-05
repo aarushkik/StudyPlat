@@ -33,8 +33,7 @@ export function GoalScoreScreen() {
         total={5}
         question="What score are you chasing?"
         subtitle="We’ll aim your quest at this target."
-        mascotExpression="excited"
-        mascotAccessory="none"
+        mascotPose="excited"
       />
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>

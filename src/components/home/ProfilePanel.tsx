@@ -26,7 +26,7 @@ export function ProfilePanel() {
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
-        <Mascot size={104} expression="proud" />
+        <Mascot size={104} pose="proud" />
         <View style={styles.heroText}>
           <Text style={typography.title}>Your quest</Text>
           <Text style={[typography.body, styles.heroBody]} numberOfLines={2}>

@@ -51,7 +51,7 @@ export function PlacementResultScreen() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ alignItems: 'center', transform: [{ scale }] }}>
-          <Mascot size={182} expression="celebrating" />
+          <Mascot size={182} pose="celebrate" />
         </Animated.View>
 
         <Animated.View style={{ opacity: fade, transform: [{ translateY: shift }] }}>

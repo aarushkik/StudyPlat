@@ -29,8 +29,7 @@ export function AchievementPreviewScreen() {
         total={5}
         question="Your AP quest ahead"
         subtitle="Here’s the path Stu will build with you."
-        mascotExpression="excited"
-        mascotAccessory="wand"
+        mascotPose="excited"
       />
 
       <ScrollView style={styles.timeline} showsVerticalScrollIndicator={false}>

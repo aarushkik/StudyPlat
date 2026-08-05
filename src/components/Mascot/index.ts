@@ -1,4 +1,3 @@
 export { Mascot } from './Mascot';
-export { StuArt } from './StuArt';
-export { MASCOT_SIZES, MASCOT_ASPECT } from './Mascot.types';
-export type { MascotExpression, MascotAccessory, MascotSize, MascotProps } from './Mascot.types';
+export { MASCOT_SIZES, MASCOT_ASPECT, MASCOT_ART, MASCOT_MARK } from './Mascot.types';
+export type { MascotPose, MascotSize, MascotProps } from './Mascot.types';

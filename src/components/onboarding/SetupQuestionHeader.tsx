@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ProgressBar, TopBackButton } from '@/components/ui';
 import { Mascot } from '@/components/Mascot';
-import type { MascotAccessory, MascotExpression } from '@/components/Mascot';
+import type { MascotPose } from '@/components/Mascot';
 import { colors, radius, spacing, typography } from '@/theme';
 
 interface SetupQuestionHeaderProps {
@@ -14,8 +14,7 @@ interface SetupQuestionHeaderProps {
   question: string;
   /** Optional supporting line under the headline. */
   subtitle?: string;
-  mascotExpression?: MascotExpression;
-  mascotAccessory?: MascotAccessory;
+  mascotPose?: MascotPose;
 }
 
 /**
@@ -30,8 +29,7 @@ export function SetupQuestionHeader({
   total,
   question,
   subtitle,
-  mascotExpression = 'happy',
-  mascotAccessory = 'none',
+  mascotPose = 'neutral',
 }: SetupQuestionHeaderProps) {
   return (
     <View>
@@ -50,7 +48,7 @@ export function SetupQuestionHeader({
           <Text style={typography.title}>{question}</Text>
           {subtitle ? <Text style={[typography.body, styles.subtitle]}>{subtitle}</Text> : null}
         </View>
-        <Mascot size={72} expression={mascotExpression} accessory={mascotAccessory} />
+        <Mascot size={72} pose={mascotPose} />
       </View>
     </View>
   );

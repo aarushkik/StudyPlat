@@ -28,7 +28,7 @@ export function IntroScreen() {
           style={styles.bubble}
         />
         <View style={styles.gap} />
-        <Mascot size={170} expression="excited" animated />
+        <Mascot size={170} pose="excited" animated />
       </View>
 
       <AppButton label="Continue" onPress={() => navigation.navigate('CourseSelection')} />

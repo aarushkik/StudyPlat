@@ -36,8 +36,7 @@ export function SubjectExperienceScreen() {
         total={5}
         question={question}
         subtitle="Be honest — it just helps Stu place you."
-        mascotExpression="thinking"
-        mascotAccessory="book"
+        mascotPose="thinking"
       />
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>

@@ -53,7 +53,7 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
       <View style={[styles.rule, { backgroundColor: correct ? colors.success : colors.danger }]} />
 
       <View style={styles.headerRow}>
-        <Mascot size={70} expression={correct ? 'excited' : 'worried'} shadow={false} />
+        <Mascot size={70} pose={correct ? 'thumbsup' : 'wince'} shadow={false} />
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
             <View style={[styles.verdictDot, { backgroundColor: accent }]}>

@@ -1,33 +1,49 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '@/theme';
+import { chunky, chunkyRadius, colors, fonts } from '@/theme';
 
 interface WordmarkProps {
-  /** Font size of "stu"; the AP badge scales from it. */
+  /** Font size of "Study"; the Plat badge scales from it. */
   size?: number;
-  /** `brand` for light backgrounds, `light` for colored/dark backgrounds. */
+  /** `brand` for cream backgrounds, `light` for the night ground. */
   variant?: 'brand' | 'light';
 }
 
 /**
- * The StudyPlat wordmark: "stu" + an "AP" badge. Highlighting AP as a chip is the
- * brand's signature — a distinctive lockup rather than a plain word.
+ * The StudyPlat wordmark: "Study" followed by a "Plat" badge.
+ *
+ * Boxing the second half is the lockup's signature — it reads as a word and a
+ * chip rather than a plain string, and it echoes the chunky ink border that
+ * every other surface in the app carries. "Plat" is the part worth boxing:
+ * it's the platypus, and it's what makes the name stick.
  */
 export function Wordmark({ size = 34, variant = 'brand' }: WordmarkProps) {
-  const stuColor = variant === 'brand' ? colors.primary : colors.white;
-  const badgeBg = variant === 'brand' ? colors.primary : colors.white;
-  const apColor = variant === 'brand' ? colors.white : colors.primary;
+  const onNight = variant === 'light';
+  const wordColor = onNight ? colors.white : colors.ink;
+  const badgeBg = onNight ? colors.primary : colors.primary;
+  const badgeInk = onNight ? colors.ink : colors.ink;
+  const badgeText = onNight ? colors.ink : colors.white;
+
+  const c = chunky({ depth: Math.max(3, size * 0.1), radius: chunkyRadius.chip, shadow: badgeInk });
 
   return (
     <View style={styles.row}>
-      <Text style={[styles.stu, { fontSize: size, color: stuColor }]}>stu</Text>
-      <View
-        style={[
-          styles.badge,
-          { backgroundColor: badgeBg, borderRadius: size * 0.28, paddingHorizontal: size * 0.2, marginLeft: size * 0.1 },
-        ]}
-      >
-        <Text style={[styles.ap, { fontSize: size * 0.82, color: apColor }]}>AP</Text>
+      <Text style={[styles.word, { fontSize: size, color: wordColor }]}>Study</Text>
+      <View style={[c.wrap, { marginLeft: size * 0.14 }]}>
+        <View style={c.lip} />
+        <View
+          style={[
+            c.face,
+            {
+              backgroundColor: badgeBg,
+              borderColor: badgeInk,
+              paddingHorizontal: size * 0.24,
+              paddingVertical: size * 0.06,
+            },
+          ]}
+        >
+          <Text style={[styles.badgeText, { fontSize: size * 0.78, color: badgeText }]}>Plat</Text>
+        </View>
       </View>
     </View>
   );
@@ -35,7 +51,6 @@ export function Wordmark({ size = 34, variant = 'brand' }: WordmarkProps) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
-  stu: { fontFamily: fonts.bold, letterSpacing: -0.5 },
-  badge: { paddingVertical: 2, justifyContent: 'center' },
-  ap: { fontFamily: fonts.bold, letterSpacing: 0.5 },
+  word: { fontFamily: fonts.displayHeavy, letterSpacing: -0.5 },
+  badgeText: { fontFamily: fonts.displayHeavy, letterSpacing: -0.2 },
 });

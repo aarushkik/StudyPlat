@@ -20,7 +20,7 @@ export function WelcomeScreen() {
     <ScreenContainer>
       <StatusBar style="dark" />
       <View style={styles.hero}>
-        <Mascot size={180} expression="happy" animated />
+        <Mascot size={180} pose="neutral" animated />
         <View style={styles.wordmark}>
           <Wordmark size={42} variant="brand" />
         </View>

@@ -220,7 +220,7 @@ function TrailMascot({ point, width }: { point: { x: number; y: number }; width:
   const left = onLeft ? point.x - NODE_SIZE / 2 - MASCOT - 14 : point.x + NODE_SIZE / 2 + 14;
   return (
     <View pointerEvents="none" style={[styles.mascot, { left, top: point.y - MASCOT * 0.62 }]}>
-      <Mascot size={MASCOT} expression="happy" />
+      <Mascot size={MASCOT} pose="neutral" />
     </View>
   );
 }

@@ -141,7 +141,7 @@ export function SplashScreen() {
             <Animated.View style={[styles.pulse, pulseStyle(pulse2)]} />
             <View style={styles.ring}>
               <View style={styles.emblem}>
-                <Mascot size={158} expression="excited" shadow={false} />
+                <Mascot size={158} pose="excited" shadow={false} />
               </View>
             </View>
           </View>

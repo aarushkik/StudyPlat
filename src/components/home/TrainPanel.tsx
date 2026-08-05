@@ -84,7 +84,7 @@ export function TrainPanel() {
             Sharpen one thing at a time. Nothing here costs you a stop on the map.
           </Text>
         </View>
-        <Mascot size={84} expression="focused" />
+        <Mascot size={84} pose="reading" />
       </View>
 
       <View style={styles.earned}>

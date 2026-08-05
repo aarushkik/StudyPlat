@@ -32,8 +32,7 @@ export function CourseSelectionScreen() {
         total={5}
         question="Which AP are we taking on?"
         subtitle="Pick your course — you can add more later."
-        mascotExpression="happy"
-        mascotAccessory="book"
+        mascotPose="neutral"
       />
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>

@@ -162,7 +162,7 @@ export function QuizScreen() {
         </View>
 
         <View style={styles.introBody}>
-          <Mascot size={200} expression="excited" accessory="wand" />
+          <Mascot size={200} pose="excited" />
           <View style={styles.introBadge}>
             <Glyph name="compass" size={16} color={colors.primary} strokeWidth={2.4} />
             <Text style={styles.introBadgeText}>Find your level</Text>

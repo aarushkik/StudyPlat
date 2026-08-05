@@ -47,7 +47,7 @@ export function LessonCompleteScreen() {
 
         <View style={styles.body}>
           <Animated.View style={{ transform: [{ scale: pop }] }}>
-            <Mascot size={190} expression="celebrating" />
+            <Mascot size={190} pose="celebrate" />
           </Animated.View>
 
           <Animated.View style={[styles.copy, { opacity: pop, transform: [{ translateY: rise }] }]}>
