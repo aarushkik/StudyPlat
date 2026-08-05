@@ -1,10 +1,10 @@
 import type { AccentName } from '@/theme';
-import type { BiomeId } from '@/theme/biomes';
+import type { TrackTheme } from '@/data/tracks';
 
 /**
  * The quest map: the course laid out as a walkable trail of areas.
  *
- * A unit is one *area* of the map, drawn in its own biome. Each area is split
+ * A unit is one *track* of the map, set in its own place. Each area is split
  * into six stages, and every stage ends in a boss — so a unit is a ladder of
  * six fights, not one. Node *kind* is about what the student does there (and
  * drives the art), while node *state* is derived from progress — see
@@ -51,9 +51,9 @@ export interface QuestUnit {
   /** Short flavor line under the unit title on the banner. */
   blurb: string;
   accent: AccentName;
-  /** Which landscape this area is drawn in. */
-  biome: BiomeId;
-  /** Display name of the landscape, e.g. "Ochre Dunes". */
+  /** The place this track is set in — palette, skyline and name. */
+  track: TrackTheme;
+  /** The place's display name, e.g. "Furnace Foothills". */
   areaName: string;
   /** Zero-based position in the course. */
   index: number;

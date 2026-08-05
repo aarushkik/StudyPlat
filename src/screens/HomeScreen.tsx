@@ -21,7 +21,7 @@ import {
   TrailSegment,
   TrainPanel,
   UnitBanner,
-  segmentHeight,
+  trackHeight,
   type QuestTab,
 } from '@/components/home';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -64,11 +64,21 @@ export function HomeScreen() {
   const units = quest.map.units;
   const completedSet = useMemo(() => new Set(quest.completed), [quest.completed]);
 
-  // Every area is the same eighteen stops, so one height covers all of them.
-  const areaHeight = useMemo(
-    () => segmentHeight(units[0]?.nodes.length ?? 18),
-    [units],
-  );
+  /**
+   * Track heights are not uniform — the one holding the current stop is taller,
+   * because that stop is bigger and carries a flag above it. So offsets are
+   * accumulated exactly rather than multiplied out from a single height.
+   */
+  const metrics = useMemo(() => {
+    const heights = units.map((u) => trackHeight(u, quest.stateOf));
+    const offsets: number[] = [];
+    let run = 0;
+    for (const h of heights) {
+      offsets.push(run);
+      run += h;
+    }
+    return { heights, offsets, total: run };
+  }, [units, quest.stateOf]);
 
   const unitOf = useCallback(
     (node: QuestNode | null) => units.find((u) => u.nodes.some((n) => n.id === node?.id)),
@@ -93,13 +103,19 @@ export function HomeScreen() {
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
-      const next = Math.min(units.length - 1, Math.max(0, Math.floor((y + areaHeight * 0.35) / areaHeight)));
+      // Which track the viewport is in: the last one whose top is above the
+      // fold line, a third of the way down the screen.
+      const line = y + 240;
+      let next = 0;
+      for (let i = 0; i < metrics.offsets.length; i += 1) {
+        if (metrics.offsets[i] <= line) next = i;
+      }
       if (next !== areaRef.current) {
         areaRef.current = next;
         setActiveIndex(next);
       }
     },
-    [areaHeight, units.length],
+    [metrics],
   );
 
   const renderSegment = useCallback(
@@ -108,10 +124,6 @@ export function HomeScreen() {
         unit={item}
         index={index}
         width={width}
-        // Each area knows its neighbours so its ends can dissolve into them
-        // instead of butting up as a hard colour seam.
-        biomeAbove={units[index - 1]?.biome}
-        biomeBelow={units[index + 1]?.biome}
         stateOf={quest.stateOf}
         onSelect={setSelected}
       />
@@ -121,11 +133,11 @@ export function HomeScreen() {
 
   const getItemLayout = useCallback(
     (_: ArrayLike<QuestUnit> | null | undefined, index: number) => ({
-      length: areaHeight,
-      offset: areaHeight * index,
+      length: metrics.heights[index] ?? 0,
+      offset: metrics.offsets[index] ?? 0,
       index,
     }),
-    [areaHeight],
+    [metrics],
   );
 
   const activeUnit = units[activeIndex] ?? units[0];

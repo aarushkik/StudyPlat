@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Glyph } from '@/components/icons';
-import { biomes } from '@/theme/biomes';
 import { BOSS_TIERS } from '@/data/questMap';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
@@ -79,7 +78,7 @@ export function BattlesPanel({ onSelect }: BattlesPanelProps) {
       }
       renderSectionHeader={({ section }) => (
         <View style={styles.areaHead}>
-          <View style={[styles.areaDot, { backgroundColor: biomes[section.unit.biome].banner[0] }]} />
+          <View style={[styles.areaDot, { backgroundColor: section.unit.track.deep }]} />
           <Text style={styles.areaTitle} numberOfLines={1}>
             {section.unit.section} · {section.unit.title}
           </Text>

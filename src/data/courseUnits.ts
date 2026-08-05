@@ -1,4 +1,3 @@
-import type { BiomeId } from '@/theme/biomes';
 
 /**
  * Course content: ten areas per AP course, six teaching topics per area.
@@ -25,19 +24,7 @@ export interface UnitSpec {
  * never see the same map, and each route is ordered so the country gets
  * rougher as the material does — gentle green early, caverns and summits late.
  */
-export const BIOME_ROUTES: Record<string, readonly BiomeId[]> = {
-  'ap-biology': ['meadow', 'forest', 'wetland', 'jungle', 'reef', 'savanna', 'caverns', 'tundra', 'highland', 'summit'],
-  'ap-calc-ab': ['meadow', 'coast', 'canyon', 'desert', 'highland', 'caverns', 'glacier', 'storm', 'volcano', 'summit'],
-  'ap-world': ['savanna', 'desert', 'coast', 'jungle', 'canyon', 'highland', 'tundra', 'storm', 'caverns', 'summit'],
-  'ap-us-history': ['forest', 'coast', 'meadow', 'wetland', 'canyon', 'savanna', 'highland', 'storm', 'glacier', 'summit'],
-  'ap-csa': ['meadow', 'coast', 'forest', 'canyon', 'caverns', 'desert', 'glacier', 'storm', 'volcano', 'summit'],
-  'ap-chem': ['meadow', 'reef', 'wetland', 'desert', 'canyon', 'volcano', 'caverns', 'glacier', 'storm', 'summit'],
-  'ap-psych': ['meadow', 'forest', 'coast', 'wetland', 'caverns', 'highland', 'jungle', 'storm', 'tundra', 'summit'],
-  'ap-eng-lang': ['coast', 'meadow', 'forest', 'savanna', 'canyon', 'highland', 'wetland', 'storm', 'caverns', 'summit'],
-};
-
 /** Fallback route for a course with no dedicated one. */
-export const DEFAULT_ROUTE: readonly BiomeId[] = BIOME_ROUTES['ap-biology'];
 
 export const COURSE_UNITS: Record<string, UnitSpec[]> = {
   'ap-biology': [

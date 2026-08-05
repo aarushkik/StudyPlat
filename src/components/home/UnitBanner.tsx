@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Glyph } from '@/components/icons';
-import { biomes } from '@/theme/biomes';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { QuestUnit } from '@/types/quest';
 
@@ -38,21 +37,21 @@ function titleSizeFor(title: string): { fontSize: number; lineHeight: number } {
 }
 
 export function UnitBanner({ unit, cleared, bossesCleared, onOpenGuide }: UnitBannerProps) {
-  const theme = biomes[unit.biome];
+  const theme = unit.track;
   const total = unit.nodes.length;
 
   return (
     <View style={styles.holder}>
       <View style={[styles.banner, shadows.md]}>
         <LinearGradient
-          colors={[theme.banner[0], theme.banner[1]]}
+          colors={[theme.deep, theme.dark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.body}>
           <Text style={styles.kicker} numberOfLines={1}>
-            {unit.section} · {theme.name}
+            {unit.section} · {theme.place}
           </Text>
           <Text style={[styles.title, titleSizeFor(unit.title)]} numberOfLines={1}>
             {unit.title}

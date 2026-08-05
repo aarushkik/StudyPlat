@@ -1,9 +1,9 @@
 import type { AccentName } from '@/theme';
-import { biomes, type BiomeId } from '@/theme/biomes';
+import { trackAt, tracksFor, type TrackTheme } from './tracks';
 import type { BossTier, QuestMap, QuestNode, QuestNodeKindId, QuestUnit } from '@/types/quest';
 import type { CourseCategory, PlacementLevelId } from '@/types';
 import { apCourses } from './apCourses';
-import { BIOME_ROUTES, COURSE_UNITS, DEFAULT_ROUTE, DEFAULT_UNITS, type UnitSpec } from './courseUnits';
+import { COURSE_UNITS, DEFAULT_UNITS, type UnitSpec } from './courseUnits';
 
 /**
  * Builds the quest map for a course.
@@ -62,13 +62,13 @@ export function questionCountFor(node: QuestNode): number {
 function buildStage(
   courseId: string,
   category: CourseCategory,
-  biome: BiomeId,
+  track: TrackTheme,
   unitIndex: number,
   spec: UnitSpec,
   stage: number,
 ): QuestNode[] {
   const topic = spec.topics[stage - 1];
-  const area = biomes[biome].area;
+  const area = track.place;
   const tier = stage as BossTier;
   const idBase = `${courseId}-u${unitIndex + 1}-s${stage}`;
   const xpScale = 1 + unitIndex * 0.12;
@@ -131,22 +131,22 @@ function buildUnit(
   category: CourseCategory,
   accent: AccentName,
   spec: UnitSpec,
-  biome: BiomeId,
+  track: TrackTheme,
   index: number,
 ): QuestUnit {
   const nodes = Array.from({ length: STAGES_PER_UNIT }, (_, i) =>
-    buildStage(courseId, category, biome, index, spec, i + 1),
+    buildStage(courseId, category, track, index, spec, i + 1),
   ).flat();
 
   return {
     id: `${courseId}-u${index + 1}`,
-    section: `Area ${index + 1}`,
+    section: `Track ${index + 1}`,
     unit: `Unit ${index + 1}`,
     title: spec.title,
     blurb: spec.blurb,
     accent,
-    biome,
-    areaName: biomes[biome].name,
+    track,
+    areaName: track.place,
     index,
     nodes,
   };
@@ -156,7 +156,7 @@ function buildUnit(
 export function getQuestMap(courseId: string | null): QuestMap {
   const course = apCourses.find((c) => c.id === courseId) ?? apCourses[0];
   const specs = COURSE_UNITS[course.id] ?? DEFAULT_UNITS;
-  const route = BIOME_ROUTES[course.id] ?? DEFAULT_ROUTE;
+  const route = tracksFor(course.id);
 
   const units = specs.map((spec, i) =>
     buildUnit(course.id, course.category, course.accent, spec, route[i % route.length], i),

@@ -1,108 +1,107 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
-import { Glyph, type GlyphName } from '@/components/icons';
-import { colors, glow, questNode, radius, shadows, spacing, typography } from '@/theme';
-import { BOSS_TIERS } from '@/data/questMap';
-import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
+import { colors, typography } from '@/theme';
+import type { TrackTheme } from '@/data/tracks';
+import type { QuestNode, QuestNodeState } from '@/types/quest';
 
 /**
- * A single stop on the quest trail.
+ * One stop on the path.
  *
- * Ordinary stops are chunky discs — a colored face riding on a darker lip that
- * it sinks onto when pressed. The unit boss is deliberately *not* a disc: it's
- * a larger shield with its own dark palette and a pulsing aura, so you can tell
- * a boss from a lesson at a glance while scrolling past.
+ * State is carried by the *fill*, kind by the *emblem inside it*. That split
+ * is what lets a student scan a whole track at once: cleared stops are the
+ * track's own colour, the one to play next is orange and half again as big,
+ * sealed ones are sand. What each stop actually is comes second, read from the
+ * shape in the middle.
+ *
+ * There is exactly one current stop on the map, and it is the only thing that
+ * animates — a pulsing ring and a floating flag. Everything else is still, so
+ * the eye goes straight to it.
  */
 
-export const NODE_SIZE = 74;
-export const BOSS_SIZE = 106;
-const LIP = 7;
+export const STOP_SIZE = 70;
+export const CURRENT_SIZE = 96;
+const LIP = 6;
+const CURRENT_LIP = 7;
 
-/**
- * The six boss ranks in an area, in order. Each one is bigger and hotter than
- * the last: the Sentry is a purple shield you can beat on the way past, the
- * Overlord is red, crowned, and the thing standing between you and the next
- * area. Rank is legible from the silhouette alone while scrolling.
- */
-const BOSS_TIER_STYLE = [
-  { size: 88, face: '#8A7FB5', deep: '#453A6E', edge: '#372C5C', ring: '#D8D0F0' },
-  { size: 92, face: '#7E6FB8', deep: '#3E3070', edge: '#31245C', ring: '#D4CCF2' },
-  { size: 96, face: '#8A5FB5', deep: '#3F2560', edge: '#2F1A4A', ring: '#DDC8F2' },
-  { size: 100, face: '#9A4FA8', deep: '#4A1E58', edge: '#371244', ring: '#EEC6EE' },
-  { size: 103, face: '#B0417E', deep: '#561640', edge: '#400E2E', ring: '#F8C2DE' },
-  { size: 106, face: '#C4402E', deep: '#5E1610', edge: '#450C08', ring: '#FFC8B4' },
-] as const;
-
-const tierStyle = (tier?: number) => BOSS_TIER_STYLE[Math.min(5, Math.max(0, (tier ?? 1) - 1))];
-
-/** Diameter a stop occupies, so the trail can place it before rendering. */
-export function nodeSizeFor(node: Pick<QuestNode, 'kind' | 'tier'>): number {
-  return node.kind === 'boss' ? tierStyle(node.tier).size : NODE_SIZE;
+/** Diameter a stop occupies, so the path can place it before rendering. */
+export function nodeSizeFor(state: QuestNodeState): number {
+  return state === 'current' ? CURRENT_SIZE : STOP_SIZE;
 }
-
-const KIND_GLYPH: Record<QuestNodeKindId, GlyphName> = {
-  lesson: 'book',
-  drill: 'bolt',
-  study: 'page',
-  bonus: 'chest',
-  boss: 'swords',
-};
-
-/**
- * Sealed stops in an underground or night-time biome. The daylight grey reads
- * as a row of glowing white blobs against a dark cavern and pulls the eye away
- * from the one stop you can actually play.
- */
-const LOCKED_DARK = { face: '#5C5078', edge: '#3B3153', ring: '#6E6090' } as const;
 
 interface QuestNodeButtonProps {
   node: QuestNode;
   state: QuestNodeState;
-  /** True in the night-time biomes, so sealed stops darken to match. */
-  dark?: boolean;
+  track: TrackTheme;
   onPress: () => void;
 }
 
-export function QuestNodeButton({ node, state, dark = false, onPress }: QuestNodeButtonProps) {
-  const isBoss = node.kind === 'boss';
-  const tier = tierStyle(node.tier);
-  const size = nodeSizeFor(node);
+export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButtonProps) {
+  const current = state === 'current';
+  const done = state === 'complete';
   const locked = state === 'locked';
-  const scheme = locked
-    ? dark
-      ? LOCKED_DARK
-      : questNode.locked
-    : isBoss
-      ? { face: tier.face, edge: tier.edge, ring: tier.ring }
-      : questNode[node.kind];
+
+  const size = current ? CURRENT_SIZE : STOP_SIZE;
+  const lip = current ? CURRENT_LIP : LIP;
+
+  const fill = done ? track.deep : current ? colors.current : locked ? colors.locked : colors.surface;
+  const shadow = done ? track.dark : current ? colors.currentDeep : colors.ink;
 
   const press = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
+  const flag = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (state !== 'current') return;
-    const loop = Animated.loop(
-      Animated.timing(pulse, { toValue: 1, duration: 1900, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    if (!current) return;
+    const ring = Animated.loop(
+      Animated.timing(pulse, { toValue: 1, duration: 2000, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     );
-    loop.start();
-    return () => loop.stop();
-  }, [state, pulse]);
+    const bob = Animated.loop(
+      Animated.sequence([
+        Animated.timing(flag, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(flag, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    ring.start();
+    bob.start();
+    return () => {
+      ring.stop();
+      bob.stop();
+    };
+  }, [current, pulse, flag]);
 
   const to = (v: number) =>
     Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
-
-  const faceTransform = useMemo(
-    () => [{ translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, LIP - 1] }) }],
-    [press],
-  );
-
-  const glyph: GlyphName = locked ? 'lock' : state === 'complete' ? (isBoss ? 'crown' : 'check') : KIND_GLYPH[node.kind];
-  const glyphColor = locked ? (dark ? '#A99CC4' : '#9C8E9A') : colors.white;
+  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, lip - 2] });
 
   return (
     <View style={styles.slot} pointerEvents="box-none">
-      {state === 'current' ? <PulseRing pulse={pulse} size={size} color={scheme.ring} /> : null}
+      {current ? (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.ring,
+              {
+                width: size + 32,
+                height: size + 32,
+                borderRadius: (size + 32) / 2,
+                marginLeft: -(size + 32) / 2,
+                opacity: pulse.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.85, 0] }),
+                transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.5] }) }],
+              },
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.flag,
+              { transform: [{ translateY: flag.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }] },
+            ]}
+          >
+            <Text style={styles.flagText}>START</Text>
+          </Animated.View>
+        </>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -112,38 +111,31 @@ export function QuestNodeButton({ node, state, dark = false, onPress }: QuestNod
         onPressIn={() => to(1)}
         onPressOut={() => to(0)}
         onPress={onPress}
-        style={{ width: size, height: size + LIP }}
+        style={{ width: size, height: size + lip }}
       >
-        {/* The disc's lip is a plain circle; the shield carries its own. */}
-        {isBoss ? null : <View style={[styles.lip, { backgroundColor: scheme.edge, borderRadius: size }]} />}
+        <View style={[styles.lip, { top: lip, borderRadius: size, backgroundColor: shadow }]} />
         <Animated.View
           style={[
-            { width: size, height: isBoss ? size + LIP : size, transform: faceTransform },
-            state === 'current' ? glow(scheme.edge, 'strong') : shadows.xs,
+            styles.face,
+            {
+              width: size,
+              height: size,
+              borderRadius: size,
+              backgroundColor: fill,
+              transform: [{ translateY }],
+            },
           ]}
         >
-          {isBoss ? (
-            <BossFace size={size} locked={locked} dark={dark} glyph={glyph} tier={tier} />
-          ) : (
-            <View style={[styles.disc, { width: size, height: size, borderRadius: size, backgroundColor: scheme.face }]}>
-              <View style={[styles.discSheen, { borderRadius: size }]} />
-              <Glyph name={glyph} size={30} color={glyphColor} strokeWidth={2.6} />
-            </View>
-          )}
+          <Emblem node={node} state={state} track={track} size={size} />
         </Animated.View>
       </Pressable>
 
-      {state === 'complete' && !isBoss ? <View style={[styles.clearedRing, { width: size + 14, height: size + 14, borderRadius: size }]} pointerEvents="none" /> : null}
-      {state === 'current' ? <StartFlag /> : null}
-      {isBoss ? (
-        <BossRibbon
-          locked={locked}
-          cleared={state === 'complete'}
-          label={BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))]}
-          tone={tier.deep}
-          dark={dark}
-        />
-      ) : null}
+      <Text
+        style={[styles.label, current && styles.labelCurrent, locked && styles.labelLocked]}
+        numberOfLines={1}
+      >
+        {node.title.toUpperCase()}
+      </Text>
     </View>
   );
 }
@@ -154,175 +146,128 @@ const STATE_LABEL: Record<QuestNodeState, string> = {
   complete: 'completed',
 };
 
-/** Expanding halo that marks the one stop the student should tap next. */
-function PulseRing({ pulse, size, color }: { pulse: Animated.Value; size: number; color: string }) {
-  const style = {
-    opacity: pulse.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.7, 0] }),
-    transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.55] }) }],
-  };
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.pulse,
-        { width: size, height: size, borderRadius: size, backgroundColor: color, marginLeft: -size / 2 },
-        style,
-      ]}
-    />
-  );
-}
-
 /**
- * The boss shield — a different silhouette entirely, not a recolored disc. The
- * lip is a second copy of the shield sitting a few units lower, so the depth
- * follows the shape instead of poking out from behind it as a rectangle.
+ * What sits inside a stop.
+ *
+ * Cleared stops always show a tick regardless of kind — once it is done, what
+ * it was matters less than that it is behind you. Sealed stops show nothing:
+ * a lock icon on every sealed stop turns most of the track into padlocks.
  */
-const SHIELD = 'M50 4 L92 18 V50 C92 74 74 90 50 97 C26 90 8 74 8 50 V18 Z';
-
-function BossFace({
+function Emblem({
+  node,
+  state,
+  track,
   size,
-  locked,
-  dark,
-  glyph,
-  tier,
 }: {
+  node: QuestNode;
+  state: QuestNodeState;
+  track: TrackTheme;
   size: number;
-  locked: boolean;
-  dark: boolean;
-  glyph: GlyphName;
-  tier: (typeof BOSS_TIER_STYLE)[number];
 }) {
-  // Sealed shields follow the same daylight/night split as the plain stops.
-  const sealed = dark
-    ? { top: '#6A5C88', bottom: '#4A3E66', edge: '#332A49', glyph: '#A99CC4' }
-    : { top: '#D6CBD4', bottom: '#B9AAB7', edge: '#A293A0', glyph: '#9C8E9A' };
+  if (state === 'locked') return null;
 
-  const id = `boss-${locked ? (dark ? 'sealed-dark' : 'sealed') : tier.face.slice(1)}`;
-  const height = size + LIP;
-  // Extend the viewBox by the lip so the lower copy is not clipped.
-  const viewH = 100 + (LIP / size) * 100;
+  const s = size / 70;
+  const ink = state === 'complete' ? colors.white : colors.ink;
 
-  return (
-    <View style={{ width: size, height, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={height} viewBox={`0 0 100 ${viewH}`} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <LinearGradient id={id} x1="0.2" y1="0" x2="0.8" y2="1">
-            <Stop offset="0" stopColor={locked ? sealed.top : tier.face} />
-            <Stop offset="1" stopColor={locked ? sealed.bottom : tier.deep} />
-          </LinearGradient>
-        </Defs>
-        <Path d={SHIELD} fill={locked ? sealed.edge : tier.edge} transform={`translate(0 ${viewH - 100})`} />
-        <Path
-          d={SHIELD}
-          fill={`url(#${id})`}
-          stroke={locked ? sealed.edge : tier.edge}
-          strokeWidth={4}
-          strokeLinejoin="round"
+  if (state === 'complete') {
+    return <View style={[styles.tick, { width: 26 * s, height: 26 * s, borderColor: colors.white }]} />;
+  }
+
+  switch (node.kind) {
+    // A play triangle — the thing you actually sit and learn.
+    case 'lesson':
+      return (
+        <View
+          style={{
+            width: 0,
+            height: 0,
+            marginLeft: 6 * s,
+            borderLeftWidth: 22 * s,
+            borderLeftColor: ink,
+            borderTopWidth: 15 * s,
+            borderBottomWidth: 15 * s,
+            borderTopColor: 'transparent',
+            borderBottomColor: 'transparent',
+          }}
         />
-        <Path d="M50 10 L86 22 V38 C70 26 58 18 50 14 Z" fill="#FFFFFF" opacity={0.14} />
-      </Svg>
-      <View style={{ marginBottom: LIP }}>
-        <Glyph name={glyph} size={36} color={locked ? sealed.glyph : colors.gold} strokeWidth={2.4} />
-      </View>
-    </View>
-  );
-}
-
-/** Small banner naming the boss's rank so its stakes read while scrolling. */
-function BossRibbon({
-  locked,
-  cleared,
-  label,
-  tone,
-  dark,
-}: {
-  locked: boolean;
-  cleared: boolean;
-  label: string;
-  tone: string;
-  dark: boolean;
-}) {
-  const background = locked ? (dark ? '#4A3E66' : '#BDAFBB') : cleared ? colors.goldDark : tone;
-  return (
-    <View style={[styles.ribbon, { backgroundColor: background }]}>
-      <Text style={[styles.ribbonText, locked && styles.ribbonTextLocked]} numberOfLines={1}>
-        {cleared ? 'Cleared' : label}
-      </Text>
-    </View>
-  );
-}
-
-/** Floating "Start" flag over the live node. */
-function StartFlag() {
-  const bob = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bob, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(bob, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [bob]);
-
-  const translateY = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -5] });
-
-  return (
-    <Animated.View pointerEvents="none" style={[styles.flag, shadows.sm, { transform: [{ translateY }] }]}>
-      <Text style={styles.flagText}>Start</Text>
-      <View style={styles.flagPoint} />
-    </Animated.View>
-  );
+      );
+    // Stacked bars, rising — a drill is repetition that builds.
+    case 'drill':
+      return (
+        <View style={styles.bars}>
+          {[10, 17, 24].map((h) => (
+            <View key={h} style={{ width: 6 * s, height: h * s, borderRadius: 2, backgroundColor: ink }} />
+          ))}
+        </View>
+      );
+    // An open book.
+    case 'study':
+      return <View style={[styles.book, { width: 28 * s, height: 22 * s, borderColor: ink }]} />;
+    // A star — the optional extra.
+    case 'bonus':
+      return <View style={[styles.star, { borderBottomColor: ink, borderLeftWidth: 13 * s, borderRightWidth: 13 * s, borderBottomWidth: 9 * s }]} />;
+    // Crossed bars for a fight, in the track's own dark.
+    case 'boss':
+      return (
+        <View style={{ width: 30 * s, height: 30 * s, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={[styles.blade, { backgroundColor: ink, transform: [{ rotate: '45deg' }] }]} />
+          <View style={[styles.blade, { backgroundColor: ink, transform: [{ rotate: '-45deg' }] }]} />
+        </View>
+      );
+    default:
+      return null;
+  }
 }
 
 const styles = StyleSheet.create({
   slot: { alignItems: 'center' },
-  lip: { position: 'absolute', left: 0, right: 0, top: LIP, bottom: 0 },
-  disc: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  discSheen: {
-    position: 'absolute',
-    top: 5,
-    left: 9,
-    right: 9,
-    height: '38%',
-    backgroundColor: 'rgba(255,255,255,0.28)',
+  lip: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  face: {
+    borderWidth: 3,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pulse: { position: 'absolute', top: 0, left: '50%' },
-  clearedRing: { position: 'absolute', top: -7, borderWidth: 3, borderColor: colors.gold, opacity: 0.75 },
-
+  ring: {
+    position: 'absolute',
+    top: -16,
+    left: '50%',
+    borderWidth: 4,
+    borderColor: colors.current,
+  },
   flag: {
     position: 'absolute',
-    top: -40,
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 6,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    top: -34,
+    backgroundColor: colors.ink,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
-  flagText: { ...typography.overline, color: colors.primary },
-  flagPoint: {
-    position: 'absolute',
-    bottom: -6,
-    left: '50%',
-    marginLeft: -5,
-    width: 10,
-    height: 10,
-    backgroundColor: colors.surface,
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: colors.primary,
-    transform: [{ rotate: '45deg' }],
-  },
+  flagText: { ...typography.overline, fontSize: 11, letterSpacing: 1.4, color: colors.textOnInk },
 
-  ribbon: {
-    position: 'absolute',
-    bottom: -9,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 3,
+  label: {
+    ...typography.overline,
+    fontSize: 10.5,
+    letterSpacing: 0.8,
+    color: colors.textSecondary,
+    marginTop: 8,
   },
-  ribbonText: { ...typography.overline, color: colors.gold, fontSize: 10 },
-  ribbonTextLocked: { color: '#F3EDF2' },
+  labelCurrent: { fontSize: 12, color: colors.ink },
+  labelLocked: { color: colors.lockedText },
+
+  // A tick drawn as two borders of a rotated box — no icon font needed.
+  tick: {
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    transform: [{ rotate: '45deg' }, { translateY: -3 }],
+  },
+  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  book: { borderWidth: 3, borderRadius: 4 },
+  star: {
+    width: 0,
+    height: 0,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+  },
+  blade: { position: 'absolute', width: 30, height: 6, borderRadius: 3 },
 });
