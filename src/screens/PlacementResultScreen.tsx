@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -72,13 +71,8 @@ export function PlacementResultScreen() {
         <Animated.View style={{ opacity: fade, transform: [{ translateY: shift }] }}>
           <Text style={[typography.title, styles.title]}>Your map is drawn</Text>
 
-          <View style={[styles.levelCard, shadows.md]}>
-            <LinearGradient
-              colors={['#FFF6FA', '#FFE9F2']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
+          <View style={styles.levelCard}>
+            <View style={styles.levelCardLip} />
             <View style={styles.levelTile}>
               <PlacementIcon id={level.id} color={colors.primary} size={38} />
             </View>
@@ -126,12 +120,26 @@ const styles = StyleSheet.create({
   title: { textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
 
   levelCard: {
-    borderRadius: radius.xxl,
-    borderWidth: 2,
-    borderColor: colors.primarySoft,
+    position: 'relative',
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
     padding: spacing.xl,
+    marginBottom: 5,
     alignItems: 'center',
-    overflow: 'hidden',
+  },
+  // The card's hard 5pt drop. This screen sits on the night ground, so the lip
+  // is turquoise rather than ink — ink on ink would vanish.
+  levelCardLip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 5,
+    bottom: -5,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    zIndex: -1,
   },
   levelTile: {
     width: 68,

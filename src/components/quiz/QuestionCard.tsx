@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Glyph } from '@/components/icons';
-import { colors, palette, radius, spacing, typography } from '@/theme';
+import { colors, fonts, palette, radius, spacing, typography } from '@/theme';
 import type { PlacementQuestion, QuestionDifficulty, Stimulus } from '@/types';
 
 interface QuestionCardProps {
@@ -24,16 +24,14 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
 
   return (
     <View>
-      <View style={styles.tags}>
-        <View style={styles.skillTag}>
-          <Text style={styles.skillText}>{question.skillTag}</Text>
-        </View>
-        <View style={[styles.difficultyTag, { backgroundColor: difficulty.tint }]}>
-          <Text style={[styles.difficultyText, { color: difficulty.color }]}>{difficulty.label}</Text>
-        </View>
-      </View>
+      {/* One kicker line rather than two pills. Two coloured chips above every
+          question compete with the answers for the same attention, and the
+          difficulty is not something a student can act on mid-question. */}
+      <Text style={styles.kicker} numberOfLines={1}>
+        {question.skillTag.toUpperCase()} · {difficulty.label.toUpperCase()}
+      </Text>
 
-      <Text style={[typography.title, styles.prompt]}>{question.prompt}</Text>
+      <Text style={styles.prompt}>{question.prompt}</Text>
       {question.stimulus ? <StimulusBlock stimulus={question.stimulus} /> : null}
       <View style={styles.answers}>{children}</View>
     </View>
@@ -95,8 +93,23 @@ const styles = StyleSheet.create({
   skillText: { ...typography.overline, color: colors.primary },
   difficultyTag: { borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 5 },
   difficultyText: { ...typography.overline },
+  kicker: {
+    fontFamily: fonts.bodyBlack,
+    fontSize: 10,
+    letterSpacing: 1.6,
+    color: colors.primary,
+  },
 
-  prompt: { marginBottom: spacing.lg },
+  // Baloo at 700, not the heavy 800 the titles use: a question is read, not
+  // scanned, and the extra weight at 23px starts to shout.
+  prompt: {
+    fontFamily: fonts.displayBold,
+    fontSize: 23,
+    lineHeight: 28,
+    color: colors.ink,
+    marginTop: 4,
+    marginBottom: spacing.lg,
+  },
   answers: { marginTop: spacing.sm },
 
   codeBox: { backgroundColor: '#2A2140', borderRadius: radius.lg, overflow: 'hidden', marginBottom: spacing.lg },

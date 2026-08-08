@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -155,6 +155,16 @@ export function HomeScreen() {
     }),
     [metrics],
   );
+
+  // Leaving the map unmounts the list, so it comes back scrolled to the top.
+  // Without this the banner keeps naming whatever track you were looking at
+  // when you switched tabs, over a plaque that says Track 01.
+  useEffect(() => {
+    if (tab !== 'map') {
+      areaRef.current = 0;
+      setActiveIndex(0);
+    }
+  }, [tab]);
 
   const activeUnit = units[activeIndex] ?? units[0];
 

@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { colors, duration, easing, questNode, radius, shadows, spacing, typography } from '@/theme';
+import { colors, duration, easing, palette, questNode, radius, shadows, spacing, typography } from '@/theme';
 import { BOSS_TIERS } from '@/data/questMap';
 import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
 
@@ -91,14 +90,8 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
           <Text style={[typography.body, styles.summary]}>{node.summary}</Text>
 
           {isBoss ? (
-            <View style={styles.bossNote}>
-              <LinearGradient
-                colors={isAreaBoss ? ['#8E2418', '#4A100C'] : ['#4B2C70', '#2F1B45']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <Glyph name="shield" size={22} color={colors.gold} strokeWidth={2.2} />
+            <View style={[styles.bossNote, isAreaBoss && styles.bossNoteFinal]}>
+              <Glyph name="shield" size={22} color={palette.violetLight} strokeWidth={2.2} />
               <Text style={styles.bossText}>
                 {isAreaBoss
                   ? 'The last fight in this area. Clearing it opens the next one.'
@@ -108,7 +101,10 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
           ) : null}
 
           <View style={styles.chips}>
-            {node.skills.slice(0, 3).map((skill) => (
+            {node.skills
+              .filter((s) => s.toLowerCase() !== node.title.toLowerCase())
+              .slice(0, 3)
+              .map((skill) => (
               <View key={skill} style={styles.chip}>
                 <Text style={styles.chipText} numberOfLines={1}>
                   {skill}
@@ -153,8 +149,13 @@ const styles = StyleSheet.create({
   dock: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xxxl,
-    borderTopRightRadius: radius.xxxl,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    // Ruled on three sides. The sheet is the one surface that meets the screen
+    // edge, so without the rule it is the only thing in the app without one.
+    borderWidth: 3,
+    borderBottomWidth: 0,
+    borderColor: colors.ink,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
   },
@@ -163,15 +164,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: radius.pill,
-    backgroundColor: colors.border,
+    backgroundColor: colors.ink,
+    opacity: 0.22,
     marginBottom: spacing.lg,
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   crest: {
     width: 58,
     height: 58,
-    borderRadius: radius.lg,
-    borderBottomWidth: 4,
+    borderRadius: 18,
+    borderWidth: 3,
+    borderBottomWidth: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -192,11 +195,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     marginTop: spacing.lg,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
+    backgroundColor: '#3B2A57',
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderRadius: 18,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
+  bossNoteFinal: { backgroundColor: '#6B2A22' },
   bossText: { ...typography.caption, color: '#F3E7FA', flex: 1 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
