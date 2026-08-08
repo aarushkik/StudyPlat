@@ -95,7 +95,11 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
             pointerEvents="none"
             style={[
               styles.flag,
-              { transform: [{ translateY: flag.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }] },
+              {
+                transform: [
+                  { rotate: flag.interpolate({ inputRange: [0, 1], outputRange: ['-3deg', '3deg'] }) },
+                ],
+              },
             ]}
           >
             <Text style={styles.flagText}>START</Text>
@@ -164,9 +168,17 @@ function Emblem({
   track: TrackTheme;
   size: number;
 }) {
-  if (state === 'locked') return null;
-
   const s = size / 70;
+
+  if (state === 'locked') {
+    return (
+      <View style={styles.lock}>
+        <View style={styles.lockShackle} />
+        <View style={styles.lockBody} />
+      </View>
+    );
+  }
+
   const ink = state === 'complete' ? colors.white : colors.ink;
 
   if (state === 'complete') {
@@ -174,7 +186,10 @@ function Emblem({
   }
 
   switch (node.kind) {
-    // A play triangle — the thing you actually sit and learn.
+    // A play triangle — the thing you actually sit and learn. White, because
+    // the only unfinished stop on the map is the current one and its face is
+    // orange. The other emblems stay ink for the same reason: the design draws
+    // them in the track colour, which on the amber track is the fill itself.
     case 'lesson':
       return (
         <View
@@ -183,7 +198,7 @@ function Emblem({
             height: 0,
             marginLeft: 6 * s,
             borderLeftWidth: 22 * s,
-            borderLeftColor: ink,
+            borderLeftColor: colors.white,
             borderTopWidth: 15 * s,
             borderBottomWidth: 15 * s,
             borderTopColor: 'transparent',
@@ -270,4 +285,19 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
   },
   blade: { position: 'absolute', width: 30, height: 6, borderRadius: 3 },
+
+  // A padlock: a rounded body with a shackle standing on top of it.
+  lock: { alignItems: 'center', justifyContent: 'center' },
+  lockShackle: {
+    width: 14,
+    height: 9,
+    borderWidth: 4,
+    borderBottomWidth: 0,
+    borderColor: colors.ink,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    opacity: 0.45,
+    marginBottom: -1,
+  },
+  lockBody: { width: 22, height: 16, borderRadius: 4, backgroundColor: colors.ink, opacity: 0.45 },
 });

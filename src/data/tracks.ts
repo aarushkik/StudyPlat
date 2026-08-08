@@ -195,3 +195,17 @@ export function trackAt(courseId: string | null, index: number): TrackTheme {
   const list = tracksFor(courseId);
   return list[Math.min(list.length - 1, Math.max(0, index))];
 }
+
+/**
+ * Whether a track's own colour is light enough to take ink text.
+ *
+ * The banner sits directly on `deep`, and the ten palettes run from amber
+ * (very light) to slate (very dark). Hard-coding ink — which is what the
+ * design does, since it only ever shows the amber track — would make the
+ * summit and blue banners unreadable.
+ */
+export function isLightTrack(deep: string): boolean {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(deep.slice(i, i + 2), 16));
+  // Rec. 601 luma; 0.6 is where ink stops being comfortable on these hues.
+  return (r * 0.299 + g * 0.587 + b * 0.114) / 255 > 0.6;
+}

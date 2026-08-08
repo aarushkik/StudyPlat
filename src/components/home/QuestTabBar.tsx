@@ -1,30 +1,38 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Glyph, type GlyphName } from '@/components/icons';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { colors, fonts, palette } from '@/theme';
 
-export type QuestTab = 'map' | 'train' | 'battles' | 'you';
+export type QuestTab = 'map' | 'practice' | 'progress' | 'you';
 
-const TABS: { id: QuestTab; glyph: GlyphName; label: string }[] = [
-  { id: 'map', glyph: 'map', label: 'Map' },
-  { id: 'train', glyph: 'bolt', label: 'Train' },
-  // A shield, not crossed swords: the swords glyph turns to mush at 23px.
-  { id: 'battles', glyph: 'shield', label: 'Battles' },
-  { id: 'you', glyph: 'avatar', label: 'You' },
+const TABS: { id: QuestTab; label: string }[] = [
+  { id: 'map', label: 'PATH' },
+  { id: 'practice', label: 'PRACTICE' },
+  { id: 'progress', label: 'PROGRESS' },
+  { id: 'you', label: 'PROFILE' },
 ];
 
-interface QuestTabBarProps {
-  active: QuestTab;
-  onChange: (tab: QuestTab) => void;
-}
+const ON = '#052F37';
+const OFF = palette.mutedLight;
+/** The active tile is a pale turquoise, not the brand fill — ink still reads. */
+const TILE = '#7FE0EC';
 
-/** Bottom navigation for the logged-in app. */
-export function QuestTabBar({ active, onChange }: QuestTabBarProps) {
+/**
+ * Bottom navigation.
+ *
+ * The icons are geometry, not outline glyphs: a diamond, a ring, a staircase,
+ * a disc. At 22px an outline icon needs a 2px stroke to read, thinner than
+ * every border in the app, and the bar stops looking like it belongs. Solid
+ * shapes carry the same weight as everything else.
+ *
+ * The active tab takes icon *and* label into one chunky tile, so which tab you
+ * are on is legible from the shape of the bar, not only from colour.
+ */
+export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: (t: QuestTab) => void }) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.bar, shadows.lg, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 18) }]}>
       {TABS.map((tab) => {
         const on = tab.id === active;
         return (
@@ -34,17 +42,13 @@ export function QuestTabBar({ active, onChange }: QuestTabBarProps) {
             accessibilityState={{ selected: on }}
             accessibilityLabel={tab.label}
             onPress={() => onChange(tab.id)}
-            style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
+            style={styles.tab}
           >
-            <View style={[styles.pill, on && styles.pillOn]}>
-              <Glyph
-                name={tab.glyph}
-                size={23}
-                color={on ? colors.primary : colors.textMuted}
-                strokeWidth={on ? 2.4 : 2}
-              />
+            {on ? <View style={styles.tileLip} /> : null}
+            <View style={[styles.tile, on && styles.tileOn]}>
+              <TabIcon id={tab.id} on={on} />
+              <Text style={[styles.label, { color: on ? ON : OFF }]}>{tab.label}</Text>
             </View>
-            <Text style={[styles.label, on && styles.labelOn]}>{tab.label}</Text>
           </Pressable>
         );
       })}
@@ -52,22 +56,65 @@ export function QuestTabBar({ active, onChange }: QuestTabBarProps) {
   );
 }
 
+function TabIcon({ id, on }: { id: QuestTab; on: boolean }) {
+  const c = on ? ON : OFF;
+
+  if (id === 'map') {
+    // A sharp diamond. A 22pt bounding box means a 15.6pt square turned 45°.
+    return <View style={[styles.diamond, { backgroundColor: c }]} />;
+  }
+  if (id === 'practice') {
+    return <View style={[styles.ring, { borderColor: c }]} />;
+  }
+  if (id === 'progress') {
+    // Three steps climbing, drawn flush so they read as one staircase.
+    return (
+      <View style={styles.stairs}>
+        <View style={{ width: 7, height: 8, backgroundColor: c }} />
+        <View style={{ width: 8, height: 15, backgroundColor: c }} />
+        <View style={{ width: 9, height: 22, backgroundColor: c }} />
+      </View>
+    );
+  }
+  return <View style={[styles.disc, { backgroundColor: c }]} />;
+}
+
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.sm,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderTopWidth: 3,
+    borderTopColor: colors.ink,
+    paddingTop: 9,
+    paddingHorizontal: 10,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 2 },
-  pressed: { opacity: 0.6 },
-  pill: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
+  tab: { position: 'relative' },
+  tile: {
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: 'transparent',
   },
-  pillOn: { backgroundColor: colors.primaryTint },
-  label: { ...typography.label, fontSize: 11, color: colors.textMuted },
-  labelOn: { color: colors.primary },
+  tileOn: { backgroundColor: TILE, borderColor: colors.ink },
+  // The active tile's 3pt drop, behind the face.
+  tileLip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 3,
+    bottom: -3,
+    borderRadius: 15,
+    backgroundColor: colors.ink,
+  },
+  label: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 0.6 },
+
+  diamond: { width: 15.6, height: 15.6, margin: 3.2, transform: [{ rotate: '45deg' }] },
+  ring: { width: 22, height: 22, borderRadius: 11, borderWidth: 4 },
+  stairs: { flexDirection: 'row', alignItems: 'flex-end', height: 22 },
+  disc: { width: 22, height: 22, borderRadius: 11 },
 });

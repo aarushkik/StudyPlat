@@ -22,12 +22,11 @@ import {
   TrainPanel,
   UnitBanner,
   trackHeight,
+  type TrackMode,
   type QuestTab,
 } from '@/components/home';
 import { colors, radius, spacing, typography } from '@/theme';
-import { getCourse } from '@/data';
 import { questionCountFor } from '@/data/questMap';
-import { useOnboarding } from '@/state/OnboardingContext';
 import { useQuest } from '@/state/QuestContext';
 import type { QuestNode, QuestUnit } from '@/types/quest';
 import type { RootStackParamList } from '@/navigation/types';
@@ -52,7 +51,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { width } = useWindowDimensions();
-  const { courseId } = useOnboarding();
   const quest = useQuest();
 
   const [tab, setTab] = useState<QuestTab>('map');
@@ -60,7 +58,6 @@ export function HomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [bannerHeight, setBannerHeight] = useState(96);
 
-  const course = getCourse(courseId);
   const units = quest.map.units;
   const completedSet = useMemo(() => new Set(quest.completed), [quest.completed]);
 
@@ -69,8 +66,25 @@ export function HomeScreen() {
    * because that stop is bigger and carries a flag above it. So offsets are
    * accumulated exactly rather than multiplied out from a single height.
    */
+  /**
+   * How each track draws. Everything behind you collapses to a pip strip,
+   * everything ahead to a locked stub; only the track you are on and the one
+   * after it lay out their stops. Ten fully-expanded tracks is ~23,000 points
+   * of scrolling that buries the one stop you can actually play.
+   */
+  const modes = useMemo<TrackMode[]>(() => {
+    const openIndex = units.findIndex((u) => u.nodes.some((n) => quest.stateOf(n.id) === 'current'));
+    return units.map((u, i) => {
+      if (openIndex === -1) return i === 0 ? 'open' : 'locked';
+      if (i < openIndex) return 'cleared';
+      if (i === openIndex) return 'open';
+      if (i === openIndex + 1) return 'next';
+      return 'locked';
+    });
+  }, [units, quest.stateOf]);
+
   const metrics = useMemo(() => {
-    const heights = units.map((u) => trackHeight(u, quest.stateOf));
+    const heights = units.map((u, i) => trackHeight(u, modes[i], quest.stateOf, width));
     const offsets: number[] = [];
     let run = 0;
     for (const h of heights) {
@@ -78,7 +92,7 @@ export function HomeScreen() {
       run += h;
     }
     return { heights, offsets, total: run };
-  }, [units, quest.stateOf]);
+  }, [units, modes, quest.stateOf, width]);
 
   const unitOf = useCallback(
     (node: QuestNode | null) => units.find((u) => u.nodes.some((n) => n.id === node?.id)),
@@ -103,9 +117,10 @@ export function HomeScreen() {
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
-      // Which track the viewport is in: the last one whose top is above the
-      // fold line, a third of the way down the screen.
-      const line = y + 240;
+      // Which track the viewport is in: the last one whose top has passed
+      // under the pinned banner. Collapsed tracks are only ~124pt tall, so a
+      // fold line further down the screen would name a track you cannot see.
+      const line = y + bannerHeight + 8;
       let next = 0;
       for (let i = 0; i < metrics.offsets.length; i += 1) {
         if (metrics.offsets[i] <= line) next = i;
@@ -115,20 +130,21 @@ export function HomeScreen() {
         setActiveIndex(next);
       }
     },
-    [metrics],
+    [metrics, bannerHeight],
   );
 
   const renderSegment = useCallback(
     ({ item, index }: { item: QuestUnit; index: number }) => (
       <TrailSegment
         unit={item}
-        index={index}
         width={width}
+        mode={modes[index]}
+        nextPlace={units[index + 1]?.track.place}
         stateOf={quest.stateOf}
         onSelect={setSelected}
       />
     ),
-    [width, quest.stateOf, units],
+    [width, quest.stateOf, modes, units],
   );
 
   const getItemLayout = useCallback(
@@ -145,13 +161,7 @@ export function HomeScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
-      <QuestHud
-        course={course}
-        streakDays={quest.streakDays}
-        gems={quest.gems}
-        today={quest.todayCount}
-        goal={quest.dailyGoal}
-      />
+      <QuestHud streakDays={quest.streakDays} gems={quest.gems} xp={quest.xp} />
 
       {tab === 'map' ? (
         <View style={styles.mapArea}>
@@ -183,23 +193,14 @@ export function HomeScreen() {
               <UnitBanner
                 unit={activeUnit}
                 cleared={activeUnit.nodes.filter((n) => completedSet.has(n.id)).length}
-                bossesCleared={
-                  activeUnit.nodes.filter((n) => n.kind === 'boss' && completedSet.has(n.id)).length
-                }
-                onOpenGuide={() =>
-                  setSelected(
-                    activeUnit.nodes.find((n) => !completedSet.has(n.id)) ??
-                      activeUnit.nodes[activeUnit.nodes.length - 1],
-                  )
-                }
               />
             ) : null}
           </View>
         </View>
       ) : null}
 
-      {tab === 'train' ? <TrainPanel /> : null}
-      {tab === 'battles' ? <BattlesPanel onSelect={setSelected} /> : null}
+      {tab === 'practice' ? <TrainPanel /> : null}
+      {tab === 'progress' ? <BattlesPanel onSelect={setSelected} /> : null}
       {tab === 'you' ? <ProfilePanel /> : null}
 
       <QuestTabBar active={tab} onChange={setTab} />

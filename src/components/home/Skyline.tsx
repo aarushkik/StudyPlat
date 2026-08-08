@@ -67,17 +67,29 @@ const SETS: Record<SkylineKind, Block[]> = {
 /** The width the design's offsets were authored against. */
 const DESIGN_WIDTH = 390;
 
+/** How far the tallest shape in a set reaches above the ground line. */
+const REACH: Record<SkylineKind, number> = Object.fromEntries(
+  Object.entries(SETS).map(([kind, blocks]) => [
+    kind,
+    Math.max(...blocks.map((b) => b.bottom + b.height)),
+  ]),
+) as Record<SkylineKind, number>;
+
+/** How tall the skyline is on a given screen — the track must leave it room. */
+export function skylineHeight(kind: SkylineKind, width: number): number {
+  return Math.ceil(REACH[kind] * (width / DESIGN_WIDTH));
+}
+
 interface SkylineProps {
   kind: SkylineKind;
   /** The track's dark tone. */
   color: string;
   width: number;
-  /** Height of the band the skyline sits in. */
-  height: number;
 }
 
-export function Skyline({ kind, color, width, height }: SkylineProps) {
+export function Skyline({ kind, color, width }: SkylineProps) {
   const scale = width / DESIGN_WIDTH;
+  const height = skylineHeight(kind, width);
 
   return (
     <View pointerEvents="none" style={[styles.band, { height }]}>
@@ -113,8 +125,9 @@ export function Skyline({ kind, color, width, height }: SkylineProps) {
 }
 
 const styles = StyleSheet.create({
-  // Anchored to the *top* of the track, not the bottom. A track is a couple of
-  // thousand points tall, so a bottom-anchored skyline sits far below the fold
-  // and is never seen; at the top it greets you as you cross in.
-  band: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
+  // Anchored to the bottom of the track and clipped by it, so the silhouette
+  // stands on the boundary line between one place and the next. On a collapsed
+  // track that is right behind the pip strip; on an open one it is the horizon
+  // you walk towards.
+  band: { position: 'absolute', left: 0, right: 0, bottom: 0, overflow: 'hidden' },
 });

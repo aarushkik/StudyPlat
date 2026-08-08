@@ -1,161 +1,219 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CourseIcon, Glyph, PlacementIcon, type GlyphName } from '@/components/icons';
-import { Mascot } from '@/components/Mascot';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
-import { getCourse, getExamTimeframe, getExperienceLevel, getScoreGoal, PLACEMENT_LEVELS } from '@/data';
-import { useOnboarding } from '@/state/OnboardingContext';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { MASCOT_ART } from '@/components/Mascot';
+import { ChunkyCard } from '@/components/ui';
+import { colors, fonts, palette } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
+import { getCourse } from '@/data';
+import { useOnboarding } from '@/state/OnboardingContext';
 
 /**
- * The student's own page: what they've built up, and the plan they set during
- * setup. Everything here is real state carried through from onboarding and the
- * map, so it stays honest as they play.
+ * Profile — who you are on the map.
+ *
+ * The header is a turquoise band rather than a card, so the tab reads as a
+ * different place the moment it opens. Streak sits directly under it in the
+ * loudest colour the palette has, because the streak is the thing a student
+ * comes here to check.
  */
-export function ProfilePanel() {
-  const { courseId, goalScoreId, examTimeframeId, experienceLevelId, placementLevelId } = useOnboarding();
-  const { xp, gems, streakDays, completed, map } = useQuest();
 
+const COMPANIONS: { name: string; ability: string; tint: string; owned: boolean }[] = [
+  { name: 'Mira', ability: 'Equipped', tint: colors.primary, owned: true },
+  { name: 'Ember', ability: 'Owned', tint: palette.orange, owned: true },
+  { name: 'Pilot', ability: 'Owned', tint: '#3E9E63', owned: true },
+];
+
+const ACHIEVEMENTS: { art: keyof typeof MASCOT_ART; name: string; note: string; tally: string }[] = [
+  { art: 'trophy', name: 'Boss Hunter III', note: 'Beat 3 track bosses first try', tally: '3/3' },
+  { art: 'sleepy', name: 'Night Owl', note: 'Ten sessions after 10pm', tally: '10/10' },
+  { art: 'chest', name: 'Collector', note: 'Open every bonus cache on a track', tally: '4/6' },
+];
+
+export function ProfilePanel() {
+  const { xp, streakDays, completed, map } = useQuest();
+  // Levels are 500 XP apart; the quest state stores raw XP only.
+  const level = Math.floor(xp / 500) + 1;
+  const { courseId } = useOnboarding();
   const course = getCourse(courseId);
-  const goal = getScoreGoal(goalScoreId);
-  const exam = getExamTimeframe(examTimeframeId);
-  const experience = getExperienceLevel(experienceLevelId);
-  const level = placementLevelId ? PLACEMENT_LEVELS[placementLevelId] : undefined;
-  const totalStops = map.units.reduce((n, u) => n + u.nodes.length, 0);
+
+  const toNext = Math.max(0, level * 500 - xp);
+  const levelPct = Math.min(100, Math.round(((xp % 500) / 500) * 100));
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      <View style={styles.hero}>
-        <Mascot size={104} pose="proud" />
-        <View style={styles.heroText}>
-          <Text style={typography.title}>Your quest</Text>
-          <Text style={[typography.body, styles.heroBody]} numberOfLines={2}>
-            {course ? `${course.name} · ${completed.length} of ${totalStops} stops cleared` : 'No course selected yet'}
-          </Text>
+      <View style={styles.banner}>
+        <View style={styles.bannerGlow} pointerEvents="none" />
+        <View style={styles.bannerRow}>
+          <View style={styles.avatarWrap}>
+            <View style={styles.avatarLip} />
+            <View style={styles.avatar}>
+              <Image source={MASCOT_ART.proud} style={styles.avatarArt} resizeMode="contain" />
+            </View>
+          </View>
+          <View style={styles.bannerBody}>
+            <Text style={styles.name}>Your quest</Text>
+            <Text style={styles.meta}>
+              {course?.name ?? 'Your course'} · Level {level} · {completed.length}/{map.order.length} stops
+            </Text>
+            <View style={styles.levelTrack}>
+              <View style={[styles.levelFill, { width: `${levelPct}%` }]} />
+            </View>
+            <Text style={styles.levelNote}>{toNext} XP to Level {level + 1}</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.statGrid}>
-        <StatTile glyph="flame" color={colors.gold} value={String(streakDays)} label="Day streak" />
-        <StatTile glyph="star" color={colors.primary} value={String(xp)} label="XP earned" />
-        <StatTile glyph="gem" color={colors.splash} value={String(gems)} label="Gems" />
-        <StatTile glyph="flag" color={colors.success} value={String(completed.length)} label="Stops cleared" />
-      </View>
+      <View style={styles.body}>
+        <Pressable accessibilityRole="button" style={styles.streakWrap}>
+          <View style={styles.streakLip} />
+          <View style={styles.streak}>
+            <Image source={MASCOT_ART.streakOn} style={styles.streakArt} resizeMode="contain" />
+            <View style={styles.streakBody}>
+              <Text style={styles.streakTitle}>{streakDays}-day streak</Text>
+              <Text style={styles.streakNote}>Keep one stop a day to hold it</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </View>
+        </Pressable>
 
-      {level ? (
-        <View style={styles.levelCard}>
-          <View style={styles.levelTile}>
-            <PlacementIcon id={level.id} color={colors.primary} size={30} />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.levelLabel}>Starting level</Text>
-            <Text style={[typography.subtitle, { color: colors.primaryDeep }]}>{level.title}</Text>
-            <Text style={typography.caption}>{level.headline}</Text>
-          </View>
+        <View style={styles.sectionRow}>
+          <Text style={styles.section}>COMPANIONS</Text>
+          <Text style={styles.sectionLink}>See all 16 ›</Text>
         </View>
-      ) : null}
+        <View style={styles.companionRow}>
+          {COMPANIONS.map((c) => (
+            <ChunkyCard key={c.name} onPress={() => {}} style={styles.companion} contentStyle={styles.companionCard}>
+              <View style={[styles.companionTile, { backgroundColor: c.tint }]} />
+              <Text style={styles.companionName}>{c.name}</Text>
+              <Text style={styles.companionMeta}>{c.ability}</Text>
+            </ChunkyCard>
+          ))}
+        </View>
 
-      <Text style={[typography.overline, styles.sectionLabel]}>Your plan</Text>
-      <View style={[styles.list, shadows.xs]}>
-        {course ? (
-          <Row leading={<CourseIcon courseId={course.id} size={26} animate={false} />} label="Course" value={course.name} />
-        ) : null}
-        <Row glyph="target" label="Goal score" value={goal?.label ?? 'Not set'} />
-        <Row glyph="calendar" label="Exam" value={exam?.label ?? 'Not set'} />
-        <Row glyph="chart" label="Experience" value={experience?.label ?? 'Not set'} last />
+        <Text style={styles.section}>ACHIEVEMENTS</Text>
+        <View style={styles.stack}>
+          {ACHIEVEMENTS.map((a) => (
+            <ChunkyCard key={a.name} contentStyle={styles.achieve}>
+              <Image source={MASCOT_ART[a.art]} style={styles.achieveArt} resizeMode="contain" />
+              <View style={styles.achieveBody}>
+                <Text style={styles.achieveName}>{a.name}</Text>
+                <Text style={styles.achieveNote}>{a.note}</Text>
+              </View>
+              <Text style={styles.achieveTally}>{a.tally}</Text>
+            </ChunkyCard>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
 }
 
-function StatTile({ glyph, color, value, label }: { glyph: GlyphName; color: string; value: string; label: string }) {
-  return (
-    <View style={[styles.tile, shadows.xs]}>
-      <Glyph name={glyph} size={22} color={color} strokeWidth={2.2} />
-      <Text style={styles.tileValue}>{value}</Text>
-      <Text style={typography.caption}>{label}</Text>
-    </View>
-  );
-}
-
-function Row({
-  glyph,
-  leading,
-  label,
-  value,
-  last,
-}: {
-  glyph?: GlyphName;
-  leading?: React.ReactNode;
-  label: string;
-  value: string;
-  last?: boolean;
-}) {
-  return (
-    <View style={[styles.row, !last && styles.rowBorder]}>
-      <View style={styles.rowIcon}>
-        {leading ?? (glyph ? <Glyph name={glyph} size={22} color={colors.textSecondary} strokeWidth={2.1} /> : null)}
-      </View>
-      <Text style={[typography.body, styles.rowLabel]}>{label}</Text>
-      <Text style={[typography.bodyStrong, styles.rowValue]} numberOfLines={1}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  scroll: { padding: spacing.xl, paddingBottom: spacing.huge },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  heroText: { flex: 1 },
-  heroBody: { marginTop: spacing.xs },
+  scroll: { paddingBottom: 26 },
 
-  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.xl },
-  tile: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    gap: 2,
+  banner: {
+    backgroundColor: colors.primary,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.ink,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 16,
+    overflow: 'hidden',
   },
-  tileValue: { ...typography.title, fontSize: 26, lineHeight: 32, marginTop: spacing.sm },
+  bannerGlow: {
+    position: 'absolute',
+    right: -60,
+    top: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  bannerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  avatarWrap: { position: 'relative', width: 82, marginBottom: 4 },
+  avatarLip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 4,
+    height: 82,
+    borderRadius: 26,
+    backgroundColor: colors.ink,
+  },
+  avatar: {
+    width: 82,
+    height: 82,
+    borderRadius: 26,
+    backgroundColor: colors.background,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  avatarArt: { width: 86, height: 86, marginBottom: -6 },
+  bannerBody: { flex: 1, minWidth: 0 },
+  name: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 27, color: colors.white },
+  meta: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: '#D6F2F6', marginTop: 2 },
+  levelTrack: {
+    marginTop: 8,
+    height: 11,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    borderWidth: 2,
+    borderColor: colors.ink,
+    overflow: 'hidden',
+  },
+  levelFill: { height: '100%', backgroundColor: palette.orange },
+  levelNote: { fontFamily: fonts.bodyBold, fontSize: 11, color: '#D6F2F6', marginTop: 4 },
 
-  levelCard: {
+  body: { paddingHorizontal: 18, paddingTop: 14 },
+
+  streakWrap: { position: 'relative', marginBottom: 6 },
+  streakLip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 6,
+    bottom: -6,
+    borderRadius: 24,
+    backgroundColor: colors.ink,
+  },
+  streak: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.primaryTint,
-    borderRadius: radius.xl,
-    borderWidth: 2,
-    borderColor: colors.primarySoft,
-    padding: spacing.lg,
-    marginTop: spacing.lg,
+    gap: 8,
+    backgroundColor: palette.orange,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderRadius: 24,
+    paddingLeft: 8,
+    paddingRight: 16,
+    paddingVertical: 12,
+    overflow: 'hidden',
   },
-  levelTile: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  levelLabel: { ...typography.overline, color: colors.primary },
+  streakArt: { width: 96, height: 96, marginVertical: -6 },
+  streakBody: { flex: 1, minWidth: 0 },
+  streakTitle: { fontFamily: fonts.displayHeavy, fontSize: 22, lineHeight: 24, color: colors.ink },
+  streakNote: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: palette.orangeDark, marginTop: 2 },
+  chevron: { fontFamily: fonts.displayHeavy, fontSize: 22, color: colors.ink },
 
-  sectionLabel: { marginTop: spacing.xxl, marginBottom: spacing.sm },
-  list: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.lg,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  rowIcon: { width: 28, alignItems: 'center' },
-  rowLabel: { flexShrink: 0 },
-  rowValue: { flex: 1, textAlign: 'right' },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  section: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.6, color: colors.textMuted, marginTop: 20 },
+  sectionLink: { fontFamily: fonts.bodyHeavy, fontSize: 12, color: colors.primary, marginTop: 20 },
+
+  companionRow: { marginTop: 9, flexDirection: 'row', gap: 9 },
+  companion: { flex: 1 },
+  companionCard: { padding: 11, alignItems: 'center' },
+  companionTile: { width: 40, height: 40, borderRadius: 14, borderWidth: 3, borderColor: colors.ink },
+  companionName: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, color: colors.ink, marginTop: 8 },
+  companionMeta: { fontFamily: fonts.bodySemibold, fontSize: 11, color: colors.textMuted },
+
+  stack: { marginTop: 9, gap: 9 },
+  achieve: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6, paddingRight: 14, paddingVertical: 11 },
+  achieveArt: { width: 64, height: 64 },
+  achieveBody: { flex: 1, minWidth: 0 },
+  achieveName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink },
+  achieveNote: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
+  achieveTally: { fontFamily: fonts.displayHeavy, fontSize: 14, color: palette.violet },
 });
