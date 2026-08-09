@@ -6,6 +6,7 @@ import { colors, fonts, palette } from '@/theme';
 import type { QuestNode, QuestNodeState, QuestUnit } from '@/types/quest';
 import { QuestNodeButton, nodeSizeFor } from './QuestNodeButton';
 import { Skyline } from './Skyline';
+import { TrackScenery } from './TrackScenery';
 
 /**
  * One track on the path.
@@ -157,6 +158,7 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: T
         overflow: 'hidden',
       }}
     >
+      <TrackScenery kind={track.kind} color={track.dark} width={width} height={height} seed={track.n} />
       <Skyline kind={track.kind} color={track.dark} width={width} />
 
       <View style={styles.head}>

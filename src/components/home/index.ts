@@ -1,4 +1,5 @@
 export { Skyline } from './Skyline';
+export { TrackScenery } from './TrackScenery';
 export { TrailSegment, trackHeight } from './TrailSegment';
 export type { TrackMode } from './TrailSegment';
 export { QuestNodeButton, STOP_SIZE, CURRENT_SIZE, nodeSizeFor } from './QuestNodeButton';
