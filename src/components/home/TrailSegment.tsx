@@ -6,6 +6,7 @@ import { colors, fonts, palette } from '@/theme';
 import type { QuestNode, QuestNodeState, QuestUnit } from '@/types/quest';
 import { QuestNodeButton, nodeSizeFor } from './QuestNodeButton';
 import { Skyline } from './Skyline';
+import { TrackProps } from './TrackProps';
 import { TrackScenery } from './TrackScenery';
 
 /**
@@ -160,6 +161,9 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: T
     >
       <TrackScenery kind={track.kind} color={track.dark} width={width} height={height} seed={track.n} />
       <Skyline kind={track.kind} color={track.dark} width={width} />
+      {/* After the silhouette, before the stops: props stand in front of the
+          horizon and behind anything you can tap. */}
+      <TrackProps kind={track.kind} width={width} height={height} seed={track.n} />
 
       <View style={styles.head}>
         <Plaque unit={unit} mode={mode} cleared={cleared} />
