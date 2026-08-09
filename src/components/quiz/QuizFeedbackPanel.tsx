@@ -50,8 +50,6 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
         },
       ]}
     >
-      <View style={[styles.rule, { backgroundColor: correct ? colors.success : colors.danger }]} />
-
       <View style={styles.headerRow}>
         <Mascot size={70} pose={correct ? 'thumbsup' : 'wince'} shadow={false} />
         <View style={styles.titleWrap}>
@@ -81,18 +79,23 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
 }
 
 const styles = StyleSheet.create({
+  // Ruled in ink on three sides, like the stop sheet. A coloured hairline over
+  // a soft tinted sheet was the last surface still drawn in the old language,
+  // and next to the ink-bordered answer cards above it, it read as unfinished.
   panel: {
-    borderTopLeftRadius: radius.xxxl,
-    borderTopRightRadius: radius.xxxl,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderWidth: 3,
+    borderBottomWidth: 0,
+    borderColor: colors.ink,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     overflow: 'hidden',
   },
-  rule: { position: 'absolute', top: 0, left: 0, right: 0, height: 5 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg, gap: spacing.sm },
   titleWrap: { flex: 1, paddingTop: spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  verdictDot: { width: 22, height: 22, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  verdictDot: { width: 24, height: 24, borderRadius: radius.pill, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   title: { ...typography.heading },
   answer: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.sm },
   explanation: { ...typography.body, color: colors.textPrimary, marginTop: spacing.xs },

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { chunky, chunkyRadius, colors, depth, spacing, typography } from '@/theme';
+import { chunky, chunkyRadius, colors, depth, spacing, spring, typography } from '@/theme';
 
 /**
  * The surfaces every screen is assembled from.
@@ -45,7 +45,11 @@ export function ChunkyCard({
   });
 
   const to = (v: number) =>
-    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    Animated.spring(press, {
+      toValue: v,
+      useNativeDriver: true,
+      ...(v === 1 ? spring.press : spring.release),
+    }).start();
   const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] });
 
   const face = (

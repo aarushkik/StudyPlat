@@ -136,12 +136,12 @@ const styles = StyleSheet.create({
   hero: { padding: 18, overflow: 'hidden' },
   heroGlow: {
     position: 'absolute',
-    right: -40,
-    top: -40,
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: 'rgba(5,177,201,0.22)',
+    right: -78,
+    top: -74,
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: 'rgba(5,177,201,0.18)',
   },
   heroKicker: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.8, color: '#7FE0EC' },
   heroTitle: { fontFamily: fonts.displayHeavy, fontSize: 24, lineHeight: 26, color: colors.white, marginTop: 4 },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   // Two per row: half the 375-wide gutter box, less half the 10pt gap.
   gridItem: { width: '48%' },
   modeCard: { padding: 14 },
-  modeTile: { width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: colors.ink },
+  modeTile: { width: 34, height: 34, borderRadius: 15, borderWidth: 3, borderColor: colors.ink },
   modeName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink, marginTop: 10 },
   modeMeta: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
 });

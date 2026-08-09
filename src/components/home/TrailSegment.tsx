@@ -40,7 +40,7 @@ const CURRENT_PAD = 58;
 // The head of every track: 14pt of sky, then the plaque, then 12pt of air.
 const PAD_TOP = 14;
 const PLAQUE_FACE = 58;
-const PLAQUE_LIP = 4;
+const PLAQUE_LIP = 5;
 const HEAD = PAD_TOP + PLAQUE_FACE + PLAQUE_LIP + 12;
 const STOPS_TOP = HEAD + 4;
 const STOPS_BOTTOM = 10;
@@ -51,7 +51,7 @@ const PIP_PAD_X = 20;
 /** A locked track's stub: four dashed pips and the line saying when it opens. */
 const LOCK_BLOCK = 18 + 18;
 /** The gate boss card at the foot of the open track. */
-const BOSS_BLOCK = 94 + 6 + 18;
+const BOSS_BLOCK = 94 + 7 + 18;
 
 /** A "next" track shows only a short preview of what is coming. */
 const PREVIEW_STOPS = 4;
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     right: 16,
     top: PLAQUE_LIP,
     height: PLAQUE_FACE,
-    borderRadius: 18,
+    borderRadius: 24,
     backgroundColor: colors.ink,
   },
   plaque: {
@@ -368,13 +368,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 3,
     borderColor: colors.ink,
-    borderRadius: 18,
+    borderRadius: 24,
     paddingHorizontal: 12,
   },
   num: {
     borderWidth: 3,
     borderColor: colors.ink,
-    borderRadius: 11,
+    borderRadius: 15,
     paddingHorizontal: 9,
     paddingVertical: 2,
   },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   stamp: {
     borderWidth: 3,
     borderColor: colors.ink,
-    borderRadius: 9,
+    borderRadius: 13,
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
@@ -424,9 +424,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 6,
+    top: 7,
     height: 94,
-    borderRadius: 24,
+    borderRadius: 30,
     backgroundColor: colors.ink,
   },
   bossFace: {
@@ -437,14 +437,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B2A57',
     borderWidth: 3,
     borderColor: colors.ink,
-    borderRadius: 24,
+    borderRadius: 30,
     paddingHorizontal: 16,
     overflow: 'hidden',
   },
   bossCrest: {
     width: 62,
     height: 62,
-    borderRadius: 20,
+    borderRadius: 24,
     backgroundColor: palette.violet,
     borderWidth: 3,
     borderColor: colors.ink,

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { chunky, chunkyRadius, colors, depth, spacing, typography } from '@/theme';
+import { chunky, chunkyRadius, colors, depth, gloss, spacing, spring, typography } from '@/theme';
 
 export type ButtonTone = 'primary' | 'secondary' | 'ghost' | 'gold' | 'success' | 'danger';
 type Size = 'md' | 'lg';
@@ -51,7 +51,11 @@ export function AppButton({
   const c = chunky({ depth: depth.button, radius: chunkyRadius.button, shadow: scheme.lip });
 
   const to = (v: number) =>
-    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    Animated.spring(press, {
+      toValue: v,
+      useNativeDriver: true,
+      ...(v === 1 ? spring.press : spring.release),
+    }).start();
 
   const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] });
   const pad = size === 'lg' ? 15 : 11;
@@ -79,6 +83,12 @@ export function AppButton({
           },
         ]}
       >
+        {/* Only the coloured tones get the highlight. On the cream secondary
+            button white-on-white is invisible, and on ghost there is no face. */}
+        {tone === 'primary' || tone === 'gold' || tone === 'danger' ? (
+          <View pointerEvents="none" style={gloss(chunkyRadius.button)} />
+        ) : null}
+
         {loading ? (
           <ActivityIndicator color={scheme.text} />
         ) : (
@@ -107,7 +117,15 @@ const SCHEMES: Record<ButtonTone | 'disabled', Scheme> = {
 };
 
 const styles = StyleSheet.create({
-  face: { paddingHorizontal: spacing.xl, alignItems: 'center', justifyContent: 'center' },
+  // Clips the highlight. React Native clamps a corner radius to half the
+  // shorter side, so on a short button the gloss's own corners would be
+  // rounder than the face can show and would bulge past the ink.
+  face: {
+    paddingHorizontal: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   hidden: { opacity: 0 },
 });

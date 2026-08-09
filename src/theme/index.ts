@@ -1,7 +1,7 @@
 /** Single import surface for the design system. */
 export { colors, palette, accents, stopColors, questNode, nightScreens, confettiColors } from './colors';
 export type { NightScreen, AccentName, Accent, QuestNodeKind } from './colors';
-export { chunky, depth, chunkyRadius, BORDER } from './chunky';
+export { chunky, gloss, glossRound, depth, chunkyRadius, BORDER } from './chunky';
 export type { ChunkyStyles } from './chunky';
 export { spacing } from './spacing';
 export { radius } from './radius';

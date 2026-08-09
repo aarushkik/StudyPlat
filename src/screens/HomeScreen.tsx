@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   StyleSheet,
   Text,
@@ -25,7 +26,7 @@ import {
   type TrackMode,
   type QuestTab,
 } from '@/components/home';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, duration, easing, radius, spacing, typography } from '@/theme';
 import { questionCountFor } from '@/data/questMap';
 import { useQuest } from '@/state/QuestContext';
 import type { QuestNode, QuestUnit } from '@/types/quest';
@@ -174,7 +175,7 @@ export function HomeScreen() {
       <QuestHud streakDays={quest.streakDays} gems={quest.gems} xp={quest.xp} />
 
       {tab === 'map' ? (
-        <View style={styles.mapArea}>
+        <TabFade key="map" style={styles.mapArea}>
           <FlatList
             data={units}
             keyExtractor={(unit) => unit.id}
@@ -206,12 +207,24 @@ export function HomeScreen() {
               />
             ) : null}
           </View>
-        </View>
+        </TabFade>
       ) : null}
 
-      {tab === 'practice' ? <TrainPanel /> : null}
-      {tab === 'progress' ? <BattlesPanel onSelect={setSelected} /> : null}
-      {tab === 'you' ? <ProfilePanel /> : null}
+      {tab === 'practice' ? (
+        <TabFade key="practice" style={styles.mapArea}>
+          <TrainPanel />
+        </TabFade>
+      ) : null}
+      {tab === 'progress' ? (
+        <TabFade key="progress" style={styles.mapArea}>
+          <BattlesPanel onSelect={setSelected} />
+        </TabFade>
+      ) : null}
+      {tab === 'you' ? (
+        <TabFade key="you" style={styles.mapArea}>
+          <ProfilePanel />
+        </TabFade>
+      ) : null}
 
       <QuestTabBar active={tab} onChange={setTab} />
 
@@ -223,6 +236,44 @@ export function HomeScreen() {
         onClose={() => setSelected(null)}
       />
     </View>
+  );
+}
+
+/**
+ * Fades and lifts a tab's panel in.
+ *
+ * Only the incoming panel animates — the outgoing one is unmounted the instant
+ * the tab changes, so there is nothing to cross-fade *with*. Fading the
+ * arrival alone still removes the hard cut, and it avoids keeping two full
+ * panels mounted just for a transition.
+ *
+ * Content starts at full opacity and is faded *up* from 0.4 rather than 0: a
+ * panel that begins invisible reads as a load, not a move.
+ */
+function TabFade({ children, style }: { children: React.ReactNode; style?: object }) {
+  const enter = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: duration.base,
+      easing: easing.out,
+      useNativeDriver: true,
+    }).start();
+  }, [enter]);
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          opacity: enter.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
+          transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
   );
 }
 

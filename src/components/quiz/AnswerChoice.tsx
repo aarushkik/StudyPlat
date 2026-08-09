@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, radius, spacing, spring, typography } from '@/theme';
 
 /** Visual state driven by the quiz flow. */
 export type ChoiceState = 'idle' | 'selected' | 'correct' | 'wrong' | 'missed';
@@ -61,7 +61,11 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
   const lift = pop.interpolate({ inputRange: [0, 1], outputRange: [0, -7] });
 
   const to = (v: number) =>
-    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    Animated.spring(press, {
+      toValue: v,
+      useNativeDriver: true,
+      ...(v === 1 ? spring.press : spring.release),
+    }).start();
 
   return (
     <Animated.View style={[styles.holder, { transform: [{ translateX }, { translateY: lift }] }]}>
@@ -80,7 +84,7 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
             <Text style={[styles.keyText, { color: s.keyText }]}>{KEYS[index] ?? '?'}</Text>
           </View>
           <Text style={[styles.label, { color: s.text }]}>{label}</Text>
-          {s.icon ? <Glyph name={s.icon} size={20} color={s.border} strokeWidth={2.8} /> : null}
+          {s.icon ? <Glyph name={s.icon} size={20} color={s.edge} strokeWidth={2.8} /> : null}
         </Pressable>
       </Animated.View>
     </Animated.View>
@@ -100,24 +104,24 @@ type Style = {
 const STATE: Record<ChoiceState, Style> = {
   idle: {
     bg: colors.surface,
-    border: colors.border,
-    edge: colors.disabledEdge,
+    border: colors.ink,
+    edge: colors.ink,
     text: colors.textPrimary,
-    keyBg: colors.surface,
-    keyText: colors.textMuted,
+    keyBg: colors.background,
+    keyText: colors.textSecondary,
   },
   selected: {
     bg: colors.primaryTint,
-    border: colors.primary,
-    edge: colors.primaryDark,
+    border: colors.ink,
+    edge: colors.primary,
     text: colors.primaryDeep,
     keyBg: colors.primary,
     keyText: colors.white,
   },
   correct: {
     bg: colors.successSoft,
-    border: colors.success,
-    edge: colors.successDark,
+    border: colors.ink,
+    edge: colors.success,
     text: colors.successDark,
     keyBg: colors.success,
     keyText: colors.white,
@@ -125,8 +129,8 @@ const STATE: Record<ChoiceState, Style> = {
   },
   wrong: {
     bg: colors.dangerSoft,
-    border: colors.danger,
-    edge: colors.dangerDark,
+    border: colors.ink,
+    edge: colors.danger,
     text: colors.dangerDark,
     keyBg: colors.danger,
     keyText: colors.white,
@@ -135,8 +139,8 @@ const STATE: Record<ChoiceState, Style> = {
   // The right answer, shown after a miss — present but not celebratory.
   missed: {
     bg: colors.surface,
-    border: colors.success,
-    edge: colors.disabledEdge,
+    border: colors.ink,
+    edge: colors.success,
     text: colors.successDark,
     keyBg: colors.successSoft,
     keyText: colors.successDark,
@@ -144,7 +148,7 @@ const STATE: Record<ChoiceState, Style> = {
   },
 };
 
-const LIP = 4;
+const LIP = 5;
 
 const styles = StyleSheet.create({
   holder: { marginBottom: spacing.md },
@@ -153,16 +157,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: 2,
+    borderWidth: 3,
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
   },
   key: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
+    width: 34,
+    height: 34,
+    // A squircle, not a disc: the round shapes in this app are map stops.
+    borderRadius: 13,
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },

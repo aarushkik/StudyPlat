@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, typography } from '@/theme';
+import { colors, glossRound, spring, typography } from '@/theme';
 import type { TrackTheme } from '@/data/tracks';
 import type { QuestNode, QuestNodeState } from '@/types/quest';
 
@@ -20,8 +20,8 @@ import type { QuestNode, QuestNodeState } from '@/types/quest';
 
 export const STOP_SIZE = 70;
 export const CURRENT_SIZE = 96;
-const LIP = 6;
-const CURRENT_LIP = 7;
+const LIP = 7;
+const CURRENT_LIP = 8;
 
 /** Diameter a stop occupies, so the path can place it before rendering. */
 export function nodeSizeFor(state: QuestNodeState): number {
@@ -70,7 +70,11 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
   }, [current, pulse, flag]);
 
   const to = (v: number) =>
-    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    Animated.spring(press, {
+      toValue: v,
+      useNativeDriver: true,
+      ...(v === 1 ? spring.press : spring.release),
+    }).start();
   const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, lip - 2] });
 
   return (
@@ -130,6 +134,7 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
             },
           ]}
         >
+          <View pointerEvents="none" style={glossRound(size, locked ? 0.16 : current ? 0.2 : 0.28)} />
           <Emblem node={node} state={state} track={track} size={size} />
         </Animated.View>
       </Pressable>
@@ -242,6 +247,8 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
+    // Clips the highlight into a crescent. See `glossRound`.
+    overflow: 'hidden',
   },
   ring: {
     position: 'absolute',
