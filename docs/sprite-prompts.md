@@ -1,5 +1,11 @@
 # Track prop sprites — generation prompts
 
+> **Status: all twenty delivered and in use.** The PNGs live in
+> `src/assets/props/`, registered in `PROP_ART` in
+> `src/components/home/TrackProps.tsx`. Keep this file as the spec — anything
+> added later has to match the style block below or it will not sit with the
+> rest of the set.
+
 Twenty props that stand beside the path at full colour, roughly 80pt tall on
 screen. Ten are **universal** and appear in every track; ten are **signature**
 props, one per landscape kind, so each place owns an object nobody else has.
