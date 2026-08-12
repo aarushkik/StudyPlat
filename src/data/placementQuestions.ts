@@ -356,3 +356,15 @@ export function getPlacementQuiz(courseId: string | null): PlacementQuiz {
   const id = courseId && questionsByCourse[courseId] ? courseId : 'ap-biology';
   return { courseId: id, intro: quizIntros[id], questions: questionsByCourse[id] };
 }
+
+/**
+ * How many questions a session can actually run for this course.
+ *
+ * The quiz engine draws from a fixed bank and silently clamps to its length,
+ * so anything that *displays* a count has to clamp with it. Otherwise a card
+ * offering twelve questions opens a quiz that says "1 / 8", and the number the
+ * student was shown was never true.
+ */
+export function drillSize(courseId: string | null, wanted: number): number {
+  return Math.max(1, Math.min(wanted, getPlacementQuiz(courseId).questions.length));
+}

@@ -6,6 +6,12 @@ import { colors, fonts, palette } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
 import { getCourse } from '@/data';
 import { useOnboarding } from '@/state/OnboardingContext';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { COMPANIONS } from '@/data/companions';
+import type { RootStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 /**
  * Profile — who you are on the map.
@@ -15,12 +21,6 @@ import { useOnboarding } from '@/state/OnboardingContext';
  * loudest colour the palette has, because the streak is the thing a student
  * comes here to check.
  */
-
-const COMPANIONS: { name: string; ability: string; tint: string; owned: boolean }[] = [
-  { name: 'Mira', ability: 'Equipped', tint: colors.primary, owned: true },
-  { name: 'Ember', ability: 'Owned', tint: palette.orange, owned: true },
-  { name: 'Pilot', ability: 'Owned', tint: '#3E9E63', owned: true },
-];
 
 const ACHIEVEMENTS: { art: keyof typeof MASCOT_ART; name: string; note: string; tally: string }[] = [
   { art: 'trophy', name: 'Boss Hunter III', note: 'Beat 3 track bosses first try', tally: '3/3' },
@@ -34,6 +34,8 @@ export function ProfilePanel() {
   const level = Math.floor(xp / 500) + 1;
   const { courseId } = useOnboarding();
   const course = getCourse(courseId);
+  const navigation = useNavigation<Nav>();
+  const preview = COMPANIONS.slice(0, 3);
 
   const toNext = Math.max(0, level * 500 - xp);
   const levelPct = Math.min(100, Math.round(((xp % 500) / 500) * 100));
@@ -63,28 +65,52 @@ export function ProfilePanel() {
       </View>
 
       <View style={styles.body}>
-        <Pressable accessibilityRole="button" style={styles.streakWrap}>
+        {/* Not a button. There is nothing behind a streak but the streak, so
+            instead of a chevron that goes nowhere the card shows the last
+            seven days directly. */}
+        <View style={styles.streakWrap}>
           <View style={styles.streakLip} />
           <View style={styles.streak}>
             <Image source={MASCOT_ART.streakOn} style={styles.streakArt} resizeMode="contain" />
             <View style={styles.streakBody}>
               <Text style={styles.streakTitle}>{streakDays}-day streak</Text>
               <Text style={styles.streakNote}>Keep one stop a day to hold it</Text>
+              <View style={styles.weekRow}>
+                {Array.from({ length: 7 }, (_, i) => (
+                  <View key={i} style={[styles.day, i < Math.min(streakDays, 7) && styles.dayOn]} />
+                ))}
+              </View>
             </View>
-            <Text style={styles.chevron}>›</Text>
           </View>
-        </Pressable>
+        </View>
 
         <View style={styles.sectionRow}>
           <Text style={styles.section}>COMPANIONS</Text>
-          <Text style={styles.sectionLink}>See all 16 ›</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="See all companions"
+            hitSlop={10}
+            onPress={() => navigation.navigate('Characters')}
+          >
+            {/* Counted from the roster, so the link can never promise more
+                companions than the screen behind it has. */}
+            <Text style={styles.sectionLink}>See all {COMPANIONS.length} ›</Text>
+          </Pressable>
         </View>
         <View style={styles.companionRow}>
-          {COMPANIONS.map((c) => (
-            <ChunkyCard key={c.name} onPress={() => {}} style={styles.companion} contentStyle={styles.companionCard}>
+          {preview.map((c) => (
+            <ChunkyCard
+              key={c.id}
+              onPress={() => navigation.navigate('Characters')}
+              accessibilityLabel={`${c.name}, ${c.tag}`}
+              style={styles.companion}
+              contentStyle={styles.companionCard}
+            >
               <View style={[styles.companionTile, { backgroundColor: c.tint }]} />
               <Text style={styles.companionName}>{c.name}</Text>
-              <Text style={styles.companionMeta}>{c.ability}</Text>
+              <Text style={styles.companionMeta} numberOfLines={1}>
+                {c.tag}
+              </Text>
             </ChunkyCard>
           ))}
         </View>
@@ -196,7 +222,16 @@ const styles = StyleSheet.create({
   streakBody: { flex: 1, minWidth: 0 },
   streakTitle: { fontFamily: fonts.displayHeavy, fontSize: 22, lineHeight: 24, color: colors.ink },
   streakNote: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: palette.orangeDark, marginTop: 2 },
-  chevron: { fontFamily: fonts.displayHeavy, fontSize: 22, color: colors.ink },
+  weekRow: { flexDirection: 'row', gap: 5, marginTop: 8 },
+  day: {
+    width: 14,
+    height: 14,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: 'rgba(18,48,60,0.14)',
+  },
+  dayOn: { backgroundColor: colors.surface },
 
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   section: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.6, color: colors.textMuted, marginTop: 20 },

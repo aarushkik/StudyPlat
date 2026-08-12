@@ -3,7 +3,7 @@ import { examTimeframes, experienceLevels, scoreGoals } from './onboardingGoals'
 
 export { apCourses } from './apCourses';
 export { experienceLevels, scoreGoals, examTimeframes, achievementsByCategory } from './onboardingGoals';
-export { getPlacementQuiz, PLACEMENT_LEVELS } from './placementQuestions';
+export { getPlacementQuiz, drillSize, PLACEMENT_LEVELS } from './placementQuestions';
 
 /** Look up a course by id. */
 export const getCourse = (id: string | null) => apCourses.find((c) => c.id === id);

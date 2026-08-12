@@ -172,7 +172,12 @@ export function HomeScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
-      <QuestHud streakDays={quest.streakDays} gems={quest.gems} xp={quest.xp} />
+      <QuestHud
+        streakDays={quest.streakDays}
+        gems={quest.gems}
+        xp={quest.xp}
+        onOpenCharacters={() => navigation.navigate('Characters')}
+      />
 
       {tab === 'map' ? (
         <TabFade key="map" style={styles.mapArea}>

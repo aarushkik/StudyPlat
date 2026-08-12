@@ -3,7 +3,14 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { MASCOT_ART } from '@/components/Mascot';
 import { ChunkyCard } from '@/components/ui';
 import { colors, fonts, palette } from '@/theme';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
+import { useOnboarding } from '@/state/OnboardingContext';
+import { drillSize } from '@/data';
+import type { RootStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 import type { QuestNode } from '@/types/quest';
 
 interface ProgressPanelProps {
@@ -33,6 +40,8 @@ const WEAK: { name: string; pct: number; count: number }[] = [
  */
 export function BattlesPanel({ onSelect }: ProgressPanelProps) {
   const { map, stateOf, completed } = useQuest();
+  const navigation = useNavigation<Nav>();
+  const { courseId } = useOnboarding();
 
   const { tracks, mastery, bossesBeaten, bossTotal, nextBoss } = useMemo(() => {
     const cleared = new Set(completed);
@@ -139,8 +148,15 @@ export function BattlesPanel({ onSelect }: ProgressPanelProps) {
             <View style={styles.barTrack}>
               <View style={[styles.barFill, { width: `${w.pct}%` }]} />
             </View>
-            <Pressable accessibilityRole="button" style={styles.drill}>
-              <Text style={styles.drillText}>DRILL THIS · {w.count} QUESTIONS</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Drill ${w.name}, ${w.count} questions`}
+              onPress={() =>
+                navigation.navigate('Quiz', { title: w.name, count: drillSize(courseId, w.count), xp: w.count * 5 })
+              }
+              style={({ pressed }) => [styles.drill, pressed && styles.drillPressed]}
+            >
+              <Text style={styles.drillText}>DRILL THIS · {drillSize(courseId, w.count)} QUESTIONS</Text>
             </Pressable>
           </ChunkyCard>
         ))}
@@ -249,5 +265,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
   },
+  drillPressed: { transform: [{ translateY: 2 }], opacity: 0.92 },
   drillText: { fontFamily: fonts.bodyBlack, fontSize: 12.5, letterSpacing: 1, color: colors.white },
 });

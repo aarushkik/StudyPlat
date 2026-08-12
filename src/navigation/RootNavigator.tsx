@@ -12,6 +12,7 @@ import { PlacementResultScreen } from '@/screens/PlacementResultScreen';
 import { LessonCompleteScreen } from '@/screens/LessonCompleteScreen';
 import { QuizScreen } from '@/screens/QuizScreen';
 import { HomeScreen } from '@/screens/HomeScreen';
+import { CharactersScreen } from '@/screens/CharactersScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -47,6 +48,7 @@ export function RootNavigator() {
       <Stack.Screen name="PlacementResult" component={PlacementResultScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
+      <Stack.Screen name="Characters" component={CharactersScreen} />
     </Stack.Navigator>
   );
 }

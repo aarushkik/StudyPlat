@@ -7,7 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppButton } from '@/components/ui';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { Mascot } from '@/components/Mascot';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -60,12 +60,15 @@ export function LessonCompleteScreen() {
               {title}
             </Text>
 
-            <View style={[styles.stats, shadows.md]}>
-              <Stat glyph="star" color={colors.gold} value={`+${xp}`} label="XP" />
-              <View style={styles.divider} />
-              <Stat glyph="target" color={colors.success} value={`${accuracy}%`} label="Accuracy" />
-              <View style={styles.divider} />
-              <Stat glyph="flame" color={colors.primary} value={String(streakDays)} label="Day streak" />
+            <View style={styles.statsWrap}>
+              <View style={styles.statsLip} />
+              <View style={styles.stats}>
+                <Stat glyph="star" color={colors.gold} value={`+${xp}`} label="XP" />
+                <View style={styles.divider} />
+                <Stat glyph="target" color={colors.success} value={`${accuracy}%`} label="Accuracy" />
+                <View style={styles.divider} />
+                <Stat glyph="flame" color={colors.primary} value={String(streakDays)} label="Day streak" />
+              </View>
             </View>
 
             <Text style={[typography.body, styles.note]}>{verdict.note}</Text>
@@ -111,19 +114,31 @@ const styles = StyleSheet.create({
   headline: { textAlign: 'center', marginTop: spacing.md },
   sub: { textAlign: 'center', marginTop: spacing.xs },
 
+  // The scoreboard was the last surface on a 1px hairline, which next to the
+  // ink-drawn map and the chunky button below it read as a different app.
+  statsWrap: { alignSelf: 'stretch', position: 'relative', marginTop: spacing.xxl, marginBottom: 6 },
+  statsLip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 6,
+    bottom: -6,
+    borderRadius: radius.xxl,
+    backgroundColor: colors.ink,
+  },
   stats: {
     flexDirection: 'row',
-    alignSelf: 'stretch',
     backgroundColor: colors.surface,
     borderRadius: radius.xxl,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 3,
+    borderColor: colors.ink,
     paddingVertical: spacing.lg,
-    marginTop: spacing.xxl,
   },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   statValue: { ...typography.title, fontSize: 24, lineHeight: 30, marginTop: spacing.xs },
-  divider: { width: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
+  // Ink at low alpha rather than the old border grey: a pale hairline between
+  // three heavy numbers just looks like a rendering seam.
+  divider: { width: 2, backgroundColor: 'rgba(18,48,60,0.16)', marginVertical: spacing.sm, borderRadius: 1 },
 
   note: { textAlign: 'center', marginTop: spacing.lg, paddingHorizontal: spacing.md },
   footer: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg },

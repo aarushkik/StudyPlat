@@ -3,7 +3,14 @@ import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { MASCOT_ART } from '@/components/Mascot';
 import { ChunkyCard } from '@/components/ui';
 import { chunky, colors, fonts, palette } from '@/theme';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
+import { useOnboarding } from '@/state/OnboardingContext';
+import { drillSize } from '@/data';
+import type { RootStackParamList } from '@/navigation/types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 /**
  * Practice — everything off the trail.
@@ -15,21 +22,37 @@ import { useQuest } from '@/state/QuestContext';
  * is what stops people practising.
  */
 
-const WEAK: { name: string; meta: string; pct: number }[] = [
-  { name: 'Photosynthesis', meta: '41 answered · 8 wrong last week', pct: 58 },
-  { name: 'Enzyme Kinetics', meta: '29 answered · trending down', pct: 62 },
-  { name: 'Water Potential', meta: '18 answered · few attempts', pct: 66 },
+const WEAK: { name: string; meta: string; pct: number; count: number; xp: number }[] = [
+  { name: 'Photosynthesis', meta: '41 answered · 8 wrong last week', pct: 58, count: 6, xp: 30 },
+  { name: 'Enzyme Kinetics', meta: '29 answered · trending down', pct: 62, count: 6, xp: 30 },
+  { name: 'Water Potential', meta: '18 answered · few attempts', pct: 66, count: 5, xp: 25 },
 ];
 
-const MODES: { name: string; meta: string; tile: string }[] = [
-  { name: 'Timed set', meta: 'Exam pacing', tile: '#FBE6C7' },
-  { name: 'Mistakes', meta: '38 saved', tile: '#D6F2F6' },
-  { name: 'Boss rematch', meta: '2 available', tile: '#E8DFF7' },
-  { name: 'Free response', meta: 'Long form', tile: '#DEEFE1' },
+const MODES: { name: string; meta: string; tile: string; count: number; xp: number }[] = [
+  { name: 'Timed set', meta: 'Exam pacing', tile: '#FBE6C7', count: 8, xp: 40 },
+  { name: 'Mistakes', meta: '38 saved', tile: '#D6F2F6', count: 6, xp: 30 },
+  { name: 'Boss rematch', meta: '2 available', tile: '#E8DFF7', count: 8, xp: 45 },
+  { name: 'Free response', meta: 'Long form', tile: '#DEEFE1', count: 5, xp: 35 },
 ];
 
 export function TrainPanel() {
   const { xp } = useQuest();
+  const { courseId } = useOnboarding();
+  const navigation = useNavigation<Nav>();
+
+  // Clamped to what the course's bank can actually serve, so a card never
+  // offers more questions than the quiz behind it will run.
+  const sized = (wanted: number) => drillSize(courseId, wanted);
+
+  /**
+   * Start a drill.
+   *
+   * No `nodeId`, which is what makes it practice: the quiz engine treats a
+   * session without one as off-map, so it pays XP and holds the streak but
+   * clears nothing and costs nothing if it goes badly.
+   */
+  const drill = (title: string, count: number, drillXp: number) =>
+    navigation.navigate('Quiz', { title, count: sized(count), xp: drillXp });
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -41,12 +64,17 @@ export function TrainPanel() {
         <Image source={MASCOT_ART.point} style={styles.headArt} resizeMode="contain" />
       </View>
 
-      <Recommended xp={xp} />
+      <Recommended xp={xp} count={sized(12)} onStart={() => drill('Weak-spot drill', 12, 60)} />
 
       <Text style={styles.section}>WEAKEST CATEGORIES</Text>
       <View style={styles.stack}>
         {WEAK.map((w) => (
-          <ChunkyCard key={w.name} onPress={() => {}} contentStyle={styles.weakCard}>
+          <ChunkyCard
+            key={w.name}
+            onPress={() => drill(w.name, w.count, w.xp)}
+            accessibilityLabel={`Drill ${w.name}, ${w.count} questions`}
+            contentStyle={styles.weakCard}
+          >
             <View style={styles.weakBody}>
               <Text style={styles.weakName}>{w.name}</Text>
               <Text style={styles.weakMeta}>{w.meta}</Text>
@@ -62,10 +90,18 @@ export function TrainPanel() {
       <Text style={styles.section}>OTHER WAYS IN</Text>
       <View style={styles.grid}>
         {MODES.map((m) => (
-          <ChunkyCard key={m.name} onPress={() => {}} style={styles.gridItem} contentStyle={styles.modeCard}>
+          <ChunkyCard
+            key={m.name}
+            onPress={() => drill(m.name, m.count, m.xp)}
+            accessibilityLabel={`Start ${m.name}`}
+            style={styles.gridItem}
+            contentStyle={styles.modeCard}
+          >
             <View style={[styles.modeTile, { backgroundColor: m.tile }]} />
             <Text style={styles.modeName}>{m.name}</Text>
-            <Text style={styles.modeMeta}>{m.meta}</Text>
+            <Text style={styles.modeMeta}>
+              {m.meta} · {sized(m.count)}Q
+            </Text>
           </ChunkyCard>
         ))}
       </View>
@@ -78,7 +114,7 @@ export function TrainPanel() {
  * only place in the light half of the app that inverts, so it cannot be
  * mistaken for one more option in the list.
  */
-function Recommended({ xp }: { xp: number }) {
+function Recommended({ xp, count, onStart }: { xp: number; count: number; onStart: () => void }) {
   const press = useRef(new Animated.Value(0)).current;
   const c = chunky({ depth: 6, radius: 26, shadow: '#05707F', background: colors.ink, border: colors.ink });
   const to = (v: number) =>
@@ -90,6 +126,7 @@ function Recommended({ xp }: { xp: number }) {
       accessibilityLabel="Start the weak-spot drill"
       onPressIn={() => to(1)}
       onPressOut={() => to(0)}
+      onPress={onStart}
       style={[c.wrap, styles.heroWrap]}
     >
       <View style={c.lip} />
@@ -105,7 +142,7 @@ function Recommended({ xp }: { xp: number }) {
         <Text style={styles.heroKicker}>RECOMMENDED TODAY</Text>
         <Text style={styles.heroTitle}>Weak-spot drill</Text>
         <Text style={styles.heroBody}>
-          12 questions pulled from Photosynthesis, Enzyme Kinetics and Water Potential.
+          {count} questions pulled from Photosynthesis, Enzyme Kinetics and Water Potential.
         </Text>
         <View style={styles.heroCta}>
           <Text style={styles.heroCtaText}>START · 4 MIN</Text>
@@ -195,7 +232,7 @@ const styles = StyleSheet.create({
   // Two per row: half the 375-wide gutter box, less half the 10pt gap.
   gridItem: { width: '48%' },
   modeCard: { padding: 14 },
-  modeTile: { width: 34, height: 34, borderRadius: 15, borderWidth: 3, borderColor: colors.ink },
+  modeTile: { width: 36, height: 36, borderRadius: 12, borderWidth: 3, borderColor: colors.ink },
   modeName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink, marginTop: 10 },
   modeMeta: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
 });

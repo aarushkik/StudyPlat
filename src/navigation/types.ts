@@ -24,6 +24,8 @@ export type RootStackParamList = {
   PlacementResult: undefined;
   LessonComplete: { title: string; correct: number; total: number; xp: number };
   Home: undefined;
+  /** The companion roster, reached from the HUD avatar and from Profile. */
+  Characters: undefined;
 };
 
 // Enables typed navigation with the untyped `useNavigation()` hook.
