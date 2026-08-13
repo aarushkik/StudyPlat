@@ -6,7 +6,7 @@ import { colors, fonts, palette } from '@/theme';
 import type { QuestNode, QuestNodeState, QuestUnit } from '@/types/quest';
 import { QuestNodeButton, nodeSizeFor } from './QuestNodeButton';
 import { Skyline } from './Skyline';
-import { TrackProps } from './TrackProps';
+import { TrackProps, type PropAnchor } from './TrackProps';
 import { TrackScenery } from './TrackScenery';
 
 /**
@@ -148,6 +148,13 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: T
   const half = width / 2;
   const cleared = unit.nodes.filter((n) => stateOf(n.id) === 'complete').length;
 
+  // Props follow the trail rather than the track box, so they need to know
+  // where the stops are and which way the path is leaning at each one.
+  const anchors = useMemo<PropAnchor[]>(
+    () => stops.map((s) => ({ top: s.top, off: s.off, size: nodeSizeFor(s.state) })),
+    [stops],
+  );
+
   return (
     <View
       style={{
@@ -163,7 +170,7 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: T
       <Skyline kind={track.kind} color={track.dark} width={width} />
       {/* After the silhouette, before the stops: props stand in front of the
           horizon and behind anything you can tap. */}
-      <TrackProps kind={track.kind} width={width} height={height} seed={track.n} />
+      <TrackProps kind={track.kind} width={width} height={height} anchors={anchors} seed={track.n} />
 
       <View style={styles.head}>
         <Plaque unit={unit} mode={mode} cleared={cleared} />

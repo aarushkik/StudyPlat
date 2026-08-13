@@ -49,6 +49,7 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
   const kind = KIND[node.kind];
   const scheme = questNode[node.kind];
   const cleared = state === 'complete';
+  const sealed = state === 'locked';
   const isBoss = node.kind === 'boss';
   const isAreaBoss = isBoss && node.tier === 6;
   // Bosses are named by rank, so the sheet's kicker says which fight this is.
@@ -87,7 +88,9 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
             ) : null}
           </View>
 
-          <Text style={[typography.body, styles.summary]}>{node.summary}</Text>
+          <Text style={[typography.body, styles.summary]}>
+            {sealed ? `${node.summary} Clear the stops before it on the trail to open this one.` : node.summary}
+          </Text>
 
           {isBoss ? (
             <View style={[styles.bossNote, isAreaBoss && styles.bossNoteFinal]}>
@@ -120,14 +123,15 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
           </View>
 
           <AppButton
-            label={cleared ? kind.again : kind.cta}
+            label={sealed ? 'Sealed for now' : cleared ? kind.again : kind.cta}
             tone={isBoss ? 'gold' : cleared ? 'secondary' : 'primary'}
             icon={cleared ? 'refresh' : 'play'}
-            emphasis={!cleared}
+            emphasis={!cleared && !sealed}
+            disabled={sealed}
             onPress={onStart}
           />
           <Pressable onPress={onClose} hitSlop={8} style={styles.dismiss}>
-            <Text style={styles.dismissText}>Not right now</Text>
+            <Text style={styles.dismissText}>{sealed ? 'Back to the map' : 'Not right now'}</Text>
           </Pressable>
         </Animated.View>
       </View>

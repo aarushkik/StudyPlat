@@ -26,7 +26,7 @@ import {
   type ChoiceState,
 } from '@/components/quiz';
 import { colors, duration, easing, radius, spacing, typography } from '@/theme';
-import { getPlacementQuiz } from '@/data';
+import { getPlacementQuiz, questionsForStop, placementQuestions } from '@/data';
 import { scorePlacement, type AnsweredQuestion } from '@/utils/placementScoring';
 import { isStreakMilestone } from '@/utils/streaks';
 import { useOnboarding } from '@/state/OnboardingContext';
@@ -57,11 +57,19 @@ export function QuizScreen() {
   const quiz = useMemo(() => getPlacementQuiz(courseId), [courseId]);
   const session = params?.title != null ? { title: params.title, xp: params.xp ?? 20, nodeId: params.nodeId } : null;
 
-  const questions = useMemo(
-    () => (session ? pickQuestions(quiz.questions, params?.count ?? 5, session.nodeId ?? session.title) : quiz.questions),
+  const questions = useMemo(() => {
+    // No params at all is the placement quest, which samples across the whole
+    // course rather than running every question in it.
+    if (!session) return placementQuestions(courseId);
+    const key = session.nodeId ?? session.title;
+    const count = params?.count ?? 5;
+    // A stop knows its unit, so it draws from that unit first and only falls
+    // back to the rest of the course if it needs more than the unit holds.
+    if (params?.unit != null) return questionsForStop(courseId, params.unit, count, key);
+    // A practice drill has no unit — it ranges over the whole course.
+    return pickQuestions(quiz.questions, count, key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [quiz, session?.title, session?.nodeId, params?.count],
-  );
+  }, [quiz, courseId, session?.title, session?.nodeId, params?.count, params?.unit]);
   const total = questions.length;
 
   const [phase, setPhase] = useState<'intro' | 'quiz'>(session ? 'quiz' : 'intro');

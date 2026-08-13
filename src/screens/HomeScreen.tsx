@@ -57,6 +57,8 @@ export function HomeScreen() {
   const [tab, setTab] = useState<QuestTab>('map');
   const [selected, setSelected] = useState<QuestNode | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  /** A track to scroll to once the map tab is visible. See the effect below. */
+  const [pendingJump, setPendingJump] = useState<number | null>(null);
   const [bannerHeight, setBannerHeight] = useState(96);
 
   const units = quest.map.units;
@@ -109,12 +111,14 @@ export function HomeScreen() {
       title: node.title,
       xp: node.xp,
       count: questionCountFor(node),
+      unit: unitOf(node)?.index,
     });
   };
 
   // Which area the viewport is sitting in. Only commits when it actually
   // changes, so scrolling doesn't re-render the map on every frame.
   const areaRef = useRef(0);
+  const listRef = useRef<FlatList<QuestUnit>>(null);
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
@@ -157,15 +161,37 @@ export function HomeScreen() {
     [metrics],
   );
 
-  // Leaving the map unmounts the list, so it comes back scrolled to the top.
-  // Without this the banner keeps naming whatever track you were looking at
-  // when you switched tabs, over a plaque that says Track 01.
+  /**
+   * Take the map to a track.
+   *
+   * Works because the map stays mounted behind the other tabs (see below), so
+   * the list is already laid out and measured when this runs.
+   *
+   * `scrollToOffset` with our own accumulated offset rather than
+   * `scrollToIndex`: index-based scrolling refuses to jump beyond the render
+   * window, and `initialScrollIndex` is worse on web — it renders from that
+   * index and never lays out the tracks above it, losing half the map.
+   */
+  const jumpToTrack = useCallback((index: number) => {
+    areaRef.current = index;
+    setActiveIndex(index);
+    setPendingJump(index);
+    setTab('map');
+  }, []);
+
+  /**
+   * The scroll itself, once the map is actually on screen.
+   *
+   * It cannot go in `jumpToTrack`: the hidden tab is `display: none`, which
+   * gives the list no scroll box at all, so a scroll issued in the same tick
+   * as the tab switch lands on a zero-height element and is dropped. An effect
+   * runs after the DOM has been updated, by which point the map has a box.
+   */
   useEffect(() => {
-    if (tab !== 'map') {
-      areaRef.current = 0;
-      setActiveIndex(0);
-    }
-  }, [tab]);
+    if (tab !== 'map' || pendingJump == null) return;
+    listRef.current?.scrollToOffset({ offset: metrics.offsets[pendingJump] ?? 0, animated: false });
+    setPendingJump(null);
+  }, [tab, pendingJump, metrics]);
 
   const activeUnit = units[activeIndex] ?? units[0];
 
@@ -179,9 +205,13 @@ export function HomeScreen() {
         onOpenCharacters={() => navigation.navigate('Characters')}
       />
 
-      {tab === 'map' ? (
-        <TabFade key="map" style={styles.mapArea}>
+      {/* The map stays mounted and is hidden rather than unmounted. Rebuilding
+          2,400 points of SVG on every tab switch is wasteful, it threw away
+          your scroll position each time, and a list that does not exist cannot
+          be scrolled — which is what made "go to this track" a no-op. */}
+      <View style={[styles.mapArea, tab !== 'map' && styles.hidden]} pointerEvents={tab === 'map' ? 'auto' : 'none'}>
           <FlatList
+            ref={listRef}
             data={units}
             keyExtractor={(unit) => unit.id}
             renderItem={renderSegment}
@@ -212,8 +242,7 @@ export function HomeScreen() {
               />
             ) : null}
           </View>
-        </TabFade>
-      ) : null}
+      </View>
 
       {tab === 'practice' ? (
         <TabFade key="practice" style={styles.mapArea}>
@@ -222,7 +251,7 @@ export function HomeScreen() {
       ) : null}
       {tab === 'progress' ? (
         <TabFade key="progress" style={styles.mapArea}>
-          <BattlesPanel onSelect={setSelected} />
+          <BattlesPanel onSelect={setSelected} onJumpToTrack={jumpToTrack} />
         </TabFade>
       ) : null}
       {tab === 'you' ? (
@@ -300,6 +329,7 @@ function TrailEnd() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   mapArea: { flex: 1 },
+  hidden: { display: 'none' },
   // Opaque, so the trail never shows through the strip above the banner.
   bannerDock: {
     position: 'absolute',

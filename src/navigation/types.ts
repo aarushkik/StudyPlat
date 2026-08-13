@@ -16,6 +16,8 @@ export type RootStackParamList = {
     | {
         /** Set when the session came from a stop on the map, so it can be cleared. */
         nodeId?: string;
+        /** Which unit the stop belongs to, so its questions match its plaque. */
+        unit?: number;
         title?: string;
         xp?: number;
         count?: number;

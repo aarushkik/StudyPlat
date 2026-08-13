@@ -15,6 +15,8 @@ import type { QuestNode } from '@/types/quest';
 
 interface ProgressPanelProps {
   onSelect: (node: QuestNode) => void;
+  /** Switch to the map and scroll to this track. */
+  onJumpToTrack: (index: number) => void;
 }
 
 /** Eight days of session volume. Placeholder shape until sessions are logged. */
@@ -38,7 +40,7 @@ const WEAK: { name: string; pct: number; count: number }[] = [
  * The boss roster lives here too. Sixty fights is progress data as much as it
  * is a menu, and it has nowhere better to be.
  */
-export function BattlesPanel({ onSelect }: ProgressPanelProps) {
+export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
   const { map, stateOf, completed } = useQuest();
   const navigation = useNavigation<Nav>();
   const { courseId } = useOnboarding();
@@ -104,8 +106,13 @@ export function BattlesPanel({ onSelect }: ProgressPanelProps) {
 
       <Text style={styles.section}>TRACK BY TRACK</Text>
       <View style={styles.tight}>
-        {tracks.map(({ unit, pct }) => (
-          <ChunkyCard key={unit.id} contentStyle={styles.trackRow}>
+        {tracks.map(({ unit, pct }, i) => (
+          <ChunkyCard
+            key={unit.id}
+            onPress={() => onJumpToTrack(i)}
+            accessibilityLabel={`Go to ${unit.track.place} on the map`}
+            contentStyle={styles.trackRow}
+          >
             <View style={[styles.trackDot, { backgroundColor: unit.track.deep }]} />
             <Text style={styles.trackName} numberOfLines={1}>
               {unit.track.place}

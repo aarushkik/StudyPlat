@@ -15,11 +15,19 @@ import type { SkylineKind } from '@/data/tracks';
  * one landscape each, so a place owns an object nobody else has: a lighthouse
  * only ever stands on the coast.
  *
- * Props render *behind* the stops. Ninety points of prop does not fit in the
- * gutter beside a path that swings 160 points across the screen, so instead of
- * squeezing them into the margins they sit near the edge and let a stop
- * overlap them. Something passing in front of something else is depth; a prop
- * shoved into the last 40 points of screen is just a prop that does not fit.
+ * **Props are placed against the trail, not against the track.** Each one sits
+ * in the gap between two stops, on the side the path has just swung away from.
+ * Scattering them at random heights put them wherever, including directly
+ * behind a stop, and the result read as decoration dropped on top of the
+ * screen rather than objects standing in the world. Following the path's own
+ * rhythm is what makes them look placed.
+ *
+ * Each also gets a ground patch — a soft ellipse in the track's dark tone,
+ * under its feet. The sprites carry no baked shadow, deliberately, because the
+ * ground colour changes per track; this puts the contact back without dirtying
+ * the art. It is the single thing that stops a prop looking pasted on.
+ *
+ * Props render behind the stops, so a stop passing in front of one is depth.
  *
  * Generation prompts and filenames: `docs/sprite-prompts.md`.
  */
@@ -109,15 +117,14 @@ const SIGNATURE: Record<SkylineKind, PropName> = {
   peak: 'cairn',
 };
 
-/** One prop per this many points of track. */
-const PROP_PITCH = 400;
-/** Where the first one can appear — clear of the plaque block. */
+/** How many stops go by between props on an expanded track. */
+const STOP_PITCH = 2;
+/** Fallback spacing where a track has no stops to hang props off. */
+const BAND_PITCH = 300;
+/** Clear of the plaque block. */
 const TOP_MARGIN = 130;
-/**
- * And the last. A prop is positioned by its top edge, so this has to cover a
- * whole landmark's height or the tallest one hangs past the track boundary.
- */
-const BOTTOM_MARGIN = 190;
+/** A prop is positioned by its top edge, so this covers a whole landmark. */
+const BOTTOM_MARGIN = 175;
 
 function makeRandom(seed: number): () => number {
   let a = seed >>> 0;
@@ -129,34 +136,48 @@ function makeRandom(seed: number): () => number {
   };
 }
 
+/** Where a stop sits, so props can be placed in the gaps between them. */
+export interface PropAnchor {
+  /** Top of the stop, in track coordinates. */
+  top: number;
+  /** Its offset from centre — negative is left. */
+  off: number;
+  /** Its diameter. */
+  size: number;
+}
+
 interface TrackPropsProps {
   kind: SkylineKind;
   width: number;
   height: number;
+  /** The track's stops, in order. Empty on a collapsed track. */
+  anchors: PropAnchor[];
   /** Position in the course, used to seed placement. */
   seed: number;
 }
 
+interface Placed {
+  name: PropName;
+  x: number;
+  y: number;
+  size: number;
+  flip: boolean;
+}
+
 export const TrackProps = React.memo(TrackPropsImpl);
 
-function TrackPropsImpl({ kind, width, height, seed }: TrackPropsProps) {
-  const placed = useMemo(() => {
-    const span = height - TOP_MARGIN - BOTTOM_MARGIN;
-    // A short track still earns one prop — the preview track runs to about
-    // 570pt, which is under the pitch but far too tall to leave bare.
-    if (span < 240) return [];
-    const count = Math.min(6, Math.max(1, Math.floor(span / PROP_PITCH)));
-
+function TrackPropsImpl({ kind, width, height, anchors, seed }: TrackPropsProps) {
+  const placed = useMemo<Placed[]>(() => {
     const rand = makeRandom(seed * 7717 + 11);
 
     // The signature prop is placed outright rather than drawn from a weighted
     // pool. A lighthouse that only *probably* turns up on the coast is not an
-    // identity, and the odds of missing it entirely on a short track are high.
+    // identity, and the odds of missing it on a short track are high.
     const signature = SIGNATURE[kind];
     const hasSignature = Boolean(PROP_ART[signature]);
 
-    // Universal props are drawn without replacement, so no track ever shows
-    // the same bench twice.
+    // Universal props are drawn without replacement, so no track shows the
+    // same bench twice.
     const bag = UNIVERSAL.filter((p) => PROP_ART[p]);
     for (let i = bag.length - 1; i > 0; i -= 1) {
       const j = Math.floor(rand() * (i + 1));
@@ -164,67 +185,92 @@ function TrackPropsImpl({ kind, width, height, seed }: TrackPropsProps) {
     }
     if (!hasSignature && bag.length === 0) return [];
 
-    // Sides alternate rather than being drawn at random. Two props in a row on
-    // the same side leaves a long empty stripe down the other, which is more
-    // noticeable than any single placement.
-    let side = rand() < 0.5 ? -1 : 1;
+    /** Slots to fill: a y to stand at, and which side to stand on. */
+    const slots: { y: number; side: -1 | 1 }[] = [];
 
-    const out = [];
-    for (let i = 0; i < count; i += 1) {
-      // The signature prop takes a slot in the middle of the track, where it
-      // is most likely to be seen, rather than the first one under the plaque.
-      const isSignature = hasSignature && i === Math.floor(count / 2);
-      const name = isSignature ? signature : bag[i % Math.max(1, bag.length)];
-      if (!name) continue;
+    if (anchors.length >= 2) {
+      // Walk the trail and drop a prop in every other gap, on the side the
+      // path has just swung away from. That is the side with room, and it
+      // reads as something you pass rather than something in your way.
+      for (let i = 0; i + 1 < anchors.length; i += STOP_PITCH) {
+        const a = anchors[i];
+        const b = anchors[i + 1];
+        const mid = (a.top + a.size + b.top) / 2;
+        const lean = (a.off + b.off) / 2;
+        slots.push({ y: mid - 40, side: lean > 0 ? -1 : 1 });
+      }
+    } else {
+      // A collapsed track has no stops, so fall back to even bands.
+      const span = height - TOP_MARGIN - BOTTOM_MARGIN;
+      const n = span < 120 ? 0 : Math.max(1, Math.floor(span / BAND_PITCH));
+      let side: -1 | 1 = rand() < 0.5 ? -1 : 1;
+      for (let i = 0; i < n; i += 1) {
+        side = side === 1 ? -1 : 1;
+        slots.push({ y: TOP_MARGIN + (span / n) * (i + 0.25 + rand() * 0.4), side });
+      }
+    }
+    if (slots.length === 0) return [];
 
-      side *= -1;
-      const y = TOP_MARGIN + (span / count) * (i + 0.2 + rand() * 0.55);
-      // Landmarks run half again as large. They are what the place is called
-      // after, and at the same size as a bench that reads as coincidence.
-      const size = isSignature ? 138 + rand() * 26 : 94 + rand() * 22;
-      // Barely off the edge. Portrait sprites carry their own side padding
+    // The landmark goes in the middle slot, where it is most likely to be seen.
+    const landmarkAt = hasSignature ? Math.floor(slots.length / 2) : -1;
+
+    return slots.map((slot, i) => {
+      const isLandmark = i === landmarkAt;
+      const name = isLandmark ? signature : bag[i % bag.length];
+      // Landmarks run half again as large: they are what the place is named
+      // after, and at bench size that reads as coincidence.
+      const size = isLandmark ? 132 + rand() * 22 : 88 + rand() * 18;
+      // Hugged to the edge. Portrait sprites carry their own side padding
       // inside the square canvas, so a small negative offset insets them
-      // rather than clipping them; the wide ones lose a sliver, which reads
-      // as the object continuing past the frame.
-      const x = side < 0 ? -size * 0.08 : width - size * 0.92;
-      out.push({
+      // rather than clipping; wide ones lose a sliver, which reads as the
+      // object continuing past the frame.
+      const x = slot.side < 0 ? -size * 0.08 : width - size * 0.92;
+      return {
         name,
         x,
-        y,
+        y: slot.y,
         size,
-        // Never mirror the landmark: it is the one prop a student will see
-        // often enough to notice it flipping between visits.
-        flip: !isSignature && rand() < 0.4,
-      });
-    }
-    return out;
-  }, [kind, height, width, seed]);
+        // Never mirror the landmark — it is the one prop seen often enough
+        // that flipping between visits would show.
+        flip: !isLandmark && rand() < 0.4,
+      };
+    });
+  }, [kind, height, width, anchors, seed]);
 
   if (placed.length === 0) return null;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {placed.map((p, i) => (
-        <Image
-          key={i}
-          source={PROP_ART[p.name] as ImageSourcePropType}
-          resizeMode="contain"
-          style={[
-            styles.prop,
-            {
-              left: p.x,
-              top: p.y,
-              width: p.size,
-              height: p.size,
-              transform: p.flip ? [{ scaleX: -1 }] : undefined,
-            },
-          ]}
-        />
+        <View key={i} style={[styles.slot, { left: p.x, top: p.y, width: p.size, height: p.size }]}>
+          {/* Contact with the ground. The sprites ship without a baked shadow
+              on purpose — the ground colour changes per track — so this puts
+              it back in the track's own tone. */}
+          <View
+            style={[
+              styles.ground,
+              {
+                width: p.size * 0.58,
+                height: p.size * 0.15,
+                borderRadius: p.size * 0.075,
+                left: p.size * 0.21,
+                top: p.size * 0.9,
+              },
+            ]}
+          />
+          <Image
+            source={PROP_ART[p.name] as ImageSourcePropType}
+            resizeMode="contain"
+            style={[styles.art, p.flip ? { transform: [{ scaleX: -1 }] } : null]}
+          />
+        </View>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  prop: { position: 'absolute' },
+  slot: { position: 'absolute' },
+  ground: { position: 'absolute', backgroundColor: 'rgba(18,48,60,0.13)' },
+  art: { width: '100%', height: '100%' },
 });

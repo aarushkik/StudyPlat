@@ -44,6 +44,13 @@ export interface PlacementQuestion {
   explanation: string;
   /** Human-readable skill this question probes, e.g. "Cell structure". */
   skillTag: string;
+  /**
+   * Which unit of the course this belongs to, zero-indexed against
+   * `COURSE_UNITS`. A stop draws from its own unit first so the questions
+   * match the topic on its plaque; placement questions leave it unset and are
+   * drawn from the whole course.
+   */
+  unit?: number;
 }
 
 /** The full placement quiz for one subject. */

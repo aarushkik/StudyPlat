@@ -114,8 +114,10 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${node.title}, ${STATE_LABEL[state]}`}
-        accessibilityState={{ disabled: locked }}
-        disabled={locked}
+        // Sealed stops are still tappable. Most of the map is locked, and a
+        // stop that does nothing at all when tapped reads as broken; the sheet
+        // can at least say what it is and what opens it.
+        accessibilityState={{ disabled: false }}
         onPressIn={() => to(1)}
         onPressOut={() => to(0)}
         onPress={onPress}
