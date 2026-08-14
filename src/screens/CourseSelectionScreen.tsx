@@ -53,6 +53,8 @@ export function CourseSelectionScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { flex: 1 },
-  pad: { height: spacing.giant },
+  // A gap under the list so the footer button never sits flush against a
+  // card cut off by the scroll edge.
+  list: { flex: 1, marginBottom: spacing.md },
+  pad: { height: spacing.lg },
 });

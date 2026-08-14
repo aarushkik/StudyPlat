@@ -17,7 +17,7 @@ interface LevelOptionCardProps {
 export function LevelOptionCard({ label, bars, hint, selected, onPress }: LevelOptionCardProps) {
   return (
     <SelectRow
-      leading={<LevelBars filled={bars} color={selected ? colors.primary : colors.textMuted} />}
+      leading={<LevelBars filled={bars} color={selected ? colors.primary : colors.ink} />}
       title={label}
       subtitle={hint}
       selected={selected}
