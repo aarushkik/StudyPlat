@@ -4,9 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppButton, ScreenContainer } from '@/components/ui';
-import { CourseIcon, Glyph, PlacementIcon } from '@/components/icons';
+import { Glyph, PlacementIcon } from '@/components/icons';
 import { Mascot } from '@/components/Mascot';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { colors, radius, shadows, spacing, typography, fonts } from '@/theme';
 import { getCourse, getScoreGoal, PLACEMENT_LEVELS } from '@/data';
 import { getQuestMap, headStartFor } from '@/data/questMap';
 import { useOnboarding } from '@/state/OnboardingContext';
@@ -71,19 +71,28 @@ export function PlacementResultScreen() {
         <Animated.View style={{ opacity: fade, transform: [{ translateY: shift }] }}>
           <Text style={[typography.title, styles.title]}>Your map is drawn</Text>
 
-          <View style={styles.levelCard}>
+          <View style={styles.levelWrap}>
             <View style={styles.levelCardLip} />
-            <View style={styles.levelTile}>
-              <PlacementIcon id={level.id} color={colors.primary} size={38} />
+            <View style={styles.levelCard}>
+              <View style={styles.levelTile}>
+                <PlacementIcon id={level.id} color={colors.primary} size={38} />
+              </View>
+              <Text style={styles.levelLabel}>Your starting point</Text>
+              <Text style={typography.heading}>{level.title}</Text>
+              <Text style={[typography.bodyStrong, styles.headline]}>{level.headline}</Text>
+              <Text style={[typography.body, styles.desc]}>{level.description}</Text>
             </View>
-            <Text style={styles.levelLabel}>Your starting point</Text>
-            <Text style={typography.heading}>{level.title}</Text>
-            <Text style={[typography.bodyStrong, styles.headline]}>{level.headline}</Text>
-            <Text style={[typography.body, styles.desc]}>{level.description}</Text>
           </View>
 
-          <View style={styles.summary}>
-            <Row leading={course ? <CourseIcon courseId={course.id} size={22} animate={false} /> : null} text={course?.name ?? 'Your course'} />
+          <View style={styles.summaryWrap}>
+            <View style={styles.summaryLip} />
+            <View style={styles.summary}>
+            <Row
+              leading={
+                course ? <Text style={styles.summaryAbbr}>{course.abbr}</Text> : null
+              }
+              text={course?.name ?? 'Your course'}
+            />
             <View style={styles.divider} />
             <Row leading={<Glyph name="target" size={20} color={colors.textSecondary} strokeWidth={2.1} />} text={goal?.label ?? 'Your goal'} />
             <View style={styles.divider} />
@@ -94,7 +103,8 @@ export function PlacementResultScreen() {
                   ? `${headStart} stops already behind you across ${map.units.length} regions`
                   : `${map.units.length} regions charted and waiting`
               }
-            />
+              />
+            </View>
           </View>
         </Animated.View>
       </ScrollView>
@@ -119,18 +129,19 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxl },
   title: { textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
 
+  // Wrapper, lip, face — in that order. The lip used to be a sibling *inside*
+  // the card, which meant it painted over the card's own cream fill and left
+  // every line of text sitting on turquoise.
+  levelWrap: { position: 'relative', marginBottom: 5 },
   levelCard: {
-    position: 'relative',
     borderRadius: 20,
     borderWidth: 3,
     borderColor: colors.ink,
     backgroundColor: colors.surface,
     padding: spacing.xl,
-    marginBottom: 5,
     alignItems: 'center',
   },
-  // The card's hard 5pt drop. This screen sits on the night ground, so the lip
-  // is turquoise rather than ink — ink on ink would vanish.
+  /** The card's hard 5pt drop, in the brand colour. */
   levelCardLip: {
     position: 'absolute',
     left: 0,
@@ -139,35 +150,45 @@ const styles = StyleSheet.create({
     bottom: -5,
     borderRadius: 20,
     backgroundColor: colors.primary,
-    zIndex: -1,
   },
   levelTile: {
     width: 68,
     height: 68,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    backgroundColor: colors.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
+  summaryAbbr: { fontFamily: fonts.displayHeavy, fontSize: 13, color: colors.primaryDeep },
   levelLabel: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
   headline: { color: colors.primaryDeep, textAlign: 'center', marginTop: spacing.xs },
   desc: { textAlign: 'center', marginTop: spacing.sm },
 
+  summaryWrap: { alignSelf: 'stretch', position: 'relative', marginTop: spacing.xl, marginBottom: 4 },
+  summaryLip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 4,
+    bottom: -4,
+    borderRadius: radius.xl,
+    backgroundColor: colors.ink,
+  },
   summary: {
-    alignSelf: 'stretch',
-    marginTop: spacing.xl,
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 3,
+    borderColor: colors.ink,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   rowIcon: { width: 24, alignItems: 'center' },
   summaryText: { ...typography.bodyStrong, flexShrink: 1 },
-  divider: { height: 1, backgroundColor: colors.border },
+  divider: { height: 2, borderRadius: 1, backgroundColor: 'rgba(18,48,60,0.14)' },
 
   footer: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
 });
