@@ -33,7 +33,6 @@ function Stroked({ color, children }: { color: string; children: React.ReactNode
   );
 }
 
-// (Animated course icons live in ./CourseIcon.)
 
 // --- Score-goal glyphs -------------------------------------------------------
 
