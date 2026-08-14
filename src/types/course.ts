@@ -13,6 +13,8 @@ export interface APCourse {
   name: string;
   /** Compact label for tight spaces, e.g. "Biology". */
   shortName: string;
+  /** Three letters for the course tile, e.g. "BIO". */
+  abbr: string;
   blurb: string;
   accent: AccentName;
   category: CourseCategory;

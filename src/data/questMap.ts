@@ -165,8 +165,9 @@ export function getQuestMap(courseId: string | null): QuestMap {
   return { courseId: course.id, units, order: units.flatMap((u) => u.nodes.map((n) => n.id)) };
 }
 
-/** Nodes in one area — used to size the placement head start. */
-const NODES_PER_UNIT = STAGES_PER_UNIT * 3;
+/** Stops in one area — a lesson, a support stop and a boss per stage. */
+export const STOPS_PER_UNIT = STAGES_PER_UNIT * 3;
+const NODES_PER_UNIT = STOPS_PER_UNIT;
 
 /**
  * How far into the map a placement result drops the student. Passing at a
