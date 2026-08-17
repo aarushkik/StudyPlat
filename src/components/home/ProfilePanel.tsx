@@ -6,6 +6,8 @@ import { colors, fonts, palette } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
 import { getCourse } from '@/data';
 import { useOnboarding } from '@/state/OnboardingContext';
+import { useAuth } from '@/state/AuthContext';
+import { useProfileSync } from '@/state/ProfileSync';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COMPANIONS } from '@/data/companions';
@@ -36,6 +38,8 @@ export function ProfilePanel() {
   const course = getCourse(courseId);
   const navigation = useNavigation<Nav>();
   const preview = COMPANIONS.slice(0, 3);
+  const { user, signOut } = useAuth();
+  const { offline } = useProfileSync();
 
   const toNext = Math.max(0, level * 500 - xp);
   const levelPct = Math.min(100, Math.round(((xp % 500) / 500) * 100));
@@ -52,7 +56,9 @@ export function ProfilePanel() {
             </View>
           </View>
           <View style={styles.bannerBody}>
-            <Text style={styles.name}>Your quest</Text>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName(user?.user_metadata, user?.email)}
+            </Text>
             <Text style={styles.meta}>
               {course?.name ?? 'Your course'} · Level {level} · {completed.length}/{map.order.length} stops
             </Text>
@@ -115,6 +121,14 @@ export function ProfilePanel() {
           ))}
         </View>
 
+        {offline ? (
+          <View style={styles.offline}>
+            <Text style={styles.offlineText}>
+              Working offline — progress is saved on this device and will sync when you reconnect.
+            </Text>
+          </View>
+        ) : null}
+
         <Text style={styles.section}>ACHIEVEMENTS</Text>
         <View style={styles.stack}>
           {ACHIEVEMENTS.map((a) => (
@@ -128,9 +142,31 @@ export function ProfilePanel() {
             </ChunkyCard>
           ))}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          onPress={signOut}
+          style={({ pressed }) => [styles.signOut, pressed && styles.signOutPressed]}
+        >
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
+}
+
+/**
+ * What to call the student.
+ *
+ * OAuth providers disagree about which field holds a name — Google sends
+ * `full_name`, Microsoft often only `name` — and some accounts have neither,
+ * so the email's local part is the last resort before a generic greeting.
+ */
+function displayName(meta: Record<string, unknown> | undefined, email: string | undefined): string {
+  const named = (meta?.full_name ?? meta?.name) as string | undefined;
+  if (named && named.trim()) return named.trim();
+  if (email) return email.split('@')[0];
+  return 'Your quest';
 }
 
 const styles = StyleSheet.create({
@@ -250,5 +286,29 @@ const styles = StyleSheet.create({
   achieveBody: { flex: 1, minWidth: 0 },
   achieveName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink },
   achieveNote: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
+  offline: {
+    marginTop: 18,
+    backgroundColor: 'rgba(245,160,43,0.16)',
+    borderWidth: 3,
+    borderColor: palette.orange,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  offlineText: { fontFamily: fonts.bodySemibold, fontSize: 12.5, lineHeight: 17, color: palette.orangeDark },
+
+  signOut: {
+    marginTop: 24,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  signOutPressed: { opacity: 0.6 },
+  signOutText: {
+    fontFamily: fonts.bodyHeavy,
+    fontSize: 14,
+    color: colors.textMuted,
+    textDecorationLine: 'underline',
+  },
   achieveTally: { fontFamily: fonts.displayHeavy, fontSize: 14, color: palette.violet },
 });

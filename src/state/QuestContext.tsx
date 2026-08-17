@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { getQuestMap, headStartFor } from '@/data/questMap';
+import { nextStreak, todayKey } from '@/lib/profile';
 import type { QuestMap, QuestNodeState } from '@/types/quest';
 import { useOnboarding } from './OnboardingContext';
 
@@ -11,13 +12,20 @@ import { useOnboarding } from './OnboardingContext';
  * that isn't, and locked after that. Keeping it derived means the map can never
  * show two "start here" nodes or strand a reachable one behind a locked gate.
  *
- * In-memory by design for this milestone — this is the seam where persistence
- * or a backend profile plugs in without touching a single screen.
+ * State is held here and mirrored to the student's Supabase profile by
+ * `ProfileSync`, which hydrates this provider on sign-in and writes changes
+ * back. Nothing in a screen knows about the network.
  */
 interface QuestContextValue {
   map: QuestMap;
-  /** Cleared node ids. */
+  /** Cleared node ids — the placement head start plus everything played. */
   completed: string[];
+  /**
+   * Only the stops this student actually played. This is what gets persisted:
+   * the head start is recomputed from the placement level on load, so saving
+   * it too would double-count it on every sign-in.
+   */
+  earned: string[];
   /** The node the student should tap next, or null once the map is finished. */
   currentNodeId: string | null;
   stateOf: (nodeId: string) => QuestNodeState;
@@ -32,6 +40,18 @@ interface QuestContextValue {
    * from the training ground have no id and only contribute XP and streak.
    */
   recordSession: (earnedXp: number, nodeId?: string) => void;
+  /** The day the last session was banked, as YYYY-MM-DD. */
+  lastSessionOn: string | null;
+  /** Adopt a stored profile. Called once per sign-in by `ProfileSync`. */
+  hydrate: (next: {
+    xp?: number;
+    gems?: number;
+    streakDays?: number;
+    completedStops?: string[];
+    lastSessionOn?: string | null;
+  }) => void;
+  /** Drop everything, for sign-out. */
+  reset: () => void;
 }
 
 const QuestContext = createContext<QuestContextValue | null>(null);
@@ -48,7 +68,13 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
 
   const [earned, setEarned] = useState<string[]>([]);
   const [xp, setXp] = useState(0);
+  const [gems, setGems] = useState(0);
+  const [streakDays, setStreakDays] = useState(0);
+  const [lastSessionOn, setLastSessionOn] = useState<string | null>(null);
   const [todayCount, setTodayCount] = useState(0);
+  // `recordSession` must read the latest value without re-creating itself on
+  // every session; a stale closure here silently freezes the streak.
+  const lastSessionOnRef = useRef<string | null>(null);
 
   const completed = useMemo(() => [...seeded, ...earned], [seeded, earned]);
   const completedSet = useMemo(() => new Set(completed), [completed]);
@@ -69,24 +95,66 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
   const recordSession = useCallback((earnedXp: number, nodeId?: string) => {
     if (nodeId) setEarned((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
     setXp((prev) => prev + earnedXp);
+    // Gems are the slower currency: one per session, whether or not it cleared
+    // a stop, so practice is worth something too.
+    setGems((prev) => prev + 1);
     setTodayCount((prev) => prev + 1);
+
+    // The streak rule lives in one place; see `nextStreak`.
+    const today = todayKey();
+    setStreakDays((prev) => nextStreak(prev, lastSessionOnRef.current, today));
+    lastSessionOnRef.current = today;
+    setLastSessionOn(today);
+  }, []);
+
+  const hydrate = useCallback(
+    (next: {
+      xp?: number;
+      gems?: number;
+      streakDays?: number;
+      completedStops?: string[];
+      lastSessionOn?: string | null;
+    }) => {
+      if (next.xp !== undefined) setXp(next.xp);
+      if (next.gems !== undefined) setGems(next.gems);
+      if (next.streakDays !== undefined) setStreakDays(next.streakDays);
+      if (next.completedStops !== undefined) setEarned(next.completedStops);
+      if (next.lastSessionOn !== undefined) {
+        setLastSessionOn(next.lastSessionOn);
+        lastSessionOnRef.current = next.lastSessionOn;
+      }
+    },
+    [],
+  );
+
+  const reset = useCallback(() => {
+    setEarned([]);
+    setXp(0);
+    setGems(0);
+    setStreakDays(0);
+    setTodayCount(0);
+    setLastSessionOn(null);
+    lastSessionOnRef.current = null;
   }, []);
 
   const value = useMemo<QuestContextValue>(
     () => ({
       map,
       completed,
+      earned,
       currentNodeId,
       stateOf,
       xp,
-      // Gems are a slower currency: one per cleared stop, on top of the seed.
-      gems: 12 + completed.length,
-      streakDays: 1 + todayCount,
+      gems,
+      streakDays,
       todayCount,
       dailyGoal: 3,
+      lastSessionOn,
       recordSession,
+      hydrate,
+      reset,
     }),
-    [map, completed, currentNodeId, stateOf, xp, todayCount, recordSession],
+    [map, completed, earned, currentNodeId, stateOf, xp, gems, streakDays, todayCount, lastSessionOn, recordSession, hydrate, reset],
   );
 
   return <QuestContext.Provider value={value}>{children}</QuestContext.Provider>;

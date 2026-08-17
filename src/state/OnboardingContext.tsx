@@ -23,6 +23,11 @@ interface OnboardingContextValue extends OnboardingState {
   setExamTimeframeId: (id: ExamTimeframeId) => void;
   setStartChoice: (choice: StartChoice) => void;
   setPlacementLevelId: (id: PlacementLevelId) => void;
+  /** True once setup has been finished and saved. */
+  onboarded: boolean;
+  markOnboarded: () => void;
+  /** Replace the whole state from a stored profile. */
+  hydrate: (next: Partial<OnboardingState> & { onboarded?: boolean }) => void;
   reset: () => void;
 }
 
@@ -39,6 +44,19 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<OnboardingState>(EMPTY);
+  const [onboarded, setOnboarded] = useState(false);
+
+  /**
+   * Adopt a profile loaded from the server.
+   *
+   * Only keys actually present are copied, so a partial row cannot blank a
+   * choice the student has already made in this session.
+   */
+  const hydrate = useCallback((next: Partial<OnboardingState> & { onboarded?: boolean }) => {
+    const { onboarded: done, ...rest } = next;
+    setState((prev) => ({ ...prev, ...rest }));
+    if (done !== undefined) setOnboarded(done);
+  }, []);
   const patch = useCallback((p: Partial<OnboardingState>) => setState((s) => ({ ...s, ...p })), []);
 
   const value = useMemo<OnboardingContextValue>(
@@ -50,9 +68,15 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       setExamTimeframeId: (examTimeframeId) => patch({ examTimeframeId }),
       setStartChoice: (startChoice) => patch({ startChoice }),
       setPlacementLevelId: (placementLevelId) => patch({ placementLevelId }),
-      reset: () => setState(EMPTY),
+      onboarded,
+      markOnboarded: () => setOnboarded(true),
+      hydrate,
+      reset: () => {
+        setState(EMPTY);
+        setOnboarded(false);
+      },
     }),
-    [state, patch],
+    [state, patch, onboarded, hydrate],
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;

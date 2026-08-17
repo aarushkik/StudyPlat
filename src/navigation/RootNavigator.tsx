@@ -1,7 +1,7 @@
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SplashScreen } from '@/screens/SplashScreen';
-import { WelcomeScreen } from '@/screens/WelcomeScreen';
 import { IntroScreen } from '@/screens/IntroScreen';
 import { CourseSelectionScreen } from '@/screens/CourseSelectionScreen';
 import { SubjectExperienceScreen } from '@/screens/SubjectExperienceScreen';
@@ -13,6 +13,11 @@ import { LessonCompleteScreen } from '@/screens/LessonCompleteScreen';
 import { QuizScreen } from '@/screens/QuizScreen';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { CharactersScreen } from '@/screens/CharactersScreen';
+import { SignInScreen } from '@/screens/SignInScreen';
+import { useAuth } from '@/state/AuthContext';
+import { useOnboarding } from '@/state/OnboardingContext';
+import { useProfileSync } from '@/state/ProfileSync';
+import { palette } from '@/theme';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -20,24 +25,52 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 /**
  * One stack for the whole app.
  *
- * Setup runs linearly — Splash → Welcome → Intro → CourseSelection →
+ * Signed out you get Splash → SignIn and nothing else. Signed in, setup runs
+ * linearly — Intro → CourseSelection →
  * SubjectExperience → GoalScore → ExamTimeline → AchievementPreview → Quiz →
  * PlacementResult — and lands on Home, the quest map. From there the map opens
  * Quiz again as a session and comes back through LessonComplete. Headers are
  * hidden; every screen supplies its own back or close control.
  */
 export function RootNavigator() {
+  const { session, restoring } = useAuth();
+  const { loading } = useProfileSync();
+  const { onboarded } = useOnboarding();
+
+  // Hold on the brand ground while the keychain is read and the profile is
+  // fetched. Rendering a stack first and swapping it a frame later shows a
+  // returning student either a login form or a setup flow they already
+  // finished — and a navigator swap mid-flight loses their place.
+  if (restoring || (session && loading)) {
+    return <View style={styles.holding} />;
+  }
+
+  /**
+   * Two separate stacks rather than one with a guard.
+   *
+   * A signed-out user has no Home route in their navigator at all, so there is
+   * nothing to deep-link into, nothing to `navigate` to by mistake, and no
+   * frame where a protected screen mounts before a redirect fires. Signing out
+   * swaps the stack, which unmounts everything behind it.
+   */
+  if (!session) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="SignIn" component={SignInScreen} />
+      </Stack.Navigator>
+    );
+  }
+
   return (
     <Stack.Navigator
-      initialRouteName="Splash"
+      initialRouteName={onboarded ? 'Home' : 'Intro'}
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
         contentStyle: { backgroundColor: 'transparent' },
       }}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
-      <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="Intro" component={IntroScreen} />
       <Stack.Screen name="CourseSelection" component={CourseSelectionScreen} />
       <Stack.Screen name="SubjectExperience" component={SubjectExperienceScreen} />
@@ -52,3 +85,7 @@ export function RootNavigator() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  holding: { flex: 1, backgroundColor: palette.night },
+});

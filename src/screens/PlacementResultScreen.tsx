@@ -21,7 +21,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'PlacementResult'>;
  */
 export function PlacementResultScreen() {
   const navigation = useNavigation<Nav>();
-  const { courseId, goalScoreId, placementLevelId } = useOnboarding();
+  const { courseId, goalScoreId, placementLevelId, markOnboarded } = useOnboarding();
 
   const course = getCourse(courseId);
   const goal = getScoreGoal(goalScoreId);
@@ -58,7 +58,12 @@ export function PlacementResultScreen() {
     ]).start();
   }, [scale, fade, shift]);
 
-  const startQuest = () => navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+  // Setup is finished here and nowhere else. Marking it saves through
+  // `ProfileSync`, so the next sign-in on any device opens straight on the map.
+  const startQuest = () => {
+    markOnboarded();
+    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+  };
 
   return (
     <ScreenContainer padded={false}>

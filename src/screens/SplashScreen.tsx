@@ -11,6 +11,8 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
+// Splash only exists in the signed-out stack, so it always hands off to sign-in.
+
 const HOLD_MS = 2400;
 
 /**
@@ -103,7 +105,7 @@ export function SplashScreen() {
     const dotLoops = dots.map((d) => bounce(d));
     const dotTimers = dotLoops.map((loop, i) => setTimeout(() => loop.start(), i * 150));
 
-    const navTimer = setTimeout(() => navigation.replace('Welcome'), HOLD_MS);
+    const navTimer = setTimeout(() => navigation.replace('SignIn'), HOLD_MS);
 
     return () => {
       floatLoop.stop();
