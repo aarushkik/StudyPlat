@@ -1,7 +1,8 @@
 /** Route map for the app. Choices flow through OnboardingContext / QuestContext. */
 export type RootStackParamList = {
   Splash: undefined;
-  Welcome: undefined;
+  /** Signed-out stack only. */
+  SignIn: undefined;
   Intro: undefined;
   CourseSelection: undefined;
   SubjectExperience: undefined;

@@ -15,16 +15,20 @@ import {
   Figtree_800ExtraBold,
   Figtree_900Black,
 } from '@expo-google-fonts/figtree';
+import { AuthProviderComponent } from '@/state/AuthContext';
 import { OnboardingProvider } from '@/state/OnboardingContext';
+import { ProfileSync } from '@/state/ProfileSync';
 import { QuestProvider } from '@/state/QuestContext';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { colors } from '@/theme';
 
 /**
- * App entry point. Loads the Fredoka brand font, then wires up providers, the
- * navigation theme, and the stack. Setup choices live in <OnboardingProvider>
- * and map progress in <QuestProvider>, which reads from it — swap either for a
- * backend profile later without touching a screen.
+ * App entry point. Loads the brand fonts, then wires up providers, the
+ * navigation theme, and the stack.
+ *
+ * Provider order matters: auth is outermost because everything below it is
+ * scoped to a signed-in user. Setup choices live in <OnboardingProvider> and
+ * map progress in <QuestProvider>, which reads from it.
  */
 
 // Match the navigation background to our themed cream to avoid white flashes.
@@ -60,13 +64,21 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <OnboardingProvider>
-        <QuestProvider>
-          <NavigationContainer theme={navTheme}>
-            <RootNavigator />
-          </NavigationContainer>
-        </QuestProvider>
-      </OnboardingProvider>
+      {/* Auth wraps everything: the navigator decides which stack exists at
+          all from the session, so there is no route a signed-out user could
+          reach even by deep link. */}
+      <AuthProviderComponent>
+        <OnboardingProvider>
+          <QuestProvider>
+            {/* Inside both state providers, because it hydrates them. */}
+            <ProfileSync>
+              <NavigationContainer theme={navTheme}>
+                <RootNavigator />
+              </NavigationContainer>
+            </ProfileSync>
+          </QuestProvider>
+        </OnboardingProvider>
+      </AuthProviderComponent>
     </SafeAreaProvider>
   );
 }
