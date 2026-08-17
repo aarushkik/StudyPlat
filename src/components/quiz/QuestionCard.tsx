@@ -153,8 +153,8 @@ const styles = StyleSheet.create({
   mediaBox: {
     backgroundColor: colors.surfaceSunken,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 3,
+    borderColor: colors.ink,
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',

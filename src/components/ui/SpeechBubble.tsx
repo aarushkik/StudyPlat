@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 
 type Tail = 'bottom' | 'bottomLeft' | 'left' | 'none';
 
@@ -23,7 +23,7 @@ const TAIL = 16;
 export function SpeechBubble({ text, children, tail = 'bottom', style, textStyle }: SpeechBubbleProps) {
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.bubble, shadows.sm, style]}>
+      <View style={[styles.bubble, style]}>
         {text ? <Text style={[typography.subtitle, styles.text, textStyle]}>{text}</Text> : children}
       </View>
       {tail !== 'none' ? <View style={[styles.tail, TAIL_POSITION[tail]]} /> : null}
@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
   bubble: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    borderWidth: 2,
-    borderColor: colors.border,
+    borderWidth: 3,
+    borderColor: colors.ink,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     zIndex: 2,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     width: TAIL,
     height: TAIL,
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.ink,
     transform: [{ rotate: '45deg' }],
     zIndex: 1,
   },
