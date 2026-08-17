@@ -47,6 +47,20 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
   useEffect(() => {
     let alive = true;
 
+    /**
+     * Never hold the splash open forever.
+     *
+     * The navigator shows a bare dark view while `restoring` is true, so if
+     * this promise never settles — a wedged keychain read, a native module
+     * that failed to link — the app is a permanently blank screen with no way
+     * out and nothing on screen to report. Falling through to the sign-in
+     * screen is always recoverable: the worst case is a signed-in user being
+     * asked to sign in again.
+     */
+    const failsafe = setTimeout(() => {
+      if (alive) setRestoring(false);
+    }, 4000);
+
     supabase.auth
       .getSession()
       .then(({ data }) => {
@@ -54,6 +68,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
       })
       .catch(() => undefined)
       .finally(() => {
+        clearTimeout(failsafe);
         if (alive) setRestoring(false);
       });
 
@@ -63,6 +78,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
 
     return () => {
       alive = false;
+      clearTimeout(failsafe);
       sub.subscription.unsubscribe();
     };
   }, []);

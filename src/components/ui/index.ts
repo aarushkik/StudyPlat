@@ -1,4 +1,5 @@
 export { ScreenContainer } from './ScreenContainer';
+export { ErrorBoundary } from './ErrorBoundary';
 export { AppButton } from './AppButton';
 export type { ButtonTone } from './AppButton';
 export { ChunkyCard, StatChip, PrizeChip, SegmentedProgress } from './Chunky';

@@ -1,26 +1,31 @@
-import React from 'react';
-import { View } from 'react-native';
-import { NavigationContainer, DefaultTheme, type Theme } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
+import React, { useEffect, useState } from "react";
+import { View } from "react-native";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  type Theme,
+} from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useFonts } from "expo-font";
 import {
   Baloo2_600SemiBold,
   Baloo2_700Bold,
   Baloo2_800ExtraBold,
-} from '@expo-google-fonts/baloo-2';
+} from "@expo-google-fonts/baloo-2";
 import {
   Figtree_500Medium,
   Figtree_600SemiBold,
   Figtree_700Bold,
   Figtree_800ExtraBold,
   Figtree_900Black,
-} from '@expo-google-fonts/figtree';
-import { AuthProviderComponent } from '@/state/AuthContext';
-import { OnboardingProvider } from '@/state/OnboardingContext';
-import { ProfileSync } from '@/state/ProfileSync';
-import { QuestProvider } from '@/state/QuestContext';
-import { RootNavigator } from '@/navigation/RootNavigator';
-import { colors } from '@/theme';
+} from "@expo-google-fonts/figtree";
+import { AuthProviderComponent } from "@/state/AuthContext";
+import { OnboardingProvider } from "@/state/OnboardingContext";
+import { ProfileSync } from "@/state/ProfileSync";
+import { QuestProvider } from "@/state/QuestContext";
+import { RootNavigator } from "@/navigation/RootNavigator";
+import { ErrorBoundary } from "@/components/ui";
+import { colors } from "@/theme";
 
 /**
  * App entry point. Loads the brand fonts, then wires up providers, the
@@ -45,7 +50,7 @@ const navTheme: Theme = {
 };
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     // Baloo 2 carries headings, buttons and labels; Figtree carries body copy.
     Baloo2_600SemiBold,
     Baloo2_700Bold,
@@ -57,28 +62,46 @@ export default function App() {
     Figtree_900Black,
   });
 
-  // Hold on the brand background until the font is ready (avoids a flash).
-  if (!fontsLoaded) {
+  /**
+   * Hold on the brand ground until the fonts are ready — but never forever.
+   *
+   * `useFonts` fetches from the network on first launch. If that fails, or is
+   * simply slow on a bad connection, blocking on `fontsLoaded` alone leaves
+   * the app as a blank coloured rectangle with nothing on it and no way out.
+   * An error, or two seconds, is enough: the app renders in the system font,
+   * which is far better than not rendering at all.
+   */
+  const [waitedForFonts, setWaitedForFonts] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWaitedForFonts(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!fontsLoaded && !fontError && !waitedForFonts) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
   return (
     <SafeAreaProvider>
-      {/* Auth wraps everything: the navigator decides which stack exists at
+      {/* Outermost, so a crash anywhere below shows a readable error rather
+          than an unexplained blank screen. */}
+      <ErrorBoundary>
+        {/* Auth wraps everything: the navigator decides which stack exists at
           all from the session, so there is no route a signed-out user could
           reach even by deep link. */}
-      <AuthProviderComponent>
-        <OnboardingProvider>
-          <QuestProvider>
-            {/* Inside both state providers, because it hydrates them. */}
-            <ProfileSync>
-              <NavigationContainer theme={navTheme}>
-                <RootNavigator />
-              </NavigationContainer>
-            </ProfileSync>
-          </QuestProvider>
-        </OnboardingProvider>
-      </AuthProviderComponent>
+        <AuthProviderComponent>
+          <OnboardingProvider>
+            <QuestProvider>
+              {/* Inside both state providers, because it hydrates them. */}
+              <ProfileSync>
+                <NavigationContainer theme={navTheme}>
+                  <RootNavigator />
+                </NavigationContainer>
+              </ProfileSync>
+            </QuestProvider>
+          </OnboardingProvider>
+        </AuthProviderComponent>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }
