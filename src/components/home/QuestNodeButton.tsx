@@ -20,6 +20,9 @@ import type { QuestNode, QuestNodeState } from '@/types/quest';
 
 export const STOP_SIZE = 70;
 export const CURRENT_SIZE = 96;
+/** A touch wider than the biggest node, so two words fit per line. */
+const LABEL_WIDTH = 150;
+
 const LIP = 7;
 const CURRENT_LIP = 8;
 
@@ -143,7 +146,7 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
 
       <Text
         style={[styles.label, current && styles.labelCurrent, locked && styles.labelLocked]}
-        numberOfLines={1}
+        numberOfLines={2}
       >
         {node.title.toUpperCase()}
       </Text>
@@ -269,14 +272,25 @@ const styles = StyleSheet.create({
   },
   flagText: { ...typography.overline, fontSize: 11, letterSpacing: 1.4, color: colors.textOnInk },
 
+  /**
+   * Stop labels are centred on a 70–96pt node but the titles are real unit
+   * topics — "Water and hydrogen bonding" is 26 characters. Unbounded and on
+   * one line they ran the full width of the screen, straight through the
+   * mascot on one side and the scenery props on the other. Bounded to a little
+   * wider than the widest node and allowed a second line, they stay inside the
+   * lane the path already occupies.
+   */
   label: {
     ...typography.overline,
     fontSize: 10.5,
+    lineHeight: 13,
     letterSpacing: 0.8,
     color: colors.textSecondary,
     marginTop: 8,
+    width: LABEL_WIDTH,
+    textAlign: 'center',
   },
-  labelCurrent: { fontSize: 12, color: colors.ink },
+  labelCurrent: { fontSize: 12, lineHeight: 15, color: colors.ink },
   labelLocked: { color: colors.lockedText },
 
   // A tick drawn as two borders of a rotated box — no icon font needed.

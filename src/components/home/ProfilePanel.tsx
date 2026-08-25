@@ -71,6 +71,14 @@ export function ProfilePanel() {
       </View>
 
       <View style={styles.body}>
+        {offline ? (
+          <View style={styles.offline}>
+            <Text style={styles.offlineText}>
+              Working offline — progress is saved on this device and will sync when you reconnect.
+            </Text>
+          </View>
+        ) : null}
+
         {/* Not a button. There is nothing behind a streak but the streak, so
             instead of a chevron that goes nowhere the card shows the last
             seven days directly. */}
@@ -120,14 +128,6 @@ export function ProfilePanel() {
             </ChunkyCard>
           ))}
         </View>
-
-        {offline ? (
-          <View style={styles.offline}>
-            <Text style={styles.offlineText}>
-              Working offline — progress is saved on this device and will sync when you reconnect.
-            </Text>
-          </View>
-        ) : null}
 
         <Text style={styles.section}>ACHIEVEMENTS</Text>
         <View style={styles.stack}>
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   achieveName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink },
   achieveNote: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
   offline: {
-    marginTop: 18,
+    marginBottom: 14,
     backgroundColor: 'rgba(245,160,43,0.16)',
     borderWidth: 3,
     borderColor: palette.orange,
@@ -297,18 +297,24 @@ const styles = StyleSheet.create({
   },
   offlineText: { fontFamily: fonts.bodySemibold, fontSize: 12.5, lineHeight: 17, color: palette.orangeDark },
 
+  // Deliberately quiet: bordered rather than filled, and not full width.
+  // Signing out is a thing you should be able to find, not a thing the screen
+  // should encourage. But underlined text was the one affordance in the app
+  // that did not look like it belonged to it.
   signOut: {
-    marginTop: 24,
+    marginTop: 26,
     alignSelf: 'center',
-    paddingHorizontal: 20,
+    borderWidth: 3,
+    borderColor: 'rgba(18,48,60,0.22)',
+    borderRadius: 22,
+    paddingHorizontal: 26,
     paddingVertical: 12,
   },
-  signOutPressed: { opacity: 0.6 },
+  signOutPressed: { backgroundColor: 'rgba(18,48,60,0.06)' },
   signOutText: {
     fontFamily: fonts.bodyHeavy,
     fontSize: 14,
     color: colors.textMuted,
-    textDecorationLine: 'underline',
   },
   achieveTally: { fontFamily: fonts.displayHeavy, fontSize: 14, color: palette.violet },
 });

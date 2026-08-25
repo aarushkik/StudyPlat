@@ -19,9 +19,38 @@ interface ProgressPanelProps {
   onJumpToTrack: (index: number) => void;
 }
 
-/** Eight days of session volume. Placeholder shape until sessions are logged. */
-const WEEK = [40, 52, 48, 66, 61, 74, 70, 88];
-const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S', 'M'];
+/**
+ * The last seven days, ending today.
+ *
+ * This used to be a hard-coded curve that rose pleasingly to the right. It
+ * looked good and it was a lie: a student who had never opened the app saw a
+ * full week of invented activity above a mastery figure of 0%. Per-day session
+ * counts are not stored yet, but the streak is, and that is enough to say
+ * truthfully which of the last seven days were practised.
+ */
+function lastSevenDays(streakDays: number): { label: string; hit: boolean; today: boolean }[] {
+  const initials = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const now = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const offset = 6 - i;
+    const d = new Date(now);
+    d.setDate(now.getDate() - offset);
+    return {
+      label: initials[d.getDay()],
+      // The streak counts back from today, so the most recent `streakDays`
+      // days are the practised ones.
+      hit: offset < streakDays,
+      today: offset === 0,
+    };
+  });
+}
+
+/** One line under the week, saying what the squares mean. */
+function streakDaysLabel(streakDays: number): string {
+  if (streakDays === 0) return 'No sessions yet — finish a stop and this week fills in.';
+  if (streakDays === 1) return 'One day running. Come back tomorrow to keep it.';
+  return `${streakDays} days running.`;
+}
 
 const WEAK: { name: string; pct: number; count: number }[] = [
   { name: 'Photosynthesis', pct: 58, count: 12 },
@@ -44,6 +73,8 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
   const { map, stateOf, completed } = useQuest();
   const navigation = useNavigation<Nav>();
   const { courseId } = useOnboarding();
+  const { streakDays } = useQuest();
+  const week = useMemo(() => lastSevenDays(streakDays), [streakDays]);
 
   const { tracks, mastery, bossesBeaten, bossTotal, nextBoss } = useMemo(() => {
     const cleared = new Set(completed);
@@ -90,18 +121,16 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
         </View>
 
         <View style={styles.bars}>
-          {WEEK.map((v, i) => (
+          {week.map((d, i) => (
             <View key={i} style={styles.barCol}>
-              <View
-                style={[
-                  styles.bar,
-                  { height: Math.round(v * 0.62), backgroundColor: i === WEEK.length - 1 ? colors.primary : '#BDE9F0' },
-                ]}
-              />
-              <Text style={styles.barLabel}>{WEEK_LABELS[i]}</Text>
+              <View style={[styles.day, d.hit && styles.dayHit, d.today && styles.dayToday]} />
+              <Text style={[styles.barLabel, d.today && styles.barLabelToday]}>{d.label}</Text>
             </View>
           ))}
         </View>
+        <Text style={styles.weekNote}>
+          {streakDaysLabel(streakDays)}
+        </Text>
       </ChunkyCard>
 
       <Text style={styles.section}>TRACK BY TRACK</Text>
@@ -199,18 +228,24 @@ const styles = StyleSheet.create({
   },
   deltaText: { fontFamily: fonts.bodyHeavy, fontSize: 12.5, color: palette.inkSoft },
 
-  bars: { marginTop: 14, flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 80 },
-  barCol: { flex: 1, alignItems: 'center', gap: 6 },
-  bar: {
+  bars: { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  barCol: { flex: 1, alignItems: 'center', gap: 7 },
+  // A day is hit or it is not. A bar height would imply a volume the app does
+  // not measure.
+  day: {
     width: '100%',
-    borderTopLeftRadius: 11,
-    borderTopRightRadius: 11,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
+    aspectRatio: 1,
+    maxHeight: 34,
+    borderRadius: 12,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: 'rgba(18,48,60,0.18)',
+    backgroundColor: 'rgba(18,48,60,0.05)',
   },
+  dayHit: { backgroundColor: colors.primary, borderColor: colors.ink },
+  dayToday: { borderColor: colors.ink },
   barLabel: { fontFamily: fonts.bodyHeavy, fontSize: 10, color: '#A8B6BA' },
+  barLabelToday: { color: colors.ink },
+  weekNote: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted, marginTop: 12 },
 
   section: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.6, color: colors.textMuted, marginTop: 20 },
   sectionWarn: { color: palette.ember },
