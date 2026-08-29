@@ -118,7 +118,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
 
       await completeSignIn(result.url);
     } catch (e) {
-      setError(messageFor(e));
+      setError(messageFor(e, Linking.createURL('auth/callback')));
     } finally {
       setPending(null);
     }
@@ -183,14 +183,23 @@ async function completeSignIn(url: string): Promise<void> {
   throw new Error(providerError ?? 'Sign-in finished without returning a session.');
 }
 
-/** Provider errors are terse and often technical; say something actionable. */
-function messageFor(e: unknown): string {
+/**
+ * Provider errors are terse and often technical; say something actionable.
+ *
+ * The redirect case quotes the exact URL this build is asking for. It has to
+ * match a Supabase allow-list entry character for character, and being told
+ * "the redirect is wrong" without being told *what it is* leaves you guessing
+ * between the scheme, the host and the path.
+ */
+function messageFor(e: unknown, redirectTo?: string): string {
   const raw = e instanceof Error ? e.message : String(e);
   if (/provider is not enabled/i.test(raw)) {
     return 'That sign-in method is not switched on in Supabase yet.';
   }
   if (/redirect/i.test(raw)) {
-    return 'The redirect URL is not on the allow-list in Supabase.';
+    return redirectTo
+      ? `Supabase has not allow-listed this redirect URL:\n${redirectTo}`
+      : 'The redirect URL is not on the allow-list in Supabase.';
   }
   if (/network|fetch/i.test(raw)) {
     return 'Could not reach the server. Check your connection and try again.';
