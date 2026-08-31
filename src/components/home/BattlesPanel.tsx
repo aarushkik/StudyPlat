@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { drillSize } from '@/data';
+import { weakSpots, weakSpotMeta } from '@/data/weakSpots';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -73,8 +74,9 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
   const { map, stateOf, completed } = useQuest();
   const navigation = useNavigation<Nav>();
   const { courseId } = useOnboarding();
-  const { streakDays } = useQuest();
+  const { streakDays, skills } = useQuest();
   const week = useMemo(() => lastSevenDays(streakDays), [streakDays]);
+  const weak = useMemo(() => weakSpots(skills, courseId), [skills, courseId]);
 
   const { tracks, mastery, bossesBeaten, bossTotal, nextBoss } = useMemo(() => {
     const cleared = new Set(completed);
@@ -175,15 +177,18 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
 
       <Text style={[styles.section, styles.sectionWarn]}>NEEDS WORK</Text>
       <View style={styles.stack}>
-        {WEAK.map((w) => (
+        {weak.map((w) => (
           <ChunkyCard key={w.name} contentStyle={styles.weakCard}>
             <View style={styles.weakTop}>
               <Text style={styles.weakName}>{w.name}</Text>
-              <Text style={styles.weakPct}>{w.pct}%</Text>
+              <Text style={styles.weakPct}>{w.pct >= 0 ? `${w.pct}%` : '—'}</Text>
             </View>
-            <View style={styles.barTrack}>
-              <View style={[styles.barFill, { width: `${w.pct}%` }]} />
-            </View>
+            <Text style={styles.weakMeta}>{weakSpotMeta(w)}</Text>
+            {w.pct >= 0 ? (
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${w.pct}%` }]} />
+              </View>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Drill ${w.name}, ${w.count} questions`}
@@ -288,6 +293,7 @@ const styles = StyleSheet.create({
   weakTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   weakName: { flex: 1, fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink },
   weakPct: { fontFamily: fonts.displayHeavy, fontSize: 18, color: palette.ember },
+  weakMeta: { fontFamily: fonts.bodySemibold, fontSize: 11.5, color: colors.textMuted, marginTop: 2 },
   barTrack: {
     marginTop: 8,
     height: 10,

@@ -27,10 +27,24 @@ create table if not exists public.profiles (
   -- Stop ids the student actually played. The placement head start is
   -- recomputed from placement_level_id on load, so it is deliberately absent.
   completed_stops     text[]      not null default '{}',
+  -- Per-skill tally: { "<skillTag>": { "seen": n, "correct": n } }. Held as
+  -- JSON rather than a second table because nothing ever queries across
+  -- students by skill — it is only ever read back whole for one profile.
+  skills              jsonb       not null default '{}'::jsonb,
+  sessions            integer     not null default 0,
+  perfect_sessions    integer     not null default 0,
+  best_streak         integer     not null default 0,
 
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
+
+-- Columns added after the first release. Safe to run against an existing
+-- table: each is a no-op if it is already there.
+alter table public.profiles add column if not exists skills           jsonb   not null default '{}'::jsonb;
+alter table public.profiles add column if not exists sessions         integer not null default 0;
+alter table public.profiles add column if not exists perfect_sessions integer not null default 0;
+alter table public.profiles add column if not exists best_streak      integer not null default 0;
 
 -- Keep updated_at honest without the client having to send it.
 create or replace function public.touch_updated_at()

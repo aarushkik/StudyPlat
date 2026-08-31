@@ -123,7 +123,13 @@ export function QuizScreen() {
     if (session) {
       // Award XP in proportion to accuracy, but never nothing for finishing.
       const earned = Math.max(5, Math.round((session.xp * correct) / Math.max(1, all.length)));
-      recordSession(earned, session.nodeId);
+      recordSession(
+        earned,
+        session.nodeId,
+        // What this session actually got right, by skill. Without it the
+        // weakest-category list and every accuracy achievement stay empty.
+        all.map((a) => ({ skillTag: a.question.skillTag, correct: a.correct })),
+      );
       navigation.replace('LessonComplete', { title: session.title, correct, total: all.length, xp: earned });
       return;
     }

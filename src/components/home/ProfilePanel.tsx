@@ -11,6 +11,7 @@ import { useProfileSync } from '@/state/ProfileSync';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COMPANIONS } from '@/data/companions';
+import { achievementsFor, isEarned } from '@/data/achievements';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -31,13 +32,24 @@ const ACHIEVEMENTS: { art: keyof typeof MASCOT_ART; name: string; note: string; 
 ];
 
 export function ProfilePanel() {
-  const { xp, streakDays, completed, map } = useQuest();
+  const quest = useQuest();
+  const { xp, streakDays, completed, map } = quest;
   // Levels are 500 XP apart; the quest state stores raw XP only.
   const level = Math.floor(xp / 500) + 1;
   const { courseId } = useOnboarding();
   const course = getCourse(courseId);
   const navigation = useNavigation<Nav>();
   const preview = COMPANIONS.slice(0, 3);
+  // Real progress, not three fixed rows. Closest-to-done leads the list.
+  const achievements = achievementsFor({
+    completed,
+    map,
+    skills: quest.skills,
+    sessions: quest.sessions,
+    perfectSessions: quest.perfectSessions,
+    bestStreak: quest.bestStreak,
+    xp,
+  }).slice(0, 4);
   const { user, signOut } = useAuth();
   const { offline } = useProfileSync();
 
@@ -131,16 +143,39 @@ export function ProfilePanel() {
 
         <Text style={styles.section}>ACHIEVEMENTS</Text>
         <View style={styles.stack}>
-          {ACHIEVEMENTS.map((a) => (
-            <ChunkyCard key={a.name} contentStyle={styles.achieve}>
-              <Image source={MASCOT_ART[a.art]} style={styles.achieveArt} resizeMode="contain" />
-              <View style={styles.achieveBody}>
-                <Text style={styles.achieveName}>{a.name}</Text>
-                <Text style={styles.achieveNote}>{a.note}</Text>
-              </View>
-              <Text style={styles.achieveTally}>{a.tally}</Text>
-            </ChunkyCard>
-          ))}
+          {achievements.map((a) => {
+            const earned = isEarned(a);
+            const pct = Math.min(100, Math.round((a.have / a.need) * 100));
+            return (
+              <ChunkyCard key={a.id} contentStyle={styles.achieve}>
+                <Image
+                  source={MASCOT_ART[a.art]}
+                  style={[styles.achieveArt, !earned && styles.achieveArtLocked]}
+                  resizeMode="contain"
+                />
+                <View style={styles.achieveBody}>
+                  <Text style={styles.achieveName}>{a.name}</Text>
+                  <Text style={styles.achieveNote} numberOfLines={1}>
+                    {a.note}
+                  </Text>
+                  {/* A bar as well as a tally: "2 of 25" is a number, the bar
+                      is how close that actually is. */}
+                  <View style={styles.achieveTrack}>
+                    <View
+                      style={[
+                        styles.achieveFill,
+                        { width: `${pct}%` },
+                        earned && { backgroundColor: colors.success },
+                      ]}
+                    />
+                  </View>
+                </View>
+                <Text style={[styles.achieveTally, earned && styles.achieveTallyDone]}>
+                  {earned ? 'DONE' : `${Math.min(a.have, a.need)}/${a.need}`}
+                </Text>
+              </ChunkyCard>
+            );
+          })}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -282,6 +317,7 @@ const styles = StyleSheet.create({
 
   stack: { marginTop: 9, gap: 9 },
   achieve: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6, paddingRight: 14, paddingVertical: 11 },
+  achieveBodyPad: { paddingRight: 4 },
   achieveArt: { width: 64, height: 64 },
   achieveBody: { flex: 1, minWidth: 0 },
   achieveName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink },
@@ -316,5 +352,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
   },
+  achieveArtLocked: { opacity: 0.45 },
+  achieveTrack: {
+    marginTop: 6,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: 'rgba(18,48,60,0.10)',
+    borderWidth: 2,
+    borderColor: 'rgba(18,48,60,0.18)',
+    overflow: 'hidden',
+  },
+  achieveFill: { height: '100%', backgroundColor: palette.violet },
+  achieveTallyDone: { color: colors.success },
   achieveTally: { fontFamily: fonts.displayHeavy, fontSize: 14, color: palette.violet },
 });

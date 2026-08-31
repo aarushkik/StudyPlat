@@ -24,6 +24,11 @@ export interface ProfileRow {
   streak_days: number;
   last_session_on: string | null;
   completed_stops: string[];
+  /** Per-skill tally as JSON: { [skillTag]: { seen, correct } }. */
+  skills: Record<string, { seen: number; correct: number }> | null;
+  sessions: number;
+  perfect_sessions: number;
+  best_streak: number;
 }
 
 /** The same thing in the shape the app's contexts use. */
@@ -39,6 +44,10 @@ export interface Profile {
   streakDays: number;
   lastSessionOn: string | null;
   completedStops: string[];
+  skills: Record<string, { seen: number; correct: number }>;
+  sessions: number;
+  perfectSessions: number;
+  bestStreak: number;
 }
 
 export const EMPTY_PROFILE: Profile = {
@@ -53,6 +62,10 @@ export const EMPTY_PROFILE: Profile = {
   streakDays: 0,
   lastSessionOn: null,
   completedStops: [],
+  skills: {},
+  sessions: 0,
+  perfectSessions: 0,
+  bestStreak: 0,
 };
 
 function fromRow(row: ProfileRow): Profile {
@@ -68,6 +81,10 @@ function fromRow(row: ProfileRow): Profile {
     streakDays: row.streak_days ?? 0,
     lastSessionOn: row.last_session_on,
     completedStops: row.completed_stops ?? [],
+    skills: row.skills ?? {},
+    sessions: row.sessions ?? 0,
+    perfectSessions: row.perfect_sessions ?? 0,
+    bestStreak: row.best_streak ?? 0,
   };
 }
 
@@ -84,6 +101,10 @@ function toRow(userId: string, p: Partial<Profile>): Partial<ProfileRow> & { id:
   if ('streakDays' in p) row.streak_days = p.streakDays ?? 0;
   if ('lastSessionOn' in p) row.last_session_on = p.lastSessionOn ?? null;
   if ('completedStops' in p) row.completed_stops = p.completedStops ?? [];
+  if ('skills' in p) row.skills = p.skills ?? {};
+  if ('sessions' in p) row.sessions = p.sessions ?? 0;
+  if ('perfectSessions' in p) row.perfect_sessions = p.perfectSessions ?? 0;
+  if ('bestStreak' in p) row.best_streak = p.bestStreak ?? 0;
   return row;
 }
 

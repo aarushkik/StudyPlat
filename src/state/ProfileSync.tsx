@@ -82,6 +82,10 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         streakDays: p.streakDays,
         completedStops: p.completedStops,
         lastSessionOn: p.lastSessionOn,
+        skills: p.skills,
+        sessions: p.sessions,
+        perfectSessions: p.perfectSessions,
+        bestStreak: p.bestStreak,
       });
 
       // A brand-new student gets a row immediately, so a crash mid-onboarding
@@ -119,6 +123,10 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         // from `placementLevelId` on load, so saving it too would double-count
         // it on every sign-in.
         completedStops: quest.earned,
+        skills: quest.skills,
+        sessions: quest.sessions,
+        perfectSessions: quest.perfectSessions,
+        bestStreak: quest.bestStreak,
       });
     }, DEBOUNCE_MS);
 
@@ -140,6 +148,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
     quest.streakDays,
     quest.lastSessionOn,
     quest.earned.length,
+    quest.sessions,
   ]);
 
   return (

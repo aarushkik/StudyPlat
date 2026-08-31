@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { drillSize } from '@/data';
+import { weakSpots, weakSpotMeta } from '@/data/weakSpots';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -36,13 +37,15 @@ const MODES: { name: string; meta: string; tile: string; count: number; xp: numb
 ];
 
 export function TrainPanel() {
-  const { xp } = useQuest();
+  const { xp, skills } = useQuest();
   const { courseId } = useOnboarding();
   const navigation = useNavigation<Nav>();
 
   // Clamped to what the course's bank can actually serve, so a card never
   // offers more questions than the quiz behind it will run.
   const sized = (wanted: number) => drillSize(courseId, wanted);
+  // Real accuracy, from what this student has actually answered.
+  const weak = weakSpots(skills, courseId);
 
   /**
    * Start a drill.
@@ -64,25 +67,32 @@ export function TrainPanel() {
         <Image source={MASCOT_ART.point} style={styles.headArt} resizeMode="contain" />
       </View>
 
-      <Recommended xp={xp} count={sized(12)} onStart={() => drill('Weak-spot drill', 12, 60)} />
+      <Recommended
+        xp={xp}
+        count={sized(12)}
+        focus={weak.filter((w) => w.pct >= 0).slice(0, 2).map((w) => w.name).join(' and ')}
+        onStart={() => drill('Weak-spot drill', 12, 60)}
+      />
 
       <Text style={styles.section}>WEAKEST CATEGORIES</Text>
       <View style={styles.stack}>
-        {WEAK.map((w) => (
+        {weak.map((w) => (
           <ChunkyCard
             key={w.name}
-            onPress={() => drill(w.name, w.count, w.xp)}
+            onPress={() => drill(w.name, w.count, w.count * 5)}
             accessibilityLabel={`Drill ${w.name}, ${w.count} questions`}
             contentStyle={styles.weakCard}
           >
             <View style={styles.weakBody}>
               <Text style={styles.weakName}>{w.name}</Text>
-              <Text style={styles.weakMeta}>{w.meta}</Text>
-              <View style={styles.barTrack}>
-                <View style={[styles.barFill, { width: `${w.pct}%` }]} />
-              </View>
+              <Text style={styles.weakMeta}>{weakSpotMeta(w)}</Text>
+              {w.pct >= 0 ? (
+                <View style={styles.barTrack}>
+                  <View style={[styles.barFill, { width: `${w.pct}%` }]} />
+                </View>
+              ) : null}
             </View>
-            <Text style={styles.weakPct}>{w.pct}%</Text>
+            <Text style={styles.weakPct}>{w.pct >= 0 ? `${w.pct}%` : '—'}</Text>
           </ChunkyCard>
         ))}
       </View>
@@ -114,7 +124,18 @@ export function TrainPanel() {
  * only place in the light half of the app that inverts, so it cannot be
  * mistaken for one more option in the list.
  */
-function Recommended({ xp, count, onStart }: { xp: number; count: number; onStart: () => void }) {
+function Recommended({
+  xp,
+  count,
+  focus,
+  onStart,
+}: {
+  xp: number;
+  count: number;
+  /** The topics the drill will actually pull from, if any are known yet. */
+  focus: string;
+  onStart: () => void;
+}) {
   const press = useRef(new Animated.Value(0)).current;
   const c = chunky({ depth: 6, radius: 26, shadow: '#05707F', background: colors.ink, border: colors.ink });
   const to = (v: number) =>
@@ -142,7 +163,7 @@ function Recommended({ xp, count, onStart }: { xp: number; count: number; onStar
         <Text style={styles.heroKicker}>RECOMMENDED TODAY</Text>
         <Text style={styles.heroTitle}>Weak-spot drill</Text>
         <Text style={styles.heroBody}>
-          {count} questions pulled from Photosynthesis, Enzyme Kinetics and Water Potential.
+          {count} questions{focus ? ` on ${focus}` : ' from wherever you are weakest'}.
         </Text>
         <View style={styles.heroCta}>
           <Text style={styles.heroCtaText}>START · 4 MIN</Text>

@@ -16,6 +16,28 @@ import { useOnboarding } from './OnboardingContext';
  * `ProfileSync`, which hydrates this provider on sign-in and writes changes
  * back. Nothing in a screen knows about the network.
  */
+/** One question's outcome, reduced to what is worth keeping. */
+export interface AnswerOutcome {
+  skillTag: string;
+  correct: boolean;
+}
+
+/** How many of each skill have been seen and got right. */
+export type SkillTally = Record<string, { seen: number; correct: number }>;
+
+/** Everything `ProfileSync` can restore. Every field optional and additive. */
+export interface QuestHydration {
+  xp?: number;
+  gems?: number;
+  streakDays?: number;
+  completedStops?: string[];
+  lastSessionOn?: string | null;
+  skills?: SkillTally;
+  sessions?: number;
+  perfectSessions?: number;
+  bestStreak?: number;
+}
+
 interface QuestContextValue {
   map: QuestMap;
   /** Cleared node ids — the placement head start plus everything played. */
@@ -38,18 +60,25 @@ interface QuestContextValue {
   /**
    * Bank a finished session. Pass the stop's id to clear it on the map; drills
    * from the training ground have no id and only contribute XP and streak.
+   *
+   * `answers` is what a session actually got right and wrong, by skill. It is
+   * the only source for the weakest-category list and for every achievement
+   * that counts accuracy, so a session that forgets to pass it silently stops
+   * the app learning anything about the student.
    */
-  recordSession: (earnedXp: number, nodeId?: string) => void;
+  recordSession: (earnedXp: number, nodeId?: string, answers?: AnswerOutcome[]) => void;
+  /** Per-skill tally, keyed by the question's `skillTag`. */
+  skills: SkillTally;
+  /** Sessions finished, ever. */
+  sessions: number;
+  /** Sessions finished with nothing wrong. */
+  perfectSessions: number;
+  /** The longest streak ever reached, which the current one may be below. */
+  bestStreak: number;
   /** The day the last session was banked, as YYYY-MM-DD. */
   lastSessionOn: string | null;
   /** Adopt a stored profile. Called once per sign-in by `ProfileSync`. */
-  hydrate: (next: {
-    xp?: number;
-    gems?: number;
-    streakDays?: number;
-    completedStops?: string[];
-    lastSessionOn?: string | null;
-  }) => void;
+  hydrate: (next: QuestHydration) => void;
   /** Drop everything, for sign-out. */
   reset: () => void;
 }
@@ -72,6 +101,10 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
   const [streakDays, setStreakDays] = useState(0);
   const [lastSessionOn, setLastSessionOn] = useState<string | null>(null);
   const [todayCount, setTodayCount] = useState(0);
+  const [skills, setSkills] = useState<SkillTally>({});
+  const [sessions, setSessions] = useState(0);
+  const [perfectSessions, setPerfectSessions] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
   // `recordSession` must read the latest value without re-creating itself on
   // every session; a stale closure here silently freezes the streak.
   const lastSessionOnRef = useRef<string | null>(null);
@@ -92,8 +125,21 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     [completedSet, currentNodeId],
   );
 
-  const recordSession = useCallback((earnedXp: number, nodeId?: string) => {
+  const recordSession = useCallback((earnedXp: number, nodeId?: string, answers: AnswerOutcome[] = []) => {
     if (nodeId) setEarned((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
+
+    if (answers.length > 0) {
+      setSkills((prev) => {
+        const next: SkillTally = { ...prev };
+        for (const a of answers) {
+          const cur = next[a.skillTag] ?? { seen: 0, correct: 0 };
+          next[a.skillTag] = { seen: cur.seen + 1, correct: cur.correct + (a.correct ? 1 : 0) };
+        }
+        return next;
+      });
+      if (answers.every((a) => a.correct)) setPerfectSessions((p) => p + 1);
+    }
+    setSessions((s) => s + 1);
     setXp((prev) => prev + earnedXp);
     // Gems are the slower currency: one per session, whether or not it cleared
     // a stop, so practice is worth something too.
@@ -101,20 +147,21 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     setTodayCount((prev) => prev + 1);
 
     // The streak rule lives in one place; see `nextStreak`.
+    // Compute the new streak once, from the day *before* this session, then
+    // use it for both counters. Advancing `lastSessionOn` first would make the
+    // second call see "same day" and quietly return the old value.
     const today = todayKey();
-    setStreakDays((prev) => nextStreak(prev, lastSessionOnRef.current, today));
+    setStreakDays((prev) => {
+      const next = nextStreak(prev, lastSessionOnRef.current, today);
+      setBestStreak((best) => Math.max(best, next));
+      return next;
+    });
     lastSessionOnRef.current = today;
     setLastSessionOn(today);
   }, []);
 
   const hydrate = useCallback(
-    (next: {
-      xp?: number;
-      gems?: number;
-      streakDays?: number;
-      completedStops?: string[];
-      lastSessionOn?: string | null;
-    }) => {
+    (next: QuestHydration) => {
       if (next.xp !== undefined) setXp(next.xp);
       if (next.gems !== undefined) setGems(next.gems);
       if (next.streakDays !== undefined) setStreakDays(next.streakDays);
@@ -123,6 +170,10 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
         setLastSessionOn(next.lastSessionOn);
         lastSessionOnRef.current = next.lastSessionOn;
       }
+      if (next.skills !== undefined) setSkills(next.skills);
+      if (next.sessions !== undefined) setSessions(next.sessions);
+      if (next.perfectSessions !== undefined) setPerfectSessions(next.perfectSessions);
+      if (next.bestStreak !== undefined) setBestStreak(next.bestStreak);
     },
     [],
   );
@@ -135,6 +186,10 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     setTodayCount(0);
     setLastSessionOn(null);
     lastSessionOnRef.current = null;
+    setSkills({});
+    setSessions(0);
+    setPerfectSessions(0);
+    setBestStreak(0);
   }, []);
 
   const value = useMemo<QuestContextValue>(
@@ -150,11 +205,15 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
       todayCount,
       dailyGoal: 3,
       lastSessionOn,
+      skills,
+      sessions,
+      perfectSessions,
+      bestStreak,
       recordSession,
       hydrate,
       reset,
     }),
-    [map, completed, earned, currentNodeId, stateOf, xp, gems, streakDays, todayCount, lastSessionOn, recordSession, hydrate, reset],
+    [map, completed, earned, currentNodeId, stateOf, xp, gems, streakDays, todayCount, lastSessionOn, skills, sessions, perfectSessions, bestStreak, recordSession, hydrate, reset],
   );
 
   return <QuestContext.Provider value={value}>{children}</QuestContext.Provider>;
