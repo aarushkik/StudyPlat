@@ -18,7 +18,10 @@ Store**. Do them in that order — you cannot test a build you cannot sign into.
 **SQL Editor → New query**, paste all of [`supabase/schema.sql`](../supabase/schema.sql), **Run**.
 
 That creates the `profiles` table, the row-level-security policies, and a
-trigger that makes a row whenever someone signs up. It is safe to run twice.
+trigger that makes a row whenever someone signs up. It is safe to run twice —
+every column added since the first release is written as `add column if not
+exists`, so re-running it after pulling is how you pick those up rather than
+something to avoid.
 
 > **Do not skip the RLS part.** The app ships with your anon key inside it —
 > anyone who downloads the app has it. RLS is the only thing stopping one
