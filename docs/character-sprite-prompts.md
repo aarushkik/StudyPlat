@@ -1,7 +1,17 @@
 # Character & boss sprites — generation prompts
 
+> **Status: none generated yet.** `src/assets/characters/` is empty.
+
 Eighteen sprites: **twelve companions** for the Characters screen and the
 Profile preview, and **six bosses**, one per boss rank.
+
+**Generate the six bosses first.** The companions have a stand-in that works —
+each one carries a prop sprite chosen for its ability, and the roster reads
+well as it is. The bosses have nothing: sixty fights across a course are
+currently a rounded square with a rotated pip in it, and the gate boss card at
+the foot of every track is the largest thing on the screen with no art in it at
+all. Six sprites cover all sixty, because bosses are ranked rather than
+place-specific.
 
 Save as transparent PNG into `src/assets/characters/` with the exact filenames
 below. Square, 1024×1024. They get trimmed, bottom-aligned and downscaled to
@@ -66,6 +76,12 @@ six from rank one at a glance and at thumbnail size.
 
 Keep them **imposing but not frightening**. This is a study app used by
 teenagers; the target is "a boss in a friendly platformer", not horror.
+
+They are deliberately one family in one colour. Ten tracks each supply their
+own background tone, so a boss that brought its own palette would clash with
+six of them; holding the cast to violet-and-cream lets the *place* do the
+colouring. Escalation is carried by size, stance and how much of the frame the
+silhouette fills — which is also what survives at thumbnail size.
 
 | Filename | Rank | Subject line |
 |---|---|---|
