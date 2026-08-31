@@ -4,7 +4,7 @@ import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, radius, spacing, spring, typography } from '@/theme';
 
 /** Visual state driven by the quiz flow. */
-export type ChoiceState = 'idle' | 'selected' | 'correct' | 'wrong' | 'missed';
+export type ChoiceState = 'idle' | 'selected' | 'correct' | 'wrong' | 'missed' | 'struck';
 
 interface AnswerChoiceProps {
   /** Position in the list, rendered as the A/B/C/D key. */
@@ -83,7 +83,9 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
           <View style={[styles.key, { backgroundColor: s.keyBg, borderColor: s.border }]}>
             <Text style={[styles.keyText, { color: s.keyText }]}>{KEYS[index] ?? '?'}</Text>
           </View>
-          <Text style={[styles.label, { color: s.text }]}>{label}</Text>
+          <Text style={[styles.label, { color: s.text }, state === 'struck' && styles.struckLabel]}>
+            {label}
+          </Text>
           {s.icon ? <Glyph name={s.icon} size={20} color={s.edge} strokeWidth={2.8} /> : null}
         </Pressable>
       </Animated.View>
@@ -136,6 +138,18 @@ const STATE: Record<ChoiceState, Style> = {
     keyText: colors.white,
     icon: 'close',
   },
+  // Ruled out by a companion before answering. Deliberately the locked
+  // palette rather than the danger one: it is not a mistake the student made,
+  // it is an option that has been taken off the table for them.
+  struck: {
+    bg: colors.locked,
+    border: 'rgba(18,48,60,0.30)',
+    edge: 'rgba(18,48,60,0.30)',
+    text: colors.lockedText,
+    keyBg: 'transparent',
+    keyText: colors.lockedText,
+    icon: 'close',
+  },
   // The right answer, shown after a miss — present but not celebratory.
   missed: {
     bg: colors.surface,
@@ -173,4 +187,5 @@ const styles = StyleSheet.create({
   },
   keyText: { ...typography.label, fontSize: 14 },
   label: { ...typography.bodyStrong, flex: 1 },
+  struckLabel: { textDecorationLine: 'line-through' },
 });

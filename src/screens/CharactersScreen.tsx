@@ -6,7 +6,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MASCOT_ART } from '@/components/Mascot';
 import { ChunkyCard, PropBadge, TopBackButton } from '@/components/ui';
-import { COMPANIONS, type Companion } from '@/data/companions';
+import { unlockLabel, type CompanionStatus } from '@/data/companions';
+import { useQuest } from '@/state/QuestContext';
 import { colors, fonts, palette } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -17,26 +18,29 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Characters'>;
  *
  * Every locked companion names the exact condition that unlocks it, because a
  * locked slot that says nothing is just a reminder you do not have something.
- * Tapping an owned one equips it; tapping a locked one says what it wants
- * rather than doing nothing.
+ * Tapping an owned one equips it; tapping a locked one says how far along that
+ * condition is rather than doing nothing.
  *
- * Equipping is local to this screen for now — nothing downstream reads it yet,
- * and a control that visibly responds is more honest than one that silently
- * writes to state no session consults.
+ * Both halves are real. Ownership is derived from progress, so the fifth boss
+ * unlocks Marrow the moment it falls, and the equipped companion's ability is
+ * read by the quiz and by `recordSession` — the ability line on a card is a
+ * description of what the next session will actually do.
  */
 export function CharactersScreen() {
   const navigation = useNavigation<Nav>();
-  const [equipped, setEquipped] = useState(() => COMPANIONS.find((c) => c.equipped)?.id ?? 'mira');
+  const { companions, equippedId, equip } = useQuest();
   const [note, setNote] = useState<string | null>(null);
 
-  const owned = useMemo(() => COMPANIONS.filter((c) => c.owned).length, []);
+  const owned = useMemo(() => companions.filter((c) => c.owned).length, [companions]);
 
-  const tap = (c: Companion) => {
+  const tap = (c: CompanionStatus) => {
     if (!c.owned) {
-      setNote(`${c.name} unlocks at: ${c.tag.toLowerCase()}`);
+      // The condition *and* the distance to it. "Beat 5 bosses" alone leaves a
+      // student guessing whether they are one away or five.
+      setNote(`${c.name} unlocks at ${c.unlock?.label.toLowerCase()} — ${c.have} of ${c.need}`);
       return;
     }
-    setEquipped(c.id);
+    equip(c.id);
     setNote(`${c.name} equipped — ${c.ability.toLowerCase()}`);
   };
 
@@ -48,7 +52,7 @@ export function CharactersScreen() {
         <TopBackButton onPress={() => navigation.goBack()} color={colors.ink} />
         <View style={styles.headText}>
           <Text style={styles.title}>Characters</Text>
-          <Text style={styles.subtitle}>{owned} of {COMPANIONS.length} unlocked</Text>
+          <Text style={styles.subtitle}>{owned} of {companions.length} unlocked</Text>
         </View>
         <Image source={MASCOT_ART.wave} style={styles.headArt} resizeMode="contain" />
       </View>
@@ -63,8 +67,8 @@ export function CharactersScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>
-          {COMPANIONS.map((c) => {
-            const isOn = c.owned && c.id === equipped;
+          {companions.map((c) => {
+            const isOn = c.owned && c.id === equippedId;
             return (
               <ChunkyCard
                 key={c.id}
@@ -73,7 +77,9 @@ export function CharactersScreen() {
                 accent={c.tint}
                 style={styles.cell}
                 contentStyle={[styles.card, !c.owned && styles.cardLocked]}
-                accessibilityLabel={`${c.name}, ${c.owned ? (isOn ? 'equipped' : 'owned') : `locked, ${c.tag}`}`}
+                accessibilityLabel={`${c.name}, ${
+                  c.owned ? (isOn ? 'equipped' : 'owned') : `locked, ${unlockLabel(c)}`
+                }`}
               >
                 {/* Locked companions show their emblem dimmed rather than
                     a padlock over it. The card is already sand-coloured and
@@ -88,7 +94,7 @@ export function CharactersScreen() {
                 </Text>
                 <View style={[styles.tag, isOn && styles.tagOn, !c.owned && styles.tagLocked]}>
                   <Text style={[styles.tagText, isOn && styles.tagTextOn, !c.owned && styles.tagTextLocked]} numberOfLines={1}>
-                    {isOn ? 'EQUIPPED' : c.owned ? 'OWNED' : c.tag.toUpperCase()}
+                    {isOn ? 'EQUIPPED' : c.owned ? 'OWNED' : unlockLabel(c).toUpperCase()}
                   </Text>
                 </View>
               </ChunkyCard>

@@ -29,6 +29,8 @@ export interface ProfileRow {
   sessions: number;
   perfect_sessions: number;
   best_streak: number;
+  equipped_companion: string | null;
+  streak_shield_used: boolean;
 }
 
 /** The same thing in the shape the app's contexts use. */
@@ -48,6 +50,8 @@ export interface Profile {
   sessions: number;
   perfectSessions: number;
   bestStreak: number;
+  equippedId: string | null;
+  streakShieldUsed: boolean;
 }
 
 export const EMPTY_PROFILE: Profile = {
@@ -66,6 +70,8 @@ export const EMPTY_PROFILE: Profile = {
   sessions: 0,
   perfectSessions: 0,
   bestStreak: 0,
+  equippedId: null,
+  streakShieldUsed: false,
 };
 
 function fromRow(row: ProfileRow): Profile {
@@ -85,6 +91,8 @@ function fromRow(row: ProfileRow): Profile {
     sessions: row.sessions ?? 0,
     perfectSessions: row.perfect_sessions ?? 0,
     bestStreak: row.best_streak ?? 0,
+    equippedId: row.equipped_companion ?? null,
+    streakShieldUsed: row.streak_shield_used ?? false,
   };
 }
 
@@ -105,6 +113,8 @@ function toRow(userId: string, p: Partial<Profile>): Partial<ProfileRow> & { id:
   if ('sessions' in p) row.sessions = p.sessions ?? 0;
   if ('perfectSessions' in p) row.perfect_sessions = p.perfectSessions ?? 0;
   if ('bestStreak' in p) row.best_streak = p.bestStreak ?? 0;
+  if ('equippedId' in p) row.equipped_companion = p.equippedId ?? null;
+  if ('streakShieldUsed' in p) row.streak_shield_used = p.streakShieldUsed ?? false;
   return row;
 }
 
@@ -143,8 +153,20 @@ export async function saveProfile(userId: string, patch: Partial<Profile>): Prom
  * no-op, the next day increments, and any longer gap starts again at one.
  * Dates are compared as plain YYYY-MM-DD in the device's own zone, which is
  * what a student means by "today".
+ *
+ * `shieldDays` is how many missed days an equipped companion covers — Ember
+ * one, Fen two. A shielded gap continues the streak *at its length*, adding
+ * nothing: the shield is protection, not a free day, and a student who skipped
+ * Tuesday should not come back to a longer streak than one who did not.
+ * Whether the shield is then spent is the caller's decision, because only the
+ * caller knows if it had one left.
  */
-export function nextStreak(streakDays: number, lastSessionOn: string | null, today: string): number {
+export function nextStreak(
+  streakDays: number,
+  lastSessionOn: string | null,
+  today: string,
+  shieldDays = 0,
+): number {
   if (lastSessionOn === today) return Math.max(1, streakDays);
   if (!lastSessionOn) return 1;
 
@@ -152,6 +174,8 @@ export function nextStreak(streakDays: number, lastSessionOn: string | null, tod
     (Date.parse(`${today}T00:00:00`) - Date.parse(`${lastSessionOn}T00:00:00`)) / 86_400_000,
   );
   if (gap === 1) return streakDays + 1;
+  // A gap of two is one missed day, so the shield covers `shieldDays + 1`.
+  if (gap > 1 && gap <= shieldDays + 1) return Math.max(1, streakDays);
   return 1;
 }
 

@@ -112,6 +112,7 @@ export function HomeScreen() {
       xp: node.xp,
       count: questionCountFor(node),
       unit: unitOf(node)?.index,
+      boss: node.kind === 'boss',
     });
   };
 

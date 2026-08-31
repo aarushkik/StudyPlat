@@ -34,6 +34,10 @@ create table if not exists public.profiles (
   sessions            integer     not null default 0,
   perfect_sessions    integer     not null default 0,
   best_streak         integer     not null default 0,
+  -- Which companion is equipped, and whether its streak shield has already
+  -- covered a missed day in the current streak.
+  equipped_companion  text,
+  streak_shield_used  boolean     not null default false,
 
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
@@ -45,6 +49,8 @@ alter table public.profiles add column if not exists skills           jsonb   no
 alter table public.profiles add column if not exists sessions         integer not null default 0;
 alter table public.profiles add column if not exists perfect_sessions integer not null default 0;
 alter table public.profiles add column if not exists best_streak      integer not null default 0;
+alter table public.profiles add column if not exists equipped_companion text;
+alter table public.profiles add column if not exists streak_shield_used boolean not null default false;
 
 -- Keep updated_at honest without the client having to send it.
 create or replace function public.touch_updated_at()

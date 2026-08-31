@@ -24,6 +24,8 @@ export type RootStackParamList = {
          * it. Off-map only — a stop uses `unit` instead.
          */
         focus?: string[];
+        /** True for a track boss, which pays more and which some companions favour. */
+        boss?: boolean;
         title?: string;
         xp?: number;
         count?: number;

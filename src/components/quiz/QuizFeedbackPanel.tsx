@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui';
 import { Glyph } from '@/components/icons';
@@ -14,6 +14,12 @@ interface QuizFeedbackPanelProps {
   /** Label for the primary action — "Continue" mid-quiz, "Finish" at the end. */
   continueLabel: string;
   onContinue: () => void;
+  /**
+   * Offered on a miss when the equipped companion can take it back. Absent
+   * when there is nothing to offer, so the panel is unchanged for everyone
+   * who has not equipped one.
+   */
+  retry?: { label: string; onPress: () => void };
 }
 
 /**
@@ -23,7 +29,7 @@ interface QuizFeedbackPanelProps {
  * Stu looks concerned rather than disappointed, the correct answer is stated
  * outright, and the explanation gets more room than the verdict does.
  */
-export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel, onContinue }: QuizFeedbackPanelProps) {
+export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel, onContinue, retry }: QuizFeedbackPanelProps) {
   const insets = useSafeAreaInsets();
   const slide = useRef(new Animated.Value(90)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -68,6 +74,20 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
         </View>
       </View>
 
+      {/* The retry sits above Continue and is the quieter of the two. Moving
+          on is always the safe choice; spending a one-per-session ability
+          should be a decision, not the thing under your thumb. */}
+      {retry ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={retry.onPress}
+          style={({ pressed }) => [styles.retry, pressed && styles.retryPressed]}
+        >
+          <Glyph name="refresh" size={16} color={colors.dangerDark} strokeWidth={2.8} />
+          <Text style={styles.retryText}>{retry.label}</Text>
+        </Pressable>
+      ) : null}
+
       <AppButton
         label={continueLabel}
         tone={correct ? 'success' : 'primary'}
@@ -99,4 +119,18 @@ const styles = StyleSheet.create({
   title: { ...typography.heading },
   answer: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.sm },
   explanation: { ...typography.body, color: colors.textPrimary, marginTop: spacing.xs },
+  retry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+  },
+  retryPressed: { transform: [{ translateY: 2 }], opacity: 0.92 },
+  retryText: { ...typography.label, fontSize: 13, color: colors.dangerDark },
 });

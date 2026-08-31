@@ -10,7 +10,7 @@ import { useAuth } from '@/state/AuthContext';
 import { useProfileSync } from '@/state/ProfileSync';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COMPANIONS } from '@/data/companions';
+import { unlockLabel } from '@/data/companions';
 import { achievementsFor, isEarned } from '@/data/achievements';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -33,7 +33,13 @@ export function ProfilePanel() {
   const { courseId } = useOnboarding();
   const course = getCourse(courseId);
   const navigation = useNavigation<Nav>();
-  const preview = COMPANIONS.slice(0, 3);
+  // Owned first, closest unlock next — the same order the roster uses, so the
+  // three shown here are the three that matter, and the equipped one leads.
+  const { companions, equippedId } = quest;
+  const preview = [
+    ...companions.filter((c) => c.id === equippedId),
+    ...companions.filter((c) => c.id !== equippedId),
+  ].slice(0, 3);
   // Real progress, not three fixed rows. Closest-to-done leads the list.
   const achievements = achievementsFor({
     completed,
@@ -114,7 +120,7 @@ export function ProfilePanel() {
           >
             {/* Counted from the roster, so the link can never promise more
                 companions than the screen behind it has. */}
-            <Text style={styles.sectionLink}>See all {COMPANIONS.length} ›</Text>
+            <Text style={styles.sectionLink}>See all {companions.length} ›</Text>
           </Pressable>
         </View>
         <View style={styles.companionRow}>
@@ -122,14 +128,16 @@ export function ProfilePanel() {
             <ChunkyCard
               key={c.id}
               onPress={() => navigation.navigate('Characters')}
-              accessibilityLabel={`${c.name}, ${c.tag}`}
+              accessibilityLabel={`${c.name}, ${
+                c.id === equippedId ? 'equipped' : unlockLabel(c)
+              }`}
               style={styles.companion}
               contentStyle={styles.companionCard}
             >
-              <PropBadge name={c.emblem} tint={c.tint} size={42} />
-              <Text style={styles.companionName}>{c.name}</Text>
-              <Text style={styles.companionMeta} numberOfLines={1}>
-                {c.tag}
+              <PropBadge name={c.emblem} tint={c.tint} size={42} dim={!c.owned} />
+              <Text style={[styles.companionName, !c.owned && styles.companionDim]}>{c.name}</Text>
+              <Text style={[styles.companionMeta, !c.owned && styles.companionDim]} numberOfLines={1}>
+                {c.id === equippedId ? 'Equipped' : unlockLabel(c)}
               </Text>
             </ChunkyCard>
           ))}
@@ -307,6 +315,7 @@ const styles = StyleSheet.create({
   companionCard: { padding: 11, alignItems: 'center' },
   companionName: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, color: colors.ink, marginTop: 8 },
   companionMeta: { fontFamily: fonts.bodySemibold, fontSize: 11, color: colors.textMuted },
+  companionDim: { opacity: 0.6 },
 
   stack: { marginTop: 9, gap: 9 },
   achieve: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6, paddingRight: 14, paddingVertical: 11 },

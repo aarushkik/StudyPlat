@@ -1,5 +1,12 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getQuestMap, headStartFor } from '@/data/questMap';
+import {
+  companionById,
+  companionsFor,
+  STARTER_COMPANION_ID,
+  type CompanionEffect,
+  type CompanionStatus,
+} from '@/data/companions';
 import { nextStreak, todayKey } from '@/lib/profile';
 import type { QuestMap, QuestNodeState } from '@/types/quest';
 import { useOnboarding } from './OnboardingContext';
@@ -36,6 +43,8 @@ export interface QuestHydration {
   sessions?: number;
   perfectSessions?: number;
   bestStreak?: number;
+  equippedId?: string | null;
+  streakShieldUsed?: boolean;
 }
 
 interface QuestContextValue {
@@ -77,6 +86,27 @@ interface QuestContextValue {
   bestStreak: number;
   /** The day the last session was banked, as YYYY-MM-DD. */
   lastSessionOn: string | null;
+  /**
+   * The roster with each companion's real standing — owned, and how far along
+   * the unlock is. Derived, so beating a fifth boss unlocks Marrow the moment
+   * it happens rather than never.
+   */
+  companions: CompanionStatus[];
+  /** The equipped companion's id. Always one this student owns. */
+  equippedId: string;
+  /** Equip an owned companion. Ignored for one that is still locked. */
+  equip: (id: string) => void;
+  /**
+   * What the equipped companion changes, or null.
+   *
+   * The quiz reads this to decide whether to offer a hint, a retry, an
+   * elimination or a re-ask; `recordSession` reads it for everything that
+   * changes what a session pays. One value rather than a set of booleans
+   * because exactly one companion is equipped at a time.
+   */
+  ability: CompanionEffect | null;
+  /** True once a shield has covered a missed day in the current streak. */
+  streakShieldUsed: boolean;
   /** Adopt a stored profile. Called once per sign-in by `ProfileSync`. */
   hydrate: (next: QuestHydration) => void;
   /** Drop everything, for sign-out. */
@@ -105,9 +135,17 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState(0);
   const [perfectSessions, setPerfectSessions] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [equippedRaw, setEquippedRaw] = useState<string>(STARTER_COMPANION_ID);
+  const [streakShieldUsed, setStreakShieldUsed] = useState(false);
   // `recordSession` must read the latest value without re-creating itself on
   // every session; a stale closure here silently freezes the streak.
   const lastSessionOnRef = useRef<string | null>(null);
+  // Same reason: the streak rule below needs the live ability and shield state
+  // without `recordSession` being rebuilt — and re-created every time either
+  // changes, it would go stale mid-session.
+  const abilityRef = useRef<CompanionEffect | null>(null);
+  const shieldDaysRef = useRef(0);
+  const shieldUsedRef = useRef(false);
 
   const completed = useMemo(() => [...seeded, ...earned], [seeded, earned]);
   const completedSet = useMemo(() => new Set(completed), [completed]);
@@ -115,6 +153,47 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
   const currentNodeId = useMemo(
     () => map.order.find((id) => !completedSet.has(id)) ?? null,
     [map, completedSet],
+  );
+
+  const companions = useMemo(
+    () => companionsFor({ completed, map, skills, bestStreak, sessions }),
+    [completed, map, skills, bestStreak, sessions],
+  );
+
+  /**
+   * The equipped companion, resolved against what is actually owned.
+   *
+   * Unlocks are derived from progress, and progress can move backwards on
+   * sign-out or a fresh device. Falling back to the starter rather than
+   * trusting the stored id means a session can never be running an ability the
+   * student no longer has.
+   */
+  const equippedId = useMemo(() => {
+    const owned = companions.find((c) => c.id === equippedRaw && c.owned);
+    return owned ? owned.id : STARTER_COMPANION_ID;
+  }, [companions, equippedRaw]);
+
+  const equipped = useMemo(() => companionById(equippedId), [equippedId]);
+  const ability = equipped?.effect ?? null;
+
+  // Kept in refs for `recordSession`, which must not be rebuilt per change or
+  // it goes stale mid-session. Written in an effect rather than during render:
+  // a ref mutated while rendering is read by whichever pass happens to run
+  // last, which under a double render is not necessarily the committed one.
+  useEffect(() => {
+    abilityRef.current = ability;
+    shieldDaysRef.current = equipped?.shieldDays ?? 0;
+  }, [ability, equipped]);
+
+  useEffect(() => {
+    shieldUsedRef.current = streakShieldUsed;
+  }, [streakShieldUsed]);
+
+  const equip = useCallback(
+    (id: string) => {
+      setEquippedRaw((prev) => (companions.some((c) => c.id === id && c.owned) ? id : prev));
+    },
+    [companions],
   );
 
   const stateOf = useCallback(
@@ -142,8 +221,8 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     setSessions((s) => s + 1);
     setXp((prev) => prev + earnedXp);
     // Gems are the slower currency: one per session, whether or not it cleared
-    // a stop, so practice is worth something too.
-    setGems((prev) => prev + 1);
+    // a stop, so practice is worth something too. Pilot and Vesper double it.
+    setGems((prev) => prev + (abilityRef.current === 'gems' ? 2 : 1));
     setTodayCount((prev) => prev + 1);
 
     // The streak rule lives in one place; see `nextStreak`.
@@ -152,7 +231,21 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     // second call see "same day" and quietly return the old value.
     const today = todayKey();
     setStreakDays((prev) => {
-      const next = nextStreak(prev, lastSessionOnRef.current, today);
+      const shield =
+        abilityRef.current === 'shield' && !shieldUsedRef.current ? shieldDaysRef.current : 0;
+      const next = nextStreak(prev, lastSessionOnRef.current, today, shield);
+      // A shield is spent only when it actually saved something — when the
+      // streak survived a gap it would not have survived unshielded. Spending
+      // it on every session would mean it was never there when it mattered.
+      if (shield > 0 && next > 1 && nextStreak(prev, lastSessionOnRef.current, today) === 1) {
+        setStreakShieldUsed(true);
+        shieldUsedRef.current = true;
+      }
+      // A streak that broke anyway starts clean, shield and all.
+      if (next === 1) {
+        setStreakShieldUsed(false);
+        shieldUsedRef.current = false;
+      }
       setBestStreak((best) => Math.max(best, next));
       return next;
     });
@@ -174,6 +267,11 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
       if (next.sessions !== undefined) setSessions(next.sessions);
       if (next.perfectSessions !== undefined) setPerfectSessions(next.perfectSessions);
       if (next.bestStreak !== undefined) setBestStreak(next.bestStreak);
+      if (next.equippedId !== undefined) setEquippedRaw(next.equippedId ?? STARTER_COMPANION_ID);
+      if (next.streakShieldUsed !== undefined) {
+        setStreakShieldUsed(next.streakShieldUsed);
+        shieldUsedRef.current = next.streakShieldUsed;
+      }
     },
     [],
   );
@@ -190,6 +288,9 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     setSessions(0);
     setPerfectSessions(0);
     setBestStreak(0);
+    setEquippedRaw(STARTER_COMPANION_ID);
+    setStreakShieldUsed(false);
+    shieldUsedRef.current = false;
   }, []);
 
   const value = useMemo<QuestContextValue>(
@@ -209,11 +310,16 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
       sessions,
       perfectSessions,
       bestStreak,
+      companions,
+      equippedId,
+      equip,
+      ability,
+      streakShieldUsed,
       recordSession,
       hydrate,
       reset,
     }),
-    [map, completed, earned, currentNodeId, stateOf, xp, gems, streakDays, todayCount, lastSessionOn, skills, sessions, perfectSessions, bestStreak, recordSession, hydrate, reset],
+    [map, completed, earned, currentNodeId, stateOf, xp, gems, streakDays, todayCount, lastSessionOn, skills, sessions, perfectSessions, bestStreak, companions, equippedId, equip, ability, streakShieldUsed, recordSession, hydrate, reset],
   );
 
   return <QuestContext.Provider value={value}>{children}</QuestContext.Provider>;

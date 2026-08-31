@@ -86,6 +86,8 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         sessions: p.sessions,
         perfectSessions: p.perfectSessions,
         bestStreak: p.bestStreak,
+        equippedId: p.equippedId,
+        streakShieldUsed: p.streakShieldUsed,
       });
 
       // A brand-new student gets a row immediately, so a crash mid-onboarding
@@ -127,6 +129,8 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         sessions: quest.sessions,
         perfectSessions: quest.perfectSessions,
         bestStreak: quest.bestStreak,
+        equippedId: quest.equippedId,
+        streakShieldUsed: quest.streakShieldUsed,
       });
     }, DEBOUNCE_MS);
 
@@ -149,6 +153,10 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
     quest.lastSessionOn,
     quest.earned.length,
     quest.sessions,
+    // Equipping is a deliberate choice with no other trigger behind it, so it
+    // has to be its own dependency or a swap made between sessions never saves.
+    quest.equippedId,
+    quest.streakShieldUsed,
   ]);
 
   return (
