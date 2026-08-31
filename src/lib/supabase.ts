@@ -77,12 +77,23 @@ export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 /**
- * Whether the app has been given credentials.
+ * Whether the app has been given *real* credentials.
  *
- * Checked before every call rather than assumed, so a missing `.env` shows a
- * clear message on the sign-in screen instead of an opaque network error.
+ * The placeholder check matters. `.env.example` is meant to be copied to
+ * `.env`, so the common state is a file that exists and is full of
+ * `your-project-ref` — truthy strings that would pass a bare emptiness test
+ * and send the app off to a domain that does not resolve. The failure then
+ * arrives as an opaque network error rather than "you have not added your
+ * keys yet", which is the thing that is actually true.
  */
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+const PLACEHOLDERS = ['your-project-ref', 'your-anon-public-key', 'placeholder'];
+
+function looksReal(value: string): boolean {
+  if (!value) return false;
+  return !PLACEHOLDERS.some((p) => value.includes(p));
+}
+
+export const isSupabaseConfigured = looksReal(SUPABASE_URL) && looksReal(SUPABASE_ANON_KEY);
 
 export const supabase: SupabaseClient = createClient(
   SUPABASE_URL || 'https://placeholder.supabase.co',

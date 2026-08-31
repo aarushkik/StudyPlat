@@ -18,11 +18,47 @@ interface AuthContextValue {
   /** Last failure, in words a student could act on. */
   error: string | null;
   signIn: (provider: AuthProvider) => Promise<void>;
+  /** Email and password. Returns a note to show on success, or null. */
+  signInWithEmail: (email: string, password: string) => Promise<string | null>;
+  signUpWithEmail: (email: string, password: string) => Promise<string | null>;
+  /** True while an email request is in flight. */
+  emailPending: boolean;
   signOut: () => Promise<void>;
   clearError: () => void;
+  /**
+   * Whether the dev-only preview door is open. See `previewSignIn`.
+   * Always false in a release build and always false once real keys exist.
+   */
+  canPreview: boolean;
+  previewSignIn: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * The dev-only way past the sign-in gate.
+ *
+ * Two independent conditions, both of which must hold:
+ *
+ * 1. `__DEV__` — false in every release build, so this cannot ship. The
+ *    bundler also strips the branch entirely at build time.
+ * 2. Supabase is unconfigured — so the moment real keys land in `.env`, the
+ *    door closes on its own rather than lingering as a backdoor next to
+ *    working auth.
+ *
+ * It exists because the app is gated on a session, and until OAuth is wired
+ * up there is otherwise no way to look at any screen behind it.
+ */
+const CAN_PREVIEW = __DEV__ && !isSupabaseConfigured;
+
+/** Obviously not a real account, in case one ever reaches a log. */
+const PREVIEW_SESSION = {
+  user: {
+    id: '00000000-0000-4000-8000-000000000000',
+    email: 'preview@studyplat.local',
+    user_metadata: { full_name: 'Preview' },
+  },
+} as unknown as Session;
 
 /**
  * Who is signed in.
@@ -41,6 +77,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
   const [session, setSession] = useState<Session | null>(null);
   const [restoring, setRestoring] = useState(true);
   const [pending, setPending] = useState<AuthProvider | null>(null);
+  const [emailPending, setEmailPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Restore whatever is in the keychain, then follow every later change.
@@ -124,6 +161,83 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  /**
+   * Email and password.
+   *
+   * Kept alongside OAuth rather than instead of it: a provider account is the
+   * faster path for most students, but email is the one that works when a
+   * school blocks third-party sign-in, and it is the only one that can be
+   * tested without registering an app with Google and Microsoft first.
+   */
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      setError('This build has no Supabase keys yet. Add them to .env and restart.');
+      return null;
+    }
+    const problem = validate(email, password);
+    if (problem) {
+      setError(problem);
+      return null;
+    }
+
+    setError(null);
+    setEmailPending(true);
+    try {
+      const { error: e } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (e) throw e;
+      return null;
+    } catch (e) {
+      setError(messageFor(e));
+      return null;
+    } finally {
+      setEmailPending(false);
+    }
+  }, []);
+
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      setError('This build has no Supabase keys yet. Add them to .env and restart.');
+      return null;
+    }
+    const problem = validate(email, password);
+    if (problem) {
+      setError(problem);
+      return null;
+    }
+
+    setError(null);
+    setEmailPending(true);
+    try {
+      const { data, error: e } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+      if (e) throw e;
+
+      // With email confirmation switched on, Supabase returns a user but no
+      // session. Saying "check your inbox" is the difference between a student
+      // waiting for something and thinking the button is broken.
+      if (data.user && !data.session) {
+        return 'Account created. Check your email to confirm it, then sign in.';
+      }
+      return null;
+    } catch (e) {
+      setError(messageFor(e));
+      return null;
+    } finally {
+      setEmailPending(false);
+    }
+  }, []);
+
+  const previewSignIn = useCallback(() => {
+    if (!CAN_PREVIEW) return;
+    setError(null);
+    setSession(PREVIEW_SESSION);
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
@@ -143,10 +257,15 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
       pending,
       error,
       signIn,
+      signInWithEmail,
+      signUpWithEmail,
+      emailPending,
       signOut,
       clearError: () => setError(null),
+      canPreview: CAN_PREVIEW,
+      previewSignIn,
     }),
-    [session, restoring, pending, error, signIn, signOut],
+    [session, restoring, pending, emailPending, error, signIn, signInWithEmail, signUpWithEmail, signOut, previewSignIn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -183,6 +302,14 @@ async function completeSignIn(url: string): Promise<void> {
   throw new Error(providerError ?? 'Sign-in finished without returning a session.');
 }
 
+/** Catch the obvious problems before spending a round trip on them. */
+function validate(email: string, password: string): string | null {
+  if (!email.trim()) return 'Enter your email address.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'That does not look like an email address.';
+  if (password.length < 6) return 'Passwords need to be at least 6 characters.';
+  return null;
+}
+
 /**
  * Provider errors are terse and often technical; say something actionable.
  *
@@ -200,6 +327,15 @@ function messageFor(e: unknown, redirectTo?: string): string {
     return redirectTo
       ? `Supabase has not allow-listed this redirect URL:\n${redirectTo}`
       : 'The redirect URL is not on the allow-list in Supabase.';
+  }
+  if (/invalid login credentials/i.test(raw)) {
+    return 'That email and password do not match an account.';
+  }
+  if (/already registered|already exists/i.test(raw)) {
+    return 'There is already an account with that email. Try signing in.';
+  }
+  if (/email not confirmed/i.test(raw)) {
+    return 'Confirm your email address first — check your inbox.';
   }
   if (/network|fetch/i.test(raw)) {
     return 'Could not reach the server. Check your connection and try again.';
