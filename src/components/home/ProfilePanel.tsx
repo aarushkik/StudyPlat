@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard } from '@/components/ui';
+import { ChunkyCard, PropBadge } from '@/components/ui';
 import { colors, fonts, palette } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
 import { getCourse } from '@/data';
@@ -24,12 +24,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  * loudest colour the palette has, because the streak is the thing a student
  * comes here to check.
  */
-
-const ACHIEVEMENTS: { art: keyof typeof MASCOT_ART; name: string; note: string; tally: string }[] = [
-  { art: 'trophy', name: 'Boss Hunter III', note: 'Beat 3 track bosses first try', tally: '3/3' },
-  { art: 'sleepy', name: 'Night Owl', note: 'Ten sessions after 10pm', tally: '10/10' },
-  { art: 'chest', name: 'Collector', note: 'Open every bonus cache on a track', tally: '4/6' },
-];
 
 export function ProfilePanel() {
   const quest = useQuest();
@@ -132,7 +126,7 @@ export function ProfilePanel() {
               style={styles.companion}
               contentStyle={styles.companionCard}
             >
-              <View style={[styles.companionTile, { backgroundColor: c.tint }]} />
+              <PropBadge name={c.emblem} tint={c.tint} size={42} />
               <Text style={styles.companionName}>{c.name}</Text>
               <Text style={styles.companionMeta} numberOfLines={1}>
                 {c.tag}
@@ -311,7 +305,6 @@ const styles = StyleSheet.create({
   companionRow: { marginTop: 9, flexDirection: 'row', gap: 9 },
   companion: { flex: 1 },
   companionCard: { padding: 11, alignItems: 'center' },
-  companionTile: { width: 42, height: 42, borderRadius: 15, borderWidth: 3, borderColor: colors.ink },
   companionName: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, color: colors.ink, marginTop: 8 },
   companionMeta: { fontFamily: fonts.bodySemibold, fontSize: 11, color: colors.textMuted },
 

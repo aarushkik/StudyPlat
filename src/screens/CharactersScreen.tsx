@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard, TopBackButton } from '@/components/ui';
+import { ChunkyCard, PropBadge, TopBackButton } from '@/components/ui';
 import { COMPANIONS, type Companion } from '@/data/companions';
 import { colors, fonts, palette } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
@@ -75,9 +75,11 @@ export function CharactersScreen() {
                 contentStyle={[styles.card, !c.owned && styles.cardLocked]}
                 accessibilityLabel={`${c.name}, ${c.owned ? (isOn ? 'equipped' : 'owned') : `locked, ${c.tag}`}`}
               >
-                <View style={[styles.tile, { backgroundColor: c.tint }, !c.owned && styles.tileLocked]}>
-                  {c.owned ? null : <View style={styles.lockBar} />}
-                </View>
+                {/* Locked companions show their emblem dimmed rather than
+                    a padlock over it. The card is already sand-coloured and
+                    the tag already names the condition, so a third lock
+                    signal only hid the thing being withheld. */}
+                <PropBadge name={c.emblem} tint={c.tint} size={44} dim={!c.owned} />
                 <Text style={[styles.name, !c.owned && styles.dim]} numberOfLines={1}>
                   {c.name}
                 </Text>
@@ -130,10 +132,6 @@ const styles = StyleSheet.create({
   // card comes back nearly black — taking the ink-coloured name with it. This
   // is that 4% tint pre-composited over parchment.
   cardLocked: { backgroundColor: '#F1E9DB' },
-
-  tile: { width: 44, height: 44, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  tileLocked: { opacity: 0.55 },
-  lockBar: { width: 18, height: 13, borderRadius: 4, backgroundColor: colors.ink, opacity: 0.5 },
 
   name: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 19, color: colors.ink, marginTop: 9 },
   ability: { fontFamily: fonts.bodySemibold, fontSize: 11.5, lineHeight: 15, color: colors.textMuted, marginTop: 1 },

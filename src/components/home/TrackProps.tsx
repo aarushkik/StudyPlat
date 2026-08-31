@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Image, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import type { SkylineKind } from '@/data/tracks';
+import { PROP_ART, SIGNATURE_PROP, type PropName } from '@/data/props';
 
 /**
  * Full-colour props standing beside the path.
@@ -32,63 +33,6 @@ import type { SkylineKind } from '@/data/tracks';
  * Generation prompts and filenames: `docs/sprite-prompts.md`.
  */
 
-export type PropName =
-  | 'signpost'
-  | 'campfire'
-  | 'tent'
-  | 'chest'
-  | 'milestone'
-  | 'lantern'
-  | 'bookstack'
-  | 'bench'
-  | 'banner'
-  | 'backpack'
-  | 'lighthouse'
-  | 'watertower'
-  | 'forge'
-  | 'desertrock'
-  | 'cogpillar'
-  | 'stilthut'
-  | 'cabin'
-  | 'duckboard'
-  | 'radiopylon'
-  | 'cairn';
-
-/**
- * The art itself.
- *
- * Metro needs a static string literal in every `require`, so each sprite is
- * one line here — it cannot be built from a template. Anything absent is
- * skipped, so this stays correct whether the set is empty, partial or whole.
- *
- * Every file is a 512² canvas with the object trimmed to its own bounds,
- * centred, and sat on a common baseline six points off the bottom. That is
- * what lets one `size` drive all twenty: a bench keeps its width and a
- * lighthouse its height, and both stand on the same ground line.
- */
-export const PROP_ART: Partial<Record<PropName, ImageSourcePropType>> = {
-  signpost: require('../../assets/props/prop-signpost.png'),
-  campfire: require('../../assets/props/prop-campfire.png'),
-  tent: require('../../assets/props/prop-tent.png'),
-  chest: require('../../assets/props/prop-chest.png'),
-  milestone: require('../../assets/props/prop-milestone.png'),
-  lantern: require('../../assets/props/prop-lantern.png'),
-  bookstack: require('../../assets/props/prop-bookstack.png'),
-  bench: require('../../assets/props/prop-bench.png'),
-  banner: require('../../assets/props/prop-banner.png'),
-  backpack: require('../../assets/props/prop-backpack.png'),
-  lighthouse: require('../../assets/props/prop-lighthouse.png'),
-  watertower: require('../../assets/props/prop-watertower.png'),
-  forge: require('../../assets/props/prop-forge.png'),
-  desertrock: require('../../assets/props/prop-desertrock.png'),
-  cogpillar: require('../../assets/props/prop-cogpillar.png'),
-  stilthut: require('../../assets/props/prop-stilthut.png'),
-  cabin: require('../../assets/props/prop-cabin.png'),
-  duckboard: require('../../assets/props/prop-duckboard.png'),
-  radiopylon: require('../../assets/props/prop-radiopylon.png'),
-  cairn: require('../../assets/props/prop-cairn.png'),
-};
-
 /** Props that suit any landscape. */
 const UNIVERSAL: PropName[] = [
   'signpost',
@@ -102,20 +46,6 @@ const UNIVERSAL: PropName[] = [
   'banner',
   'backpack',
 ];
-
-/** The one prop that belongs to each landscape and nowhere else. */
-const SIGNATURE: Record<SkylineKind, PropName> = {
-  waves: 'lighthouse',
-  towers: 'watertower',
-  chimneys: 'forge',
-  mesa: 'desertrock',
-  gears: 'cogpillar',
-  islands: 'stilthut',
-  ridge: 'cabin',
-  reeds: 'duckboard',
-  pylons: 'radiopylon',
-  peak: 'cairn',
-};
 
 /** How many stops go by between props on an expanded track. */
 const STOP_PITCH = 2;
@@ -173,7 +103,7 @@ function TrackPropsImpl({ kind, width, height, anchors, seed }: TrackPropsProps)
     // The signature prop is placed outright rather than drawn from a weighted
     // pool. A lighthouse that only *probably* turns up on the coast is not an
     // identity, and the odds of missing it on a short track are high.
-    const signature = SIGNATURE[kind];
+    const signature = SIGNATURE_PROP[kind];
     const hasSignature = Boolean(PROP_ART[signature]);
 
     // Universal props are drawn without replacement, so no track shows the
