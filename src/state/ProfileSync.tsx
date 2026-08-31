@@ -31,6 +31,14 @@ const DEBOUNCE_MS = 900;
  * should never wait on the network, and the local state is already correct —
  * a failed write costs at most the last session, which the next successful
  * write restores, because the whole profile is sent rather than a delta.
+ *
+ * They are not, however, *ignored*. `offline` used to be set from the initial
+ * read alone, so a write that failed every time — the usual cause being a
+ * column the deployed schema does not have yet, which makes Postgres reject
+ * the whole upsert — showed nothing at all. A student could play for weeks
+ * against a database that had saved none of it and the app would look fine
+ * the entire time. A failed write now raises the same quiet banner a failed
+ * read does, and a successful one clears it.
  */
 export function ProfileSync({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -131,7 +139,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         bestStreak: quest.bestStreak,
         equippedId: quest.equippedId,
         streakShieldUsed: quest.streakShieldUsed,
-      });
+      }).then((ok) => setOffline(!ok));
     }, DEBOUNCE_MS);
 
     return () => {

@@ -74,6 +74,63 @@ export interface PropAnchor {
   off: number;
   /** Its diameter. */
   size: number;
+  /** The current stop also parks the mascot to its left. */
+  current?: boolean;
+}
+
+/** An axis-aligned box in track coordinates. */
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** How tall a stop's caption runs beneath it, and how wide it spreads. */
+const LABEL_H = 46;
+const LABEL_W = 210;
+/** The mascot parked beside the current stop: 148pt left of it, ~110 wide. */
+const MASCOT_W = 116;
+const MASCOT_LEFT = 148;
+/** Clear air between a prop and anything tappable. */
+const CLEARANCE = 10;
+/**
+ * How much of a sprite's square canvas the drawing actually fills across.
+ *
+ * Every sprite is centred with its own side padding, so a 100pt slot draws
+ * something closer to 90pt wide. Measuring the slot rather than the art would
+ * push props off the screen to avoid collisions that are not really there.
+ */
+const INK_WIDTH = 0.9;
+/** Below this a prop reads as a speck rather than an object; drop it instead. */
+const MIN_SIZE = 62;
+
+/** Everything a prop must not stand on: the stops, their captions, the mascot. */
+function blockersFor(anchors: PropAnchor[], width: number): Rect[] {
+  const half = width / 2;
+  const out: Rect[] = [];
+  for (const a of anchors) {
+    out.push({ x: half + a.off - a.size / 2, y: a.top, w: a.size, h: a.size });
+    // The caption is centred under the stop and overflows it by a long way —
+    // "PHOTOELECTRON SPECTROSCOPY" is wider than any stop is round.
+    out.push({ x: half + a.off - LABEL_W / 2, y: a.top + a.size, w: LABEL_W, h: LABEL_H });
+    if (a.current) {
+      out.push({ x: Math.max(6, half + a.off - MASCOT_LEFT), y: a.top - 6, w: MASCOT_W, h: a.size });
+    }
+  }
+  return out;
+}
+
+/** How much clear room a band of the track has on each side. */
+function roomIn(blockers: Rect[], top: number, bottom: number, width: number) {
+  let left = width;
+  let right = width;
+  for (const b of blockers) {
+    if (b.y + b.h <= top || b.y >= bottom) continue;
+    left = Math.min(left, b.x - CLEARANCE);
+    right = Math.min(right, width - (b.x + b.w) - CLEARANCE);
+  }
+  return { left: Math.max(0, left), right: Math.max(0, right) };
 }
 
 interface TrackPropsProps {
@@ -144,26 +201,63 @@ function TrackPropsImpl({ kind, width, height, anchors, seed }: TrackPropsProps)
     // The landmark goes in the middle slot, where it is most likely to be seen.
     const landmarkAt = hasSignature ? Math.floor(slots.length / 2) : -1;
 
-    return slots.map((slot, i) => {
+    /**
+     * Fit each prop into whichever margin actually has room for it.
+     *
+     * The side used to be chosen from the way the path was leaning, on the
+     * assumption that the outside of a bend is clear. It is not: a stop's
+     * caption spreads far wider than the stop, the mascot parks 148pt to the
+     * left of wherever you are, and a landmark is tall enough to reach the
+     * next stop down — which may lean the other way. The result was props
+     * standing on labels and behind buttons.
+     *
+     * So the margins are measured instead. Each prop takes the roomier side
+     * of its own band, shrinks if that side is tight, and is dropped if the
+     * band has no room for anything worth drawing. A gap with nothing in it
+     * looks like open country; a signpost through a boss's name looks broken.
+     */
+    const blockers = blockersFor(anchors, width);
+
+    return slots.flatMap((slot, i) => {
       const isLandmark = i === landmarkAt;
       const name = isLandmark ? signature : bag[i % bag.length];
       // Landmarks run half again as large: they are what the place is named
       // after, and at bench size that reads as coincidence.
-      const size = isLandmark ? 132 + rand() * 22 : 88 + rand() * 18;
-      // Hugged to the edge. Portrait sprites carry their own side padding
-      // inside the square canvas, so a small negative offset insets them
-      // rather than clipping; wide ones lose a sliver, which reads as the
-      // object continuing past the frame.
-      const x = slot.side < 0 ? -size * 0.08 : width - size * 0.92;
-      return {
-        name,
-        x,
-        y: slot.y,
-        size,
-        // Never mirror the landmark — it is the one prop seen often enough
-        // that flipping between visits would show.
-        flip: !isLandmark && rand() < 0.4,
-      };
+      const wanted = isLandmark ? 132 + rand() * 22 : 88 + rand() * 18;
+
+      const room = roomIn(blockers, slot.y, slot.y + wanted, width);
+      // Prefer the side the path swung away from, but only while it fits;
+      // otherwise take the roomier one.
+      const preferred = slot.side < 0 ? 'left' : 'right';
+      const side =
+        room[preferred] >= wanted * INK_WIDTH
+          ? preferred
+          : room.left >= room.right
+            ? 'left'
+            : 'right';
+
+      const available = room[side];
+      const size = Math.min(wanted, available / INK_WIDTH);
+      if (size < MIN_SIZE) return [];
+
+      // Hugged to the edge, then held off any blocker by the clearance it was
+      // measured against. Portrait sprites carry their own side padding inside
+      // the square canvas, so a small negative offset insets them rather than
+      // clipping; wide ones lose a sliver, which reads as the object
+      // continuing past the frame.
+      const bleed = size * (1 - INK_WIDTH) * 0.5;
+      const x = side === 'left' ? -bleed : width - size + bleed;
+      return [
+        {
+          name,
+          x,
+          y: slot.y,
+          size,
+          // Never mirror the landmark — it is the one prop seen often enough
+          // that flipping between visits would show.
+          flip: !isLandmark && rand() < 0.4,
+        },
+      ];
     });
   }, [kind, height, width, anchors, seed]);
 

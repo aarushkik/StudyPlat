@@ -151,7 +151,7 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: T
   // Props follow the trail rather than the track box, so they need to know
   // where the stops are and which way the path is leaning at each one.
   const anchors = useMemo<PropAnchor[]>(
-    () => stops.map((s) => ({ top: s.top, off: s.off, size: nodeSizeFor(s.state) })),
+    () => stops.map((s) => ({ top: s.top, off: s.off, size: nodeSizeFor(s.state), current: s.current })),
     [stops],
   );
 

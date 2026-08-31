@@ -86,7 +86,9 @@ export function ProfilePanel() {
         {offline ? (
           <View style={styles.offline}>
             <Text style={styles.offlineText}>
-              Working offline — progress is saved on this device and will sync when you reconnect.
+              Not syncing — progress is safe on this device but is not reaching your account. Check
+              your connection, or re-run <Text style={styles.offlineCode}>supabase/schema.sql</Text> if
+              you have just updated the app.
             </Text>
           </View>
         ) : null}
@@ -334,6 +336,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   offlineText: { fontFamily: fonts.bodySemibold, fontSize: 12.5, lineHeight: 17, color: palette.orangeDark },
+  offlineCode: { fontFamily: fonts.bodyHeavy },
 
   // Deliberately quiet: bordered rather than filled, and not full width.
   // Signing out is a thing you should be able to find, not a thing the screen

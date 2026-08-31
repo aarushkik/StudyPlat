@@ -203,6 +203,7 @@ export function HomeScreen() {
         streakDays={quest.streakDays}
         gems={quest.gems}
         xp={quest.xp}
+        equippedId={quest.equippedId}
         onOpenCharacters={() => navigation.navigate('Characters')}
       />
 
