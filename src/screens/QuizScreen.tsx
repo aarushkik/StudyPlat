@@ -26,7 +26,7 @@ import {
   type ChoiceState,
 } from '@/components/quiz';
 import { colors, duration, easing, radius, spacing, typography } from '@/theme';
-import { getPlacementQuiz, questionsForStop, placementQuestions } from '@/data';
+import { getPlacementQuiz, questionsForStop, questionsForSkills, placementQuestions } from '@/data';
 import { scorePlacement, type AnsweredQuestion } from '@/utils/placementScoring';
 import { isStreakMilestone } from '@/utils/streaks';
 import { useOnboarding } from '@/state/OnboardingContext';
@@ -66,10 +66,13 @@ export function QuizScreen() {
     // A stop knows its unit, so it draws from that unit first and only falls
     // back to the rest of the course if it needs more than the unit holds.
     if (params?.unit != null) return questionsForStop(courseId, params.unit, count, key);
-    // A practice drill has no unit — it ranges over the whole course.
+    // A drill that named a topic asks about that topic, and only tops up from
+    // the rest of the course if the bank cannot fill the session.
+    if (params?.focus?.length) return questionsForSkills(courseId, params.focus, count, key);
+    // Anything else ranges over the whole course.
     return pickQuestions(quiz.questions, count, key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quiz, courseId, session?.title, session?.nodeId, params?.count, params?.unit]);
+  }, [quiz, courseId, session?.title, session?.nodeId, params?.count, params?.unit, params?.focus]);
   const total = questions.length;
 
   const [phase, setPhase] = useState<'intro' | 'quiz'>(session ? 'quiz' : 'intro');
@@ -86,7 +89,21 @@ export function QuizScreen() {
 
   const qAnim = useRef(new Animated.Value(1)).current;
 
-  const question = questions[index];
+  /**
+   * True from the moment Continue is pressed until the next question is on
+   * screen.
+   *
+   * Advancing happens in the fade-out's completion callback, so for the length
+   * of that animation the button is still mounted, still says Continue, and
+   * still has `checked` set. A second press inside that window ran the
+   * advance twice: on an early question it silently skipped one, and on the
+   * last-but-one it stepped past the end of the array and took the whole quiz
+   * down with `Cannot read properties of undefined`. Easy to hit — the button
+   * sits under your thumb and nothing about it looks busy.
+   */
+  const advancing = useRef(false);
+
+  const question = questions[Math.min(index, total - 1)];
   const isChoiceBased = !!question.choices;
   const isLast = index + 1 >= total;
   const progress = (index + (checked ? 1 : 0)) / total;
@@ -139,16 +156,24 @@ export function QuizScreen() {
   };
 
   const onContinue = () => {
+    if (advancing.current) return;
     if (isLast) {
+      // Finishing navigates away, so the latch is never released — which is
+      // what stops a second press replacing the results screen twice.
+      advancing.current = true;
       finish(answered);
       return;
     }
+    advancing.current = true;
     Animated.timing(qAnim, { toValue: 0, duration: duration.fast, easing: easing.in, useNativeDriver: true }).start(() => {
-      setIndex((i) => i + 1);
+      // Clamped as well as latched: the latch is the fix, the clamp means a
+      // future path into this callback cannot crash the screen either.
+      setIndex((i) => Math.min(i + 1, total - 1));
       setSelectedChoiceId(null);
       setTextAnswer('');
       setChecked(false);
       setIsCorrect(false);
+      advancing.current = false;
       Animated.timing(qAnim, { toValue: 1, duration: duration.base, easing: easing.out, useNativeDriver: true }).start();
     });
   };

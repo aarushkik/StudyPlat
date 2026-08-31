@@ -6,6 +6,9 @@ export { experienceLevels, scoreGoals, examTimeframes, achievementsByCategory } 
 export {
   getPlacementQuiz,
   questionsForStop,
+  questionsForSkills,
+  countForSkills,
+  skillTagsFor,
   placementQuestions,
   drillSize,
   PLACEMENT_LEVELS,

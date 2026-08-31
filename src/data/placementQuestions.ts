@@ -128,6 +128,56 @@ export function questionsForStop(
 }
 
 /**
+ * The questions a topic drill should ask.
+ *
+ * Every "Drill this" button in the app names a topic — "Water and bonding, 6
+ * questions" — and until now the quiz behind it drew from the whole course at
+ * random. The button was telling the truth about what it had noticed and a lie
+ * about what it was going to do, which is the worse half to get wrong: a
+ * student drilling their weakest topic and being asked about something else
+ * has no way to tell the recommendation was ever real.
+ *
+ * Tagged questions come first, then the rest of the course as a tail, for the
+ * same reason a stop falls back to its course: a bank with two questions on a
+ * tag should still be able to run a six-question session. `countForSkills`
+ * exists so the count offered is mostly on-topic rather than mostly tail.
+ */
+export function questionsForSkills(
+  courseId: string | null,
+  tags: string[],
+  count: number,
+  key: string,
+): PlacementQuestion[] {
+  const all = getPlacementQuiz(courseId).questions;
+  const wanted = new Set(tags);
+  const own = shuffleBy(all.filter((q) => wanted.has(q.skillTag)), key);
+  const rest = shuffleBy(all.filter((q) => !wanted.has(q.skillTag)), key);
+  return [...own, ...rest].slice(0, Math.max(1, count));
+}
+
+/**
+ * Every skill tag this course actually asks about, in unit order.
+ *
+ * The unit outlines in `courseUnits.ts` and the tags on the questions are two
+ * different vocabularies for the same syllabus — the outline says "Moles and
+ * molar mass" where the bank says "Moles". Anything that means to *drill* a
+ * topic has to speak the bank's vocabulary, or it selects nothing and quietly
+ * falls back to the whole course. The outline stays the right source for prose
+ * on the map; this is the right one for a filter.
+ */
+export function skillTagsFor(courseId: string | null): string[] {
+  const seen = new Set<string>();
+  for (const q of getPlacementQuiz(courseId).questions) seen.add(q.skillTag);
+  return [...seen];
+}
+
+/** How many questions in this course carry any of these tags. */
+export function countForSkills(courseId: string | null, tags: string[]): number {
+  const wanted = new Set(tags);
+  return getPlacementQuiz(courseId).questions.filter((q) => wanted.has(q.skillTag)).length;
+}
+
+/**
  * The placement quiz samples across the whole course rather than running all
  * forty questions — it is meant to find a level, not to be the course.
  */

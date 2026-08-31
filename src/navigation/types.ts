@@ -19,6 +19,11 @@ export type RootStackParamList = {
         nodeId?: string;
         /** Which unit the stop belongs to, so its questions match its plaque. */
         unit?: number;
+        /**
+         * Skill tags to draw from, so a drill that names a topic asks about
+         * it. Off-map only — a stop uses `unit` instead.
+         */
+        focus?: string[];
         title?: string;
         xp?: number;
         count?: number;

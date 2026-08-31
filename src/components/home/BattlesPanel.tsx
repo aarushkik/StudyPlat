@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard } from '@/components/ui';
+import { ChunkyCard, PropBadge } from '@/components/ui';
 import { colors, fonts, palette } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { drillSize } from '@/data';
+import { SIGNATURE_PROP } from '@/data/props';
 import { weakSpots, weakSpotMeta } from '@/data/weakSpots';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -52,12 +53,6 @@ function streakDaysLabel(streakDays: number): string {
   if (streakDays === 1) return 'One day running. Come back tomorrow to keep it.';
   return `${streakDays} days running.`;
 }
-
-const WEAK: { name: string; pct: number; count: number }[] = [
-  { name: 'Photosynthesis', pct: 58, count: 12 },
-  { name: 'Enzyme Kinetics', pct: 62, count: 9 },
-  { name: 'Water Potential', pct: 66, count: 8 },
-];
 
 /**
  * Progress — the whole run, measured.
@@ -144,7 +139,10 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
             accessibilityLabel={`Go to ${unit.track.place} on the map`}
             contentStyle={styles.trackRow}
           >
-            <View style={[styles.trackDot, { backgroundColor: unit.track.deep }]} />
+            {/* The track's own landmark. A row for Tidepool Flats shows
+                the lighthouse that actually stands there, which makes the
+                list a set of places rather than ten coloured dots. */}
+            <PropBadge name={SIGNATURE_PROP[unit.track.kind]} tint={unit.track.sky} size={36} radius={13} />
             <Text style={styles.trackName} numberOfLines={1}>
               {unit.track.place}
             </Text>
@@ -160,9 +158,7 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
         <>
           <Text style={styles.section}>NEXT FIGHT</Text>
           <ChunkyCard onPress={() => onSelect(nextBoss)} style={styles.stackTop} contentStyle={styles.bossRow}>
-            <View style={styles.bossCrest}>
-              <View style={styles.bossPip} />
-            </View>
+            <PropBadge name="banner" tint={palette.violetLight} size={46} radius={18} />
             <View style={styles.bossBody}>
               <Text style={styles.bossName} numberOfLines={2}>
                 {nextBoss.title}
@@ -193,7 +189,12 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
               accessibilityRole="button"
               accessibilityLabel={`Drill ${w.name}, ${w.count} questions`}
               onPress={() =>
-                navigation.navigate('Quiz', { title: w.name, count: drillSize(courseId, w.count), xp: w.count * 5 })
+                navigation.navigate('Quiz', {
+                  title: w.name,
+                  count: drillSize(courseId, w.count),
+                  xp: w.count * 5,
+                  focus: [w.name],
+                })
               }
               style={({ pressed }) => [styles.drill, pressed && styles.drillPressed]}
             >
@@ -259,7 +260,6 @@ const styles = StyleSheet.create({
   stackTop: { marginTop: 9 },
 
   trackRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 13, paddingVertical: 11 },
-  trackDot: { width: 15, height: 15, borderRadius: 8, borderWidth: 3, borderColor: colors.ink },
   trackName: { flex: 1, fontFamily: fonts.bodyHeavy, fontSize: 13.5, color: colors.ink },
   miniTrack: {
     width: 88,
@@ -274,17 +274,6 @@ const styles = StyleSheet.create({
   trackPct: { fontFamily: fonts.displayHeavy, fontSize: 13, color: colors.textSecondary, width: 34, textAlign: 'right' },
 
   bossRow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 13 },
-  bossCrest: {
-    width: 46,
-    height: 46,
-    borderRadius: 18,
-    backgroundColor: palette.violet,
-    borderWidth: 3,
-    borderColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bossPip: { width: 18, height: 18, borderRadius: 6, backgroundColor: '#E4D3FA', transform: [{ rotate: '45deg' }] },
   bossBody: { flex: 1, minWidth: 0 },
   bossName: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 19, color: colors.ink },
   bossMeta: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted, marginTop: 1 },

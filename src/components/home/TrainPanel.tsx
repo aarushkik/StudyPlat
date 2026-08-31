@@ -1,13 +1,14 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard } from '@/components/ui';
+import { ChunkyCard, PropBadge } from '@/components/ui';
 import { chunky, colors, fonts, palette } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { drillSize } from '@/data';
+import type { PropName } from '@/data/props';
 import { weakSpots, weakSpotMeta } from '@/data/weakSpots';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -23,21 +24,23 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  * is what stops people practising.
  */
 
-const WEAK: { name: string; meta: string; pct: number; count: number; xp: number }[] = [
-  { name: 'Photosynthesis', meta: '41 answered · 8 wrong last week', pct: 58, count: 6, xp: 30 },
-  { name: 'Enzyme Kinetics', meta: '29 answered · trending down', pct: 62, count: 6, xp: 30 },
-  { name: 'Water Potential', meta: '18 answered · few attempts', pct: 66, count: 5, xp: 25 },
-];
-
-const MODES: { name: string; meta: string; tile: string; count: number; xp: number }[] = [
-  { name: 'Timed set', meta: 'Exam pacing', tile: '#FBE6C7', count: 8, xp: 40 },
-  { name: 'Mistakes', meta: '38 saved', tile: '#D6F2F6', count: 6, xp: 30 },
-  { name: 'Boss rematch', meta: '2 available', tile: '#E8DFF7', count: 8, xp: 45 },
-  { name: 'Free response', meta: 'Long form', tile: '#DEEFE1', count: 5, xp: 35 },
+/**
+ * The four modes, and the object each one carries.
+ *
+ * The emblems were flat colour swatches — four rounded squares that said
+ * nothing and looked like art that had not arrived. They carry props now,
+ * chosen for the mode: a lantern burns down for a timed set, a chest holds
+ * what you got wrong, a banner is a fight you have already had.
+ */
+const MODES: { name: string; emblem: PropName; tile: string; count: number; xp: number }[] = [
+  { name: 'Timed set', emblem: 'lantern', tile: '#FBE6C7', count: 8, xp: 40 },
+  { name: 'Mistakes', emblem: 'chest', tile: '#D6F2F6', count: 6, xp: 30 },
+  { name: 'Boss rematch', emblem: 'banner', tile: '#E8DFF7', count: 8, xp: 45 },
+  { name: 'Free response', emblem: 'bookstack', tile: '#DEEFE1', count: 5, xp: 35 },
 ];
 
 export function TrainPanel() {
-  const { xp, skills } = useQuest();
+  const { xp, skills, map, completed } = useQuest();
   const { courseId } = useOnboarding();
   const navigation = useNavigation<Nav>();
 
@@ -47,6 +50,39 @@ export function TrainPanel() {
   // Real accuracy, from what this student has actually answered.
   const weak = weakSpots(skills, courseId);
 
+  /** Every topic with at least one wrong answer against it. */
+  const missed = useMemo(
+    () => Object.entries(skills).filter(([, s]) => s.correct < s.seen).map(([tag]) => tag),
+    [skills],
+  );
+
+  /** Bosses already beaten — the only ones there is anything to rematch. */
+  const rematches = useMemo(() => {
+    const cleared = new Set(completed);
+    return map.units.flatMap((u) => u.nodes.filter((n) => n.kind === 'boss')).filter((b) => cleared.has(b.id))
+      .length;
+  }, [map, completed]);
+
+  /**
+   * The line under each mode name.
+   *
+   * Two of these used to be invented counts — "38 saved", "2 available" — on a
+   * screen that had never seen the student answer anything. Both are now read
+   * from the run; the two that are descriptions rather than numbers stay as
+   * they were, because they were never claims.
+   */
+  const modeMeta = (name: string): string => {
+    if (name === 'Mistakes') {
+      if (missed.length === 0) return 'Nothing missed yet';
+      return `${missed.length} topic${missed.length === 1 ? '' : 's'} missed`;
+    }
+    if (name === 'Boss rematch') {
+      if (rematches === 0) return 'Beat a boss first';
+      return `${rematches} beaten`;
+    }
+    return name === 'Timed set' ? 'Exam pacing' : 'Long form';
+  };
+
   /**
    * Start a drill.
    *
@@ -54,8 +90,8 @@ export function TrainPanel() {
    * session without one as off-map, so it pays XP and holds the streak but
    * clears nothing and costs nothing if it goes badly.
    */
-  const drill = (title: string, count: number, drillXp: number) =>
-    navigation.navigate('Quiz', { title, count: sized(count), xp: drillXp });
+  const drill = (title: string, count: number, drillXp: number, focus?: string[]) =>
+    navigation.navigate('Quiz', { title, count: sized(count), xp: drillXp, focus });
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -71,7 +107,7 @@ export function TrainPanel() {
         xp={xp}
         count={sized(12)}
         focus={weak.filter((w) => w.pct >= 0).slice(0, 2).map((w) => w.name).join(' and ')}
-        onStart={() => drill('Weak-spot drill', 12, 60)}
+        onStart={() => drill('Weak-spot drill', 12, 60, weak.map((w) => w.name))}
       />
 
       <Text style={styles.section}>WEAKEST CATEGORIES</Text>
@@ -79,7 +115,7 @@ export function TrainPanel() {
         {weak.map((w) => (
           <ChunkyCard
             key={w.name}
-            onPress={() => drill(w.name, w.count, w.count * 5)}
+            onPress={() => drill(w.name, w.count, w.count * 5, [w.name])}
             accessibilityLabel={`Drill ${w.name}, ${w.count} questions`}
             contentStyle={styles.weakCard}
           >
@@ -99,21 +135,29 @@ export function TrainPanel() {
 
       <Text style={styles.section}>OTHER WAYS IN</Text>
       <View style={styles.grid}>
-        {MODES.map((m) => (
-          <ChunkyCard
-            key={m.name}
-            onPress={() => drill(m.name, m.count, m.xp)}
-            accessibilityLabel={`Start ${m.name}`}
-            style={styles.gridItem}
-            contentStyle={styles.modeCard}
-          >
-            <View style={[styles.modeTile, { backgroundColor: m.tile }]} />
-            <Text style={styles.modeName}>{m.name}</Text>
-            <Text style={styles.modeMeta}>
-              {m.meta} · {sized(m.count)}Q
-            </Text>
-          </ChunkyCard>
-        ))}
+        {MODES.map((m) => {
+          // A rematch needs something to rematch. Rather than run a generic
+          // set under a name that promises otherwise, the card goes quiet
+          // until the first boss is down.
+          const off = m.name === 'Boss rematch' && rematches === 0;
+          const focus = m.name === 'Mistakes' && missed.length > 0 ? missed : undefined;
+          return (
+            <ChunkyCard
+              key={m.name}
+              onPress={off ? undefined : () => drill(m.name, m.count, m.xp, focus)}
+              accessibilityLabel={off ? undefined : `Start ${m.name}`}
+              style={styles.gridItem}
+              contentStyle={[styles.modeCard, off && styles.modeCardOff]}
+            >
+              <PropBadge name={m.emblem} tint={m.tile} size={44} dim={off} />
+              <Text style={[styles.modeName, off && styles.modeDim]}>{m.name}</Text>
+              <Text style={[styles.modeMeta, off && styles.modeDim]}>
+                {modeMeta(m.name)}
+                {off ? '' : ` · ${sized(m.count)}Q`}
+              </Text>
+            </ChunkyCard>
+          );
+        })}
       </View>
     </ScrollView>
   );
@@ -253,7 +297,8 @@ const styles = StyleSheet.create({
   // Two per row: half the 375-wide gutter box, less half the 10pt gap.
   gridItem: { width: '48%' },
   modeCard: { padding: 14 },
-  modeTile: { width: 36, height: 36, borderRadius: 12, borderWidth: 3, borderColor: colors.ink },
+  modeCardOff: { backgroundColor: '#F5EEE0' },
+  modeDim: { opacity: 0.55 },
   modeName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink, marginTop: 10 },
   modeMeta: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
 });
