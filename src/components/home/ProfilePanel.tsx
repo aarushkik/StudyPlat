@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
 import { ChunkyCard, PropBadge } from '@/components/ui';
@@ -50,7 +50,8 @@ export function ProfilePanel() {
     bestStreak: quest.bestStreak,
     xp,
   }).slice(0, 4);
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount, deleting } = useAuth();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { offline } = useProfileSync();
 
   const toNext = Math.max(0, level * 500 - xp);
@@ -189,6 +190,54 @@ export function ProfilePanel() {
         >
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
+
+        {/* Account deletion, required by App Store guideline 5.1.1(ii) for any
+            app that creates accounts — a support email is not accepted.
+
+            Two steps, and the second one spells out what goes. This is the
+            only irreversible control in the app, and the difference between a
+            student idly tapping it and a student meaning it is being told,
+            before the second tap, exactly how much they are about to lose. */}
+        {confirmingDelete ? (
+          <View style={styles.dangerBox}>
+            <Text style={styles.dangerTitle}>Delete your account?</Text>
+            <Text style={styles.dangerBody}>
+              This removes your account and everything on it — {xp} XP, your{' '}
+              {streakDays}-day streak, and all {completed.length} stops you have cleared. It cannot
+              be undone, and starting again means starting from zero.
+            </Text>
+            <View style={styles.dangerRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Keep my account"
+                disabled={deleting}
+                onPress={() => setConfirmingDelete(false)}
+                style={({ pressed }) => [styles.keepBtn, pressed && styles.pressedShift]}
+              >
+                <Text style={styles.keepText}>Keep it</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Permanently delete my account"
+                disabled={deleting}
+                onPress={() => void deleteAccount()}
+                style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressedShift]}
+              >
+                <Text style={styles.deleteText}>{deleting ? 'DELETING…' : 'DELETE FOREVER'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete my account"
+            onPress={() => setConfirmingDelete(true)}
+            hitSlop={8}
+            style={styles.deleteLink}
+          >
+            <Text style={styles.deleteLinkText}>Delete account</Text>
+          </Pressable>
+        )}
       </View>
     </ScrollView>
   );
@@ -357,6 +406,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
   },
+  // Quieter than Sign out, which is already quiet. Deleting an account should
+  // be findable without being offered.
+  deleteLink: { marginTop: 14, alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 12 },
+  deleteLinkText: { fontFamily: fonts.bodySemibold, fontSize: 12.5, color: palette.mutedLight },
+
+  dangerBox: {
+    marginTop: 18,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 3,
+    borderColor: colors.danger,
+    borderRadius: 20,
+    padding: 15,
+  },
+  dangerTitle: { fontFamily: fonts.displayHeavy, fontSize: 18, color: colors.dangerDark },
+  dangerBody: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.dangerDark,
+    marginTop: 4,
+  },
+  dangerRow: { flexDirection: 'row', gap: 9, marginTop: 14 },
+  pressedShift: { transform: [{ translateY: 2 }], opacity: 0.92 },
+  keepBtn: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  keepText: { fontFamily: fonts.bodyBlack, fontSize: 13, color: colors.ink },
+  deleteBtn: {
+    flex: 1,
+    backgroundColor: colors.danger,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  deleteText: { fontFamily: fonts.bodyBlack, fontSize: 12, letterSpacing: 0.6, color: colors.white },
+
   achieveArtLocked: { opacity: 0.45 },
   achieveTrack: {
     marginTop: 6,

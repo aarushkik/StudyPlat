@@ -121,3 +121,39 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- Account deletion
+--
+-- App Store guideline 5.1.1(ii) requires an app that creates accounts to let
+-- someone delete theirs from inside the app. A support email address is not
+-- accepted, and this is a common rejection.
+--
+-- Deleting a user is a privileged operation: it touches `auth.users`, which the
+-- publishable key cannot write to — correctly, since otherwise any client could
+-- delete any account. `security definer` lets this function run with the
+-- owner's rights, and `auth.uid()` pins it to the caller, so a student can only
+-- ever delete themselves. There is no argument to pass and therefore nothing to
+-- tamper with.
+--
+-- The profile row goes with it through the `on delete cascade` on
+-- `profiles.id`, so there is nothing else to clean up.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.delete_account()
+returns void
+language plpgsql
+security definer set search_path = auth, public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Not signed in';
+  end if;
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+
+-- Signed-in callers only. Without this revoke, the anonymous role could call it
+-- too — it would fail on the uid check, but the smaller surface is worth having.
+revoke all on function public.delete_account() from public, anon;
+grant execute on function public.delete_account() to authenticated;

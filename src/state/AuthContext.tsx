@@ -4,8 +4,17 @@ import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
-/** The providers the app offers. Supabase calls Microsoft "azure". */
-export type AuthProvider = 'google' | 'azure';
+/**
+ * The providers the app offers. Supabase calls Microsoft "azure".
+ *
+ * Apple is here but no button renders it yet. Guideline 5.1.1(v) requires Sign
+ * in with Apple wherever an app offers third-party sign-in, so it has to exist
+ * before submission — but configuring it needs an Apple Developer membership,
+ * and a button that cannot be tested is worse than one that is not there. The
+ * flow itself is provider-agnostic, so turning it on is a button and a
+ * Supabase provider, not new plumbing.
+ */
+export type AuthProvider = 'google' | 'azure' | 'apple';
 
 interface AuthContextValue {
   /** Null until the stored session has been checked. */
@@ -24,6 +33,16 @@ interface AuthContextValue {
   /** True while an email request is in flight. */
   emailPending: boolean;
   signOut: () => Promise<void>;
+  /**
+   * Delete this account and everything attached to it, permanently.
+   *
+   * Required by App Store guideline 5.1.1(ii): an app that creates accounts
+   * has to let someone delete theirs from inside the app. Returns true when
+   * the account is gone.
+   */
+  deleteAccount: () => Promise<boolean>;
+  /** True while a deletion is in flight. */
+  deleting: boolean;
   clearError: () => void;
   /**
    * Whether the dev-only preview door is open. See `previewSignIn`.
@@ -78,6 +97,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
   const [restoring, setRestoring] = useState(true);
   const [pending, setPending] = useState<AuthProvider | null>(null);
   const [emailPending, setEmailPending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Restore whatever is in the keychain, then follow every later change.
@@ -238,6 +258,40 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
     setSession(PREVIEW_SESSION);
   }, []);
 
+  /**
+   * Delete the account.
+   *
+   * The work happens in `delete_account()` in the database rather than here:
+   * removing a row from `auth.users` needs privileges the publishable key does
+   * not have, and correctly so. The function is `security definer` and pinned
+   * to `auth.uid()`, so it can only ever delete its own caller. The profile row
+   * follows through the cascade.
+   *
+   * The local session is cleared either way. A student who has just deleted
+   * their account and is still looking at their own XP has every reason to
+   * think it did not work.
+   */
+  const deleteAccount = useCallback(async (): Promise<boolean> => {
+    if (!isSupabaseConfigured) {
+      setError('This build has no Supabase keys yet. Add them to .env and restart.');
+      return false;
+    }
+    setError(null);
+    setDeleting(true);
+    try {
+      const { error: e } = await supabase.rpc('delete_account');
+      if (e) throw e;
+      await supabase.auth.signOut().catch(() => undefined);
+      setSession(null);
+      return true;
+    } catch (e) {
+      setError(messageFor(e));
+      return false;
+    } finally {
+      setDeleting(false);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
@@ -261,11 +315,13 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
       signUpWithEmail,
       emailPending,
       signOut,
+      deleteAccount,
+      deleting,
       clearError: () => setError(null),
       canPreview: CAN_PREVIEW,
       previewSignIn,
     }),
-    [session, restoring, pending, emailPending, error, signIn, signInWithEmail, signUpWithEmail, signOut, previewSignIn],
+    [session, restoring, pending, emailPending, deleting, error, signIn, signInWithEmail, signUpWithEmail, signOut, deleteAccount, previewSignIn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -336,6 +392,9 @@ function messageFor(e: unknown, redirectTo?: string): string {
   }
   if (/email not confirmed/i.test(raw)) {
     return 'Confirm your email address first — check your inbox.';
+  }
+  if (/could not find the function|function .* does not exist/i.test(raw)) {
+    return 'Account deletion is not set up on the server yet. Re-run supabase/schema.sql.';
   }
   if (/network|fetch/i.test(raw)) {
     return 'Could not reach the server. Check your connection and try again.';

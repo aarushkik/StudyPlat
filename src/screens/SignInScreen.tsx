@@ -291,10 +291,16 @@ function ChunkyButton({
 /**
  * One provider button.
  *
- * White face with the provider's own mark, which is what both Google and
+ * White face with the provider's own mark, which is what Google's and
  * Microsoft's brand guidelines ask for and what a user recognises without
  * reading. It still sits on the app's ink border and hard lip, so it belongs
  * here rather than looking like a pasted-in widget.
+ *
+ * Apple will need to join these before submission — guideline 5.1.1(v)
+ * requires it wherever third-party sign-in is offered — but it cannot be
+ * tested without an Apple Developer membership, so the button is held back
+ * rather than shipped as one that fails. `AuthProvider` already carries the
+ * case; adding the button back is a few lines.
  */
 function ProviderButton({
   provider,
