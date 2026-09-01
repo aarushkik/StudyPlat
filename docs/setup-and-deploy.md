@@ -9,8 +9,8 @@ Fifteen minutes if nothing fights you. Every step is expanded below.
 
 1. Create a Supabase project.
 2. **SQL Editor** → paste `supabase/schema.sql` → **Run**.
-3. **Project Settings → API** → copy the Project URL and the **anon** key into
-   `.env` (`cp .env.example .env` first).
+3. **Project Settings → API** → copy the Project URL and the **publishable**
+   key (or the older **anon** key) into `.env` (`cp .env.example .env` first).
 4. Run `npm run auth:urls` and paste what it prints into **Authentication →
    URL Configuration → Redirect URLs**. It computes them from `app.json` and
    your LAN address, which is where the mistakes otherwise happen.
@@ -56,7 +56,17 @@ something to avoid.
 **Project Settings → API**. Copy:
 
 - **Project URL** → `EXPO_PUBLIC_SUPABASE_URL`
-- **anon / public** key → `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- **publishable** key (`sb_publishable_...`) → `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+
+Older projects show an **anon / public** key instead. Either works and goes in
+the same variable, which keeps its original name so existing `.env` files do
+not break.
+
+Prefer the publishable key where you have the choice. The legacy `anon` and
+`service_role` keys are JWTs signed with the project's JWT secret, so rotating
+a leaked one means rotating that secret — which invalidates every key and signs
+out every user at once. Publishable and secret keys are independent credentials
+you can revoke and roll one at a time.
 
 Create `.env` in the project root:
 
@@ -66,8 +76,13 @@ cp .env.example .env
 
 and paste both in. `.env` is git-ignored.
 
-> **Never put the `service_role` key in the app.** It bypasses RLS completely.
-> Anyone who unpacked the IPA would have full read/write on every student.
+> **Never put the secret key in the app** — `sb_secret_...`, or `service_role`
+> on older projects. `EXPO_PUBLIC_` variables are inlined into the JS bundle at
+> build time, so anyone who unpacked the IPA would read it, and it bypasses RLS
+> completely: full read/write on every student's data.
+>
+> The publishable key in the same file is fine there. It is meant to be public,
+> and the RLS policies — not the key's secrecy — are what protect the rows.
 
 ## 4. Set the redirect URLs
 
