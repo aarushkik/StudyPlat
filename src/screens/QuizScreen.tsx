@@ -92,9 +92,35 @@ export function QuizScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiz, courseId, session?.title, session?.nodeId, params?.count, params?.unit, params?.focus]);
 
+  /**
+   * Endless review draws fresh batches rather than ending.
+   *
+   * A cleared track has nothing left to clear, so the only useful thing to do
+   * with it is keep answering — and a review that stops after five questions
+   * is not a review, it is one more stop. Each refill is shuffled against a
+   * new key, so the second pass is not the first pass in the same order.
+   */
+  const [refills, setRefills] = useState(0);
+  const endless = Boolean(params?.endless);
+
+  const extra = useMemo(() => {
+    if (!endless || refills === 0) return [];
+    const out: PlacementQuestion[] = [];
+    for (let r = 1; r <= refills; r += 1) {
+      const key = `${session?.title ?? 'review'}#${r}`;
+      out.push(
+        ...(params?.unit != null
+          ? questionsForStop(courseId, params.unit, params?.count ?? 5, key)
+          : pickQuestions(quiz.questions, params?.count ?? 5, key)),
+      );
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endless, refills, courseId, params?.unit, params?.count, quiz, session?.title]);
+
   // Slate appends what was missed rather than replacing the run, so the
   // counter stays honest: "5 / 7" after a re-ask really is seven questions.
-  const run = useMemo(() => [...questions, ...requeued], [questions, requeued]);
+  const run = useMemo(() => [...questions, ...extra, ...requeued], [questions, extra, requeued]);
   const total = run.length;
 
   const [phase, setPhase] = useState<'intro' | 'quiz'>(session ? 'quiz' : 'intro');
@@ -126,9 +152,21 @@ export function QuizScreen() {
    */
   const advancing = useRef(false);
 
+  /**
+   * True from the moment Check is pressed until the answer is recorded.
+   *
+   * `onCheck` guards on the `checked` state, but state does not apply within
+   * the batch that set it — so two presses inside one batch both see it false
+   * and both push an answer. The session then counts one attempt twice, which
+   * inflates the skill tally and, in an endless review where XP is paid per
+   * correct answer, the payout with it. Same shape as the Continue latch
+   * below, and the same fix: a ref, which updates immediately.
+   */
+  const checking = useRef(false);
+
   const question = run[Math.min(index, total - 1)];
   const isChoiceBased = !!question.choices;
-  const isLast = index + 1 >= total;
+  const isLast = !endless && index + 1 >= total;
   const progress = (index + (checked ? 1 : 0)) / total;
   const canCheck = isChoiceBased ? selectedChoiceId !== null : textAnswer.trim().length > 0;
 
@@ -171,6 +209,7 @@ export function QuizScreen() {
     if (retryUsed || isCorrect || !checked) return;
     setRetryUsed(true);
     setAnswered((prev) => prev.slice(0, -1));
+    checking.current = false;
     setChecked(false);
     setIsCorrect(false);
     setSelectedChoiceId(null);
@@ -178,7 +217,8 @@ export function QuizScreen() {
   };
 
   const onCheck = () => {
-    if (!canCheck || checked) return;
+    if (!canCheck || checked || checking.current) return;
+    checking.current = true;
     const correct = evaluate();
     setIsCorrect(correct);
     setChecked(true);
@@ -202,7 +242,13 @@ export function QuizScreen() {
 
     if (session) {
       // Award XP in proportion to accuracy, but never nothing for finishing.
-      const base = Math.max(5, Math.round((session.xp * correct) / Math.max(1, all.length)));
+      //
+      // An endless review has no fixed length, so a flat payout would be worth
+      // the same for five questions as for fifty. It pays per correct answer
+      // instead, which is the only version that stays fair in both directions.
+      const base = endless
+        ? Math.max(5, correct * REVIEW_XP_EACH)
+        : Math.max(5, Math.round((session.xp * correct) / Math.max(1, all.length)));
       const earned = Math.round(base * xpMultiplier(all));
       recordSession(
         earned,
@@ -256,6 +302,11 @@ export function QuizScreen() {
 
   const onContinue = () => {
     if (advancing.current) return;
+
+    // Top up a batch before running out, so the next question is already
+    // there when the transition lands rather than one render later.
+    if (endless && index + 2 >= total) setRefills((r) => r + 1);
+
     if (isLast) {
       /**
        * Slate: ask everything missed one more time before finishing.
@@ -276,6 +327,7 @@ export function QuizScreen() {
           setIsCorrect(false);
           setStruckId(null);
           setHintShown(false);
+          checking.current = false;
           return;
         }
       }
@@ -296,6 +348,7 @@ export function QuizScreen() {
       setIsCorrect(false);
       setStruckId(null);
       setHintShown(false);
+      checking.current = false;
       advancing.current = false;
       Animated.timing(qAnim, { toValue: 1, duration: duration.base, easing: easing.out, useNativeDriver: true }).start();
     });
@@ -368,10 +421,14 @@ export function QuizScreen() {
               </Text>
             ) : null}
             <QuizProgressHeader
-              progress={progress}
-              counter={`${index + 1} / ${total}`}
+              progress={endless ? ((index % REVIEW_BATCH) + 1) / REVIEW_BATCH : progress}
+              counter={endless ? `${answered.length} done` : `${index + 1} / ${total}`}
               currentCorrectStreak={currentCorrectStreak}
-              onClose={() => navigation.goBack()}
+              // Closing an endless review banks it rather than throwing it
+              // away. There is no last question to reach, so the X *is* the
+              // finish button — discarding twenty answers because a student
+              // stopped when they meant to would be the app losing their work.
+              onClose={() => (endless ? finish(answered) : navigation.goBack())}
             />
           </View>
 
@@ -498,6 +555,11 @@ function pickQuestions(bank: PlacementQuestion[], count: number, key: string): P
   const size = Math.min(count, bank.length);
   return Array.from({ length: size }, (_, i) => bank[(start + i) % bank.length]);
 }
+
+/** Questions per bar-fill in an endless review, so the bar still means something. */
+const REVIEW_BATCH = 5;
+/** What one right answer is worth in an endless review. */
+const REVIEW_XP_EACH = 4;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },

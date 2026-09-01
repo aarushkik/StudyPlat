@@ -139,6 +139,26 @@ export function HomeScreen() {
     [metrics, bannerHeight],
   );
 
+  /**
+   * Endless review of a track that has been cleared.
+   *
+   * No `nodeId`, so it clears nothing and can be replayed forever; `unit`, so
+   * every question comes from that track's own topic rather than the course at
+   * large — which is the entire point of reviewing a *place*.
+   */
+  const startReview = useCallback(
+    (unit: QuestUnit) => {
+      navigation.navigate('Quiz', {
+        title: `${unit.track.place} review`,
+        unit: unit.index,
+        count: 5,
+        xp: 0,
+        endless: true,
+      });
+    },
+    [navigation],
+  );
+
   const renderSegment = useCallback(
     ({ item, index }: { item: QuestUnit; index: number }) => (
       <TrailSegment
@@ -148,9 +168,10 @@ export function HomeScreen() {
         nextPlace={units[index + 1]?.track.place}
         stateOf={quest.stateOf}
         onSelect={setSelected}
+        onReview={startReview}
       />
     ),
-    [width, quest.stateOf, modes, units],
+    [width, quest.stateOf, modes, units, startReview],
   );
 
   const getItemLayout = useCallback(

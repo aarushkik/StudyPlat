@@ -26,6 +26,12 @@ export type RootStackParamList = {
         focus?: string[];
         /** True for a track boss, which pays more and which some companions favour. */
         boss?: boolean;
+        /**
+         * Endless review: the run refills instead of ending, and the student
+         * decides when to stop. Used by the review dock at the foot of a
+         * cleared track.
+         */
+        endless?: boolean;
         title?: string;
         xp?: number;
         count?: number;

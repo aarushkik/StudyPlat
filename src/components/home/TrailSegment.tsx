@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { MASCOT_ART } from '@/components/Mascot';
+import { Glyph } from '@/components/icons';
 import { colors, fonts, palette } from '@/theme';
 import type { QuestNode, QuestNodeState, QuestUnit } from '@/types/quest';
 import { QuestNodeButton, nodeSizeFor } from './QuestNodeButton';
@@ -52,6 +53,8 @@ const PIP_GAP = 6;
 const PIP_PAD_X = 20;
 /** A locked track's stub: four dashed pips and the line saying when it opens. */
 const LOCK_BLOCK = 18 + 18;
+/** The review dock at the foot of a cleared track. */
+const REVIEW_BLOCK = 78 + 6 + 16;
 /** The gate boss card at the foot of the open track. */
 const BOSS_BLOCK = 94 + 7 + 18;
 
@@ -66,6 +69,8 @@ interface TrailSegmentProps {
   nextPlace?: string;
   stateOf: (nodeId: string) => QuestNodeState;
   onSelect: (node: QuestNode) => void;
+  /** Start the endless review for a track that has been cleared. */
+  onReview?: (unit: QuestUnit) => void;
 }
 
 function stopsFor(unit: QuestUnit, mode: TrackMode): QuestNode[] {
@@ -100,7 +105,10 @@ function layout(
   if (nodes.length === 0) {
     const tail =
       mode === 'cleared'
-        ? pipRows(unit.nodes.length, width) * PIP + (pipRows(unit.nodes.length, width) - 1) * PIP_GAP + 16
+        ? pipRows(unit.nodes.length, width) * PIP +
+          (pipRows(unit.nodes.length, width) - 1) * PIP_GAP +
+          16 +
+          REVIEW_BLOCK
         : LOCK_BLOCK;
     return { stops: [], height: HEAD + tail };
   }
@@ -139,7 +147,7 @@ export function trackHeight(
 
 export const TrailSegment = React.memo(TrailSegmentImpl);
 
-function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: TrailSegmentProps) {
+function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onReview }: TrailSegmentProps) {
   const { track } = unit;
   const { stops, boss, bossTop, height } = useMemo(
     () => layout(unit, mode, stateOf, width),
@@ -175,6 +183,9 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect }: T
       <View style={styles.head}>
         <Plaque unit={unit} mode={mode} cleared={cleared} />
         {mode === 'cleared' ? <Pips track={track} count={unit.nodes.length} /> : null}
+        {mode === 'cleared' && onReview ? (
+          <ReviewDock unit={unit} onPress={() => onReview(unit)} />
+        ) : null}
         {mode === 'locked' ? <LockedStub unit={unit} /> : null}
       </View>
 
@@ -315,6 +326,52 @@ function LockedStub({ unit }: { unit: QuestUnit }) {
  * place. It is on the path too, but it gets a card of its own because it is
  * the only stop whose outcome changes the map.
  */
+
+/**
+ * The endless review at the foot of a cleared track.
+ *
+ * A cleared track had nothing left on it — a row of grey pips and a scroll
+ * past. That is ten of the twelve screens of a finished course reading as
+ * dead ground, and it also meant the only way to revisit a unit was the
+ * Practice tab, which does not know that units exist.
+ *
+ * The review draws from that track's own unit and never runs out: it tops up
+ * a fresh batch each time you near the end and banks what you answered when
+ * you stop. So it is genuinely endless rather than a long fixed set, and
+ * stopping is a choice rather than a boundary.
+ *
+ * It is drawn in the track's own deep tone rather than the ink-on-cream of a
+ * stop, because it is not a stop — nothing about it advances the map, and a
+ * card that looks tappable-and-progressing would promise otherwise.
+ */
+function ReviewDock({ unit, onPress }: { unit: QuestUnit; onPress: () => void }) {
+  return (
+    <View style={styles.reviewWrap}>
+      <View style={[styles.reviewLip, { backgroundColor: unit.track.dark }]} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Endless review of ${unit.track.place}`}
+        onPress={onPress}
+        style={[styles.reviewFace, { backgroundColor: unit.track.deep }]}
+      >
+        <View style={styles.reviewIcon}>
+          <Glyph name="refresh" size={22} color={unit.track.deep} strokeWidth={2.8} />
+        </View>
+        <View style={styles.reviewBody}>
+          <Text style={styles.reviewKicker}>ENDLESS REVIEW</Text>
+          <Text style={styles.reviewTitle} numberOfLines={1}>
+            {unit.track.place}
+          </Text>
+          <Text style={styles.reviewNote} numberOfLines={1}>
+            Keeps going until you stop
+          </Text>
+        </View>
+        <Glyph name="chevron-right" size={20} color={colors.white} strokeWidth={2.8} />
+      </Pressable>
+    </View>
+  );
+}
+
 function GateBossCard({
   unit,
   node,
@@ -357,6 +414,34 @@ function GateBossCard({
 
 const styles = StyleSheet.create({
   head: { paddingTop: PAD_TOP },
+
+  reviewWrap: { position: 'relative', marginHorizontal: 16, marginTop: 16, marginBottom: 6 },
+  reviewLip: { position: 'absolute', left: 0, right: 0, top: 6, bottom: -6, borderRadius: 22 },
+  reviewFace: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    height: 78,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+  },
+  reviewIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewBody: { flex: 1, minWidth: 0 },
+  reviewKicker: { fontFamily: fonts.bodyBlack, fontSize: 9, letterSpacing: 1.4, color: 'rgba(255,255,255,0.75)' },
+  reviewTitle: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 19, color: colors.white, marginTop: 1 },
+  reviewNote: { fontFamily: fonts.bodySemibold, fontSize: 11.5, color: 'rgba(255,255,255,0.8)' },
+
   slot: { position: 'absolute', alignItems: 'center' },
   dot: { position: 'absolute', width: 9, height: 9, borderRadius: 5, opacity: 0.65 },
   mascot: { position: 'absolute' },

@@ -3,6 +3,29 @@
 Two parts: **wire up Supabase** so sign-in works, then **ship to the App
 Store**. Do them in that order — you cannot test a build you cannot sign into.
 
+## The short version
+
+Fifteen minutes if nothing fights you. Every step is expanded below.
+
+1. Create a Supabase project.
+2. **SQL Editor** → paste `supabase/schema.sql` → **Run**.
+3. **Project Settings → API** → copy the Project URL and the **anon** key into
+   `.env` (`cp .env.example .env` first).
+4. Run `npm run auth:urls` and paste what it prints into **Authentication →
+   URL Configuration → Redirect URLs**. It computes them from `app.json` and
+   your LAN address, which is where the mistakes otherwise happen.
+5. **Authentication → Providers → Email** → on. That is enough to sign in.
+   Google and Microsoft each need an account with that provider and take
+   about ten minutes apiece; they are steps 5 and 6.
+6. `npx expo start --clear`, sign up with an email, and check a row appeared
+   in **Table Editor → profiles**.
+
+Steps 1–3 and 5 are the minimum to get a working login. OAuth can wait.
+
+> **You do not need to send me your keys.** The anon key is safe to ship
+> inside the app, but nothing about setting it up requires sharing it — the
+> app reads it from your `.env`, which is git-ignored.
+
 ---
 
 # Part 1 — Supabase
@@ -48,23 +71,54 @@ and paste both in. `.env` is git-ignored.
 
 ## 4. Set the redirect URLs
 
-**Authentication → URL Configuration → Redirect URLs.** Add all three:
+Run this first — it computes every URL from `app.json` and this machine's own
+LAN address, so there is nothing to guess at:
+
+```bash
+npm run auth:urls
+```
+
+**Authentication → URL Configuration → Redirect URLs.** Add what it prints:
 
 ```
 studyplat://auth/callback
-exp://127.0.0.1:8081/--/auth/callback
+exp://<your-lan-ip>:8081/--/auth/callback
+exp://**
 https://<your-project-ref>.supabase.co/auth/v1/callback
 ```
 
-The first is the production app (it matches `scheme` in `app.json`). The second
-is Expo Go during development. The third is Supabase's own callback, which the
-providers below need.
+The first is the production app (it matches `scheme` in `app.json`). The middle
+two are Expo Go during development — the wildcard saves you re-editing this
+every time your laptop changes network. The last is Supabase's own callback,
+which the providers below need.
 
 **A mismatch here is the single most common reason sign-in fails**, and the
 symptom is unhelpful: the browser sheet opens, you log in, and it either hangs
 or returns you to a signed-out app.
 
-## 5. Enable Google
+## 5. Enable email and password
+
+**Authentication → Providers → Email** → on.
+
+This is the one that needs no third-party account, works in the simulator, and
+is the only way to test sign-in before Google and Microsoft are registered. The
+app has had email sign-up and sign-in on the login screen since the OAuth work
+landed.
+
+One setting matters: **Confirm email**.
+
+- **On** (Supabase's default) — a new account gets a confirmation link by email
+  and cannot sign in until it is clicked. The app handles this: sign-up returns
+  "Account created. Check your email to confirm it, then sign in."
+- **Off** — sign-up signs you straight in. Much faster while developing.
+
+Supabase's built-in mailer is rate-limited to a handful of messages an hour and
+is not meant for production. Turn confirmation **off** while you build, and
+before you ship either turn it back on with your own SMTP configured under
+**Project Settings → Authentication → SMTP Settings**, or leave it off
+deliberately.
+
+## 6. Enable Google
 
 1. <https://console.cloud.google.com> → new project.
 2. **APIs & Services → OAuth consent screen** → External → fill in app name,
@@ -80,7 +134,7 @@ or returns you to a signed-out app.
 > *Test users* can sign in. Publish it before you submit to Apple, or the
 > reviewer will be locked out and reject the build.
 
-## 6. Enable Microsoft (Azure)
+## 7. Enable Microsoft (Azure)
 
 1. <https://portal.azure.com> → **Microsoft Entra ID → App registrations → New
    registration**.
@@ -95,7 +149,7 @@ or returns you to a signed-out app.
 6. In Supabase: **Authentication → Providers → Azure** → enable → paste the
    client ID and secret. Leave **Azure Tenant URL** blank for multi-tenant.
 
-## 7. Test it
+## 8. Test it
 
 ```bash
 npx expo start --clear
@@ -116,6 +170,8 @@ whose `id` matches **Authentication → Users**.
 | Sheet opens, logs in, returns signed out | Redirect URL mismatch, or `scheme` in `app.json` does not match. |
 | "This build has no Supabase keys yet" | `.env` missing, or you did not restart with `--clear`. |
 | Works in Expo Go, fails in a real build | You added the `exp://` URL but not `studyplat://`. |
+| Signed in, but the app shows "Not syncing" | The write is failing. Usually the deployed schema is behind — re-run `supabase/schema.sql`. |
+| Sign-up says to check your email, nothing arrives | Supabase's built-in mailer is rate-limited. Turn **Confirm email** off while developing (step 5). |
 
 ---
 
