@@ -278,6 +278,35 @@ These are the ones that actually bite apps like this one:
    **demo account** in App Review notes — reviewers frequently cannot complete
    OAuth on their test devices.
 4. **Broken links.** Support URL and privacy policy URL must both load.
+   These live in `site/` and are served by GitHub Pages — see below. Preview
+   them locally with the `studyplat-site` launch config.
+
+## Publishing the public pages
+
+App Store Connect requires a working **privacy policy URL** and **support
+URL**; both are checked, and a dead one is a straightforward rejection. Four
+static pages cover it, in `site/`:
+
+| Page | Used for |
+|---|---|
+| `privacy.html` | App Store Connect privacy policy URL, Google consent screen |
+| `support.html` | App Store Connect support URL |
+| `terms.html` | Linked from the sign-in screen |
+| `index.html` | Optional marketing URL |
+
+To publish them free from this repo: **GitHub → Settings → Pages → Source:
+Deploy from a branch → Branch `main`, folder `/site` → Save.** They appear at
+`https://aarushkik.github.io/StudyPlat/` within a minute or two.
+
+If GitHub only offers `/` and `/docs` as folders, either move `site/` to
+`docs/` or use a Pages action; the URLs in `src/lib/links.ts` are the only
+thing that has to change with it.
+
+> **Read both pages before you submit.** They are written from what the app
+> actually does — the columns it stores, the fact that there is no analytics or
+> advertising, and that deletion is in-app — but the contact address and the
+> claims are yours to stand behind. This is a starting point drafted against
+> the code, not legal advice.
 
 ## 8. Recommended order
 

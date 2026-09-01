@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { MASCOT_ART } from '@/components/Mascot';
 import { Wordmark } from '@/components/ui';
+import { links, openLink } from '@/lib/links';
 import { chunky, colors, duration, easing, fonts, palette, spring } from '@/theme';
 import { useAuth, type AuthProvider } from '@/state/AuthContext';
 
@@ -201,8 +202,20 @@ export function SignInScreen() {
                 </Pressable>
               ) : null}
 
+              {/* Real links. This line asserts that continuing means agreeing
+                  to these documents, which is only fair if they can be opened
+                  from the place the assertion is made — and App Store review
+                  checks that the privacy policy URL loads. */}
               <Text style={styles.legal}>
-                By continuing you agree to the Terms and Privacy Policy.
+                By continuing you agree to the{' '}
+                <Text style={styles.legalLink} onPress={() => openLink(links.terms)}>
+                  Terms
+                </Text>{' '}
+                and{' '}
+                <Text style={styles.legalLink} onPress={() => openLink(links.privacy)}>
+                  Privacy Policy
+                </Text>
+                .
               </Text>
             </Animated.View>
           </ScrollView>
@@ -486,4 +499,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
+  // Underlined rather than a different colour: on the night ground a link
+  // colour bright enough to read would pull the eye away from the buttons.
+  legalLink: { textDecorationLine: 'underline', color: '#A9C3C9' },
 });

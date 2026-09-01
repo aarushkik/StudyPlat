@@ -4,8 +4,26 @@
     {
       "name": "stuap-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web", "--port", "8099"],
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--web",
+        "--port",
+        "8099"
+      ],
       "port": 8099
+    },
+    {
+      "name": "studyplat-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8100",
+        "--directory",
+        "site"
+      ],
+      "port": 8100
     }
   ]
 }

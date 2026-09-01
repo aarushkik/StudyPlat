@@ -1,0 +1,40 @@
+/* StudyPlat's public pages. Same palette and type as the app, so someone who
+   arrives here from the sign-in screen recognises where they are. */
+:root {
+  --ink: #12303C;
+  --turquoise: #05B1C9;
+  --orange: #F5A02B;
+  --parchment: #FBF1E2;
+  --cream: #FFFDF7;
+  --muted: #5D767E;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--parchment);
+  color: var(--ink);
+  font: 16px/1.65 "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 680px; margin: 0 auto; padding: 32px 22px 80px; }
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.mark {
+  background: var(--turquoise); color: var(--cream);
+  border: 3px solid var(--ink); border-radius: 14px;
+  padding: 4px 12px; font-weight: 800; letter-spacing: -0.4px;
+}
+h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.6px; margin: 22px 0 4px; }
+h2 { font-size: 19px; margin: 32px 0 6px; letter-spacing: -0.2px; }
+.updated { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+p, li { color: #24434F; }
+ul { padding-left: 20px; }
+li { margin: 4px 0; }
+a { color: #04788A; }
+nav { margin-top: 10px; font-size: 15px; display: flex; gap: 16px; flex-wrap: wrap; }
+.card {
+  background: var(--cream); border: 3px solid var(--ink);
+  border-radius: 20px; padding: 18px 20px; margin: 22px 0;
+  box-shadow: 0 5px 0 var(--ink);
+}
+.card h2 { margin-top: 0; }
+footer { margin-top: 46px; border-top: 3px solid rgba(18,48,60,.14); padding-top: 16px; color: var(--muted); font-size: 14px; }
+code { background: rgba(18,48,60,.07); padding: 1px 5px; border-radius: 5px; font-size: 14px; }
