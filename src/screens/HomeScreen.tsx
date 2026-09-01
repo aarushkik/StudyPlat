@@ -243,7 +243,13 @@ export function HomeScreen() {
             scrollEventThrottle={32}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingTop: bannerHeight, paddingBottom: spacing.xl }}
-            ListFooterComponent={TrailEnd}
+            ListFooterComponent={
+              <TrailEnd
+                cleared={quest.completed.length}
+                total={quest.map.order.length}
+                tracks={units.length}
+              />
+            }
             // Areas are tall and SVG-heavy, so keep few mounted.
             // removeClippedSubviews stays off: the stops are absolutely
             // positioned inside their segment and Android clips them otherwise.
@@ -334,16 +340,48 @@ function TabFade({ children, style }: { children: React.ReactNode; style?: objec
   );
 }
 
-/** Closes the trail so the last area doesn't just stop mid-scroll. */
-function TrailEnd() {
+/**
+ * Closes the trail so the last area doesn't just stop mid-scroll.
+ *
+ * It used to congratulate everyone unconditionally — "You've crossed the whole
+ * map. Ten areas, sixty bosses." — including someone who had cleared nothing.
+ * It is the last thing you see on the map, so a student who scrolled to the
+ * bottom on their first day was told they had finished the app.
+ *
+ * Three states, because the honest thing to say changes: what is ahead before
+ * you start, how far you have come while you are going, and the crown only
+ * when it has actually been earned.
+ */
+function TrailEnd({ cleared, total, tracks }: { cleared: number; total: number; tracks: number }) {
+  const done = total > 0 && cleared >= total;
+
+  if (done) {
+    return (
+      <View style={styles.end}>
+        <View style={styles.endIcon}>
+          <Glyph name="crown" size={28} color={colors.gold} strokeWidth={2.2} />
+        </View>
+        <Text style={[typography.subtitle, styles.endTitle]}>You've crossed the whole map</Text>
+        <Text style={[typography.body, styles.endBody]}>
+          Every stop cleared. The endless review at the foot of each track keeps going as long as
+          you want it to.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.end}>
-      <View style={styles.endIcon}>
-        <Glyph name="crown" size={28} color={colors.gold} strokeWidth={2.2} />
+      <View style={styles.endIconQuiet}>
+        <Glyph name="map" size={26} color={colors.textMuted} strokeWidth={2.2} />
       </View>
-      <Text style={[typography.subtitle, styles.endTitle]}>You've crossed the whole map</Text>
+      <Text style={[typography.subtitle, styles.endTitle]}>
+        {cleared === 0 ? 'The map ends here for now' : `${cleared} of ${total} stops cleared`}
+      </Text>
       <Text style={[typography.body, styles.endBody]}>
-        Ten areas, sixty bosses. Go back and clear anything you walked past.
+        {cleared === 0
+          ? `${tracks} areas and sixty bosses ahead. Clear a track and the next one opens.`
+          : 'Keep going — each boss you beat opens the area after it.'}
       </Text>
     </View>
   );
@@ -368,6 +406,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxxl,
     paddingTop: spacing.xxl,
     paddingBottom: spacing.huge,
+  },
+  // The unearned state is deliberately quieter: no gold, no fill. A crown you
+  // have not won should not look like one you have.
+  endIconQuiet: {
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: 'rgba(18,48,60,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   endIcon: {
     width: 60,

@@ -293,15 +293,28 @@ These are the ones that actually bite apps like this one:
 
 Honest list of what is not finished, so nothing surprises you at review time:
 
-- **Companion and boss sprites** are specced in
+- **Sign in with Apple is not built.** Guideline 5.1.1(v) requires it wherever
+  an app offers third-party sign-in, and Google plus Microsoft without it is a
+  near-certain rejection. `AuthProvider` already carries the case and the flow
+  is provider-agnostic, so it is a button here and a provider in Supabase — but
+  it cannot be configured or tested without an Apple Developer membership, so
+  it waits on that.
+- **Boss sprites** are specced in
   [`character-sprite-prompts.md`](./character-sprite-prompts.md) but not
-  generated, so companions show colour tiles rather than characters.
-- **Question banks are 40 per course**, four per unit. A tier-six boss asks for
-  twelve, so the longest stops pull from the wider course. Fine to ship,
-  worth growing.
-- **Companion abilities do not do anything yet.** Equipping one is recorded but
-  no session reads it. Either wire them up or reword the screen before launch —
-  shipping an ability that does nothing is the kind of thing reviewers and
-  users both notice.
+  generated, so all sixty fights show a crest rather than a character.
+  Companion sprites are specced too, but each companion carries a prop sprite
+  chosen for its ability, which reads well enough to ship.
+- **Track backdrops are procedural.** Silhouettes and seeded arcs rather than
+  drawn art; specced in [`background-prompts.md`](./background-prompts.md).
+  Fine to ship, and the weakest-looking part of the map.
+- **Question banks are 120 per course**, twelve per unit. Enough that a track
+  does not feel thin, not enough that a single track never repeats an item —
+  around thirty per unit is where that stops being noticeable.
 - **The session screens from the design** (Summary, LevelUp, BossIntro,
-  BossFight, Victory, Defeat, WorldDone, Streak) are not built.
+  BossFight, Victory, Defeat, WorldDone, Streak) are not built. Sessions end on
+  `LessonComplete`, which covers the same ground with one screen instead of
+  eight.
+
+Done since the last pass: account deletion, companion abilities, per-course
+weak spots, derived achievements, and the endless review at the foot of each
+cleared track.

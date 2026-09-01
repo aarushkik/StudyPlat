@@ -174,8 +174,19 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onR
         overflow: 'hidden',
       }}
     >
-      <TrackScenery kind={track.kind} color={track.dark} width={width} height={height} seed={track.n} />
-      <Skyline kind={track.kind} color={track.dark} width={width} />
+      {/* Landscape layers only where there is a landscape to draw.
+          A locked track is a 125pt stub: the skyline's silhouettes get clipped
+          to their top few points and read as stray bars floating over a pastel
+          band, and the scenery's arcs have nowhere to sit. Both were added to
+          give a *place* texture, and a stub is not a place — it is a label
+          saying one is coming. The flat band alone is cleaner and stops the
+          eye trying to resolve shapes that mean nothing. */}
+      {mode === 'locked' ? null : (
+        <>
+          <TrackScenery kind={track.kind} color={track.dark} width={width} height={height} seed={track.n} />
+          <Skyline kind={track.kind} color={track.dark} width={width} />
+        </>
+      )}
       {/* After the silhouette, before the stops: props stand in front of the
           horizon and behind anything you can tap. */}
       <TrackProps kind={track.kind} width={width} height={height} anchors={anchors} seed={track.n} />
