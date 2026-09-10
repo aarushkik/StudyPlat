@@ -1,82 +1,83 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { EMPTY_PROFILE, fetchProfile, saveProfile, type Profile } from '@/lib/profile';
+import { GUEST_MODE_KEY, GUEST_PROFILE_ID, clearProfileCache, readProfileCache, registerProfileWriter, writeProfileCache, type CachedProfile } from '@/lib/profileCache';
+import { mergeGuestProfile, mergeProfile } from '@/lib/profileMerge';
+import { deviceStorage } from '@/lib/storage';
+import * as Crypto from 'expo-crypto';
 import { useAuth } from './AuthContext';
 import { useOnboarding } from './OnboardingContext';
 import { useQuest } from './QuestContext';
 
 interface ProfileSyncValue {
-  /** True until the profile has been loaded (or failed) for this session. */
   loading: boolean;
-  /**
-   * Set when the profile could not be read. The app still works from local
-   * state; this only drives a quiet warning, never a blocked screen.
-   */
   offline: boolean;
+  /** No trusted local or remote profile exists. Never allow an empty overwrite. */
+  blocked: boolean;
+  error: string | null;
+  notice: string | null;
+  retry: () => void;
 }
+const ProfileSyncContext = createContext<ProfileSyncValue>({ loading: true, offline: false, blocked: false, error: null, notice: null, retry: () => undefined });
 
-const ProfileSyncContext = createContext<ProfileSyncValue>({ loading: true, offline: false });
-
-/** How long changes settle before a write. */
-const DEBOUNCE_MS = 900;
-
-/**
- * Keeps the signed-in student's profile and the app's local state in step.
- *
- * Load once per sign-in, then mirror changes back on a debounce. The debounce
- * matters: finishing a lesson moves XP, gems, the streak and the cleared list
- * in the same tick, and writing on each would be four round trips for one
- * event.
- *
- * Writes are fire-and-forget on purpose. A student who answers a question
- * should never wait on the network, and the local state is already correct —
- * a failed write costs at most the last session, which the next successful
- * write restores, because the whole profile is sent rather than a delta.
- *
- * They are not, however, *ignored*. `offline` used to be set from the initial
- * read alone, so a write that failed every time — the usual cause being a
- * column the deployed schema does not have yet, which makes Postgres reject
- * the whole upsert — showed nothing at all. A student could play for weeks
- * against a database that had saved none of it and the app would look fine
- * the entire time. A failed write now raises the same quiet banner a failed
- * read does, and a successful one clears it.
- */
 export function ProfileSync({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isGuest, guestUpgrade } = useAuth();
   const onboarding = useOnboarding();
   const quest = useQuest();
-
+  const id = user?.id ?? (isGuest ? GUEST_PROFILE_ID : null);
   const [loading, setLoading] = useState(true);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  const controls = useRef({ onboarding, quest });
+  controls.current = { onboarding, quest };
+  const writer = useRef<{ id: string; update: (profile: Profile) => void; flush: () => Promise<void> } | null>(null);
 
-  // Which user's profile is currently loaded, so a sign-out/sign-in as a
-  // different person cannot leave the previous student's progress on screen.
-  const loadedFor = useRef<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snapshot = useMemo<Profile>(() => ({
+    courseId: onboarding.courseId,
+    experienceLevelId: onboarding.experienceLevelId,
+    goalScoreId: onboarding.goalScoreId,
+    examTimeframeId: onboarding.examTimeframeId,
+    placementLevelId: onboarding.placementLevelId,
+    onboarded: onboarding.onboarded,
+    xp: quest.xp,
+    gems: quest.gems,
+    streakDays: quest.storedStreakDays,
+    lastSessionOn: quest.lastSessionOn,
+    completedStops: quest.earned,
+    skills: quest.skills,
+    todayCount: quest.todayCount,
+    sessions: quest.sessions,
+    perfectSessions: quest.perfectSessions,
+    bestStreak: quest.bestStreak,
+    equippedId: quest.equippedId,
+    streakShieldUsed: quest.streakShieldUsed,
+  }), [onboarding.courseId, onboarding.experienceLevelId, onboarding.goalScoreId, onboarding.examTimeframeId, onboarding.placementLevelId, onboarding.onboarded, quest.xp, quest.gems, quest.storedStreakDays, quest.lastSessionOn, quest.earned, quest.skills, quest.todayCount, quest.sessions, quest.perfectSessions, quest.bestStreak, quest.equippedId, quest.streakShieldUsed]);
 
   useEffect(() => {
     let alive = true;
+    let cache: CachedProfile | null = null;
+    let remoteKnown = id === GUEST_PROFILE_ID;
+    let localWrites: Promise<void> = Promise.resolve();
+    let remoteWrite: Promise<void> | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let unregister: (() => void) | undefined;
+    writer.current = null;
+    setOffline(false);
+    setBlocked(false);
+    setError(null);
+    setNotice(null);
+    setLoading(Boolean(id));
+    controls.current.onboarding.reset();
+    controls.current.quest.reset();
+    if (!id) return;
 
-    if (!user) {
-      // Signed out: clear everything so nothing leaks into the next session.
-      if (loadedFor.current !== null) {
-        onboarding.reset();
-        quest.reset();
-        loadedFor.current = null;
-      }
-      setLoading(false);
-      return;
-    }
-
-    if (loadedFor.current === user.id) return;
-
-    setLoading(true);
-    fetchProfile(user.id).then(({ ok, profile }) => {
-      if (!alive) return;
-      loadedFor.current = user.id;
-      setOffline(!ok);
-
-      const p: Profile = profile ?? EMPTY_PROFILE;
-      onboarding.hydrate({
+    const hydrate = (p: Profile) => {
+      controls.current.onboarding.hydrate({
         courseId: p.courseId,
         experienceLevelId: p.experienceLevelId as never,
         goalScoreId: p.goalScoreId as never,
@@ -84,94 +85,164 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         placementLevelId: p.placementLevelId as never,
         onboarded: p.onboarded,
       });
-      quest.hydrate({
-        xp: p.xp,
-        gems: p.gems,
-        streakDays: p.streakDays,
-        completedStops: p.completedStops,
-        lastSessionOn: p.lastSessionOn,
-        skills: p.skills,
-        sessions: p.sessions,
-        perfectSessions: p.perfectSessions,
-        bestStreak: p.bestStreak,
-        equippedId: p.equippedId,
-        streakShieldUsed: p.streakShieldUsed,
+      controls.current.quest.hydrate({ ...p, todayCount: p.todayCount ?? 0 });
+    };
+    const persist = () => {
+      if (!alive || !cache) return;
+      const value = { ...cache };
+      localWrites = localWrites.catch(() => undefined).then(() => writeProfileCache(id, value));
+      void localWrites.catch(() => {
+        if (alive) { setOffline(true); setError('Your device could not save your latest progress. Free some storage and try again.'); }
       });
-
-      // A brand-new student gets a row immediately, so a crash mid-onboarding
-      // does not leave them with no profile at all.
-      if (ok && !profile) void saveProfile(user.id, EMPTY_PROFILE);
-      setLoading(false);
-    });
-
-    return () => {
+    };
+    const stop = () => {
       alive = false;
+      if (timer) clearTimeout(timer);
+      if (writer.current?.id === id) writer.current = null;
     };
-    // Only the identity of the signed-in user should trigger a load; the
-    // context objects change on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+    const flush = async () => {
+      if (!alive) return;
+      if (timer) clearTimeout(timer);
+      await localWrites;
+      if (remoteWrite) { await remoteWrite; return flush(); }
+      if (!cache?.dirty || id === GUEST_PROFILE_ID) return;
+      remoteWrite = (async () => {
+        // After a failed first read, re-read before any write. No cache means
+        // the navigator stays on a recoverable error instead of onboarding.
+        if (!remoteKnown && !cache?.pendingMutation) {
+          const result = await fetchProfile(id);
+          if (!alive) return;
+          if (!result.ok) { setOffline(true); return; }
+          const remote = result.profile ?? EMPTY_PROFILE;
+          cache = { ...cache!, version: 1, profile: mergeProfile(cache!.profile, cache!.baseline, remote), baseline: remote, dirty: true };
+          remoteKnown = true;
+          hydrate(cache.profile);
+          persist();
+        }
+        if (!alive || !cache) return;
+        if (!cache.pendingMutation) {
+          cache = { ...cache, pendingMutation: { id: Crypto.randomUUID(), profile: cache.profile, baseline: cache.baseline ?? EMPTY_PROFILE } };
+          persist();
+          // Never send a new mutation until its retry ID is durable locally.
+          await localWrites;
+        }
+        const pending = cache.pendingMutation!;
+        const result = await saveProfile(id, pending.profile, pending.baseline, pending.id);
+        if (!alive) return;
+        setOffline(!result.ok);
+        if (result.ok && result.profile && cache) {
+          const merged = mergeProfile(cache.profile, pending.profile, result.profile);
+          cache = { ...cache, profile: merged, baseline: result.profile, pendingMutation: undefined, dirty: JSON.stringify(merged) !== JSON.stringify(result.profile) };
+          hydrate(merged);
+          persist();
+          setError(null);
+          if (cache.dirty) timer = setTimeout(() => { void flush().catch(() => undefined); }, 900);
+        }
 
-  // Mirror local changes back, once they settle.
-  useEffect(() => {
-    if (!user || loading || loadedFor.current !== user.id) return;
+      })().finally(() => { remoteWrite = null; });
+      await remoteWrite;
+    };
 
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      void saveProfile(user.id, {
-        courseId: onboarding.courseId,
-        experienceLevelId: onboarding.experienceLevelId,
-        goalScoreId: onboarding.goalScoreId,
-        examTimeframeId: onboarding.examTimeframeId,
-        placementLevelId: onboarding.placementLevelId,
-        onboarded: onboarding.onboarded,
-        xp: quest.xp,
-        gems: quest.gems,
-        streakDays: quest.streakDays,
-        lastSessionOn: quest.lastSessionOn,
-        // `earned`, not `completed`: the placement head start is recomputed
-        // from `placementLevelId` on load, so saving it too would double-count
-        // it on every sign-in.
-        completedStops: quest.earned,
-        skills: quest.skills,
-        sessions: quest.sessions,
-        perfectSessions: quest.perfectSessions,
-        bestStreak: quest.bestStreak,
-        equippedId: quest.equippedId,
-        streakShieldUsed: quest.streakShieldUsed,
-      }).then((ok) => setOffline(!ok));
-    }, DEBOUNCE_MS);
-
+    void (async () => {
+      try {
+        cache = await readProfileCache(id);
+        if (!alive) return;
+        if (id === GUEST_PROFILE_ID) {
+          cache ??= { version: 1, profile: EMPTY_PROFILE, baseline: null, dirty: false };
+          cache.guestId ??= Crypto.randomUUID();
+        } else {
+          const result = await fetchProfile(id);
+          if (!alive) return;
+          remoteKnown = result.ok;
+          setOffline(!result.ok);
+          if (result.ok) {
+            const remote = result.profile ?? EMPTY_PROFILE;
+            cache = { ...cache, version: 1, profile: cache?.pendingMutation ? cache.profile : cache?.dirty ? mergeProfile(cache.profile, cache.baseline, remote) : remote, baseline: cache?.pendingMutation ? cache.baseline : remote, dirty: cache?.dirty ?? !result.profile };
+          } else if (!cache) {
+            setBlocked(true);
+            setLoadedId(id);
+            setError('We could not load your saved progress. Reconnect and try again, or return to sign in to study as a guest.');
+            setLoading(false);
+            return;
+          }
+          if (guestUpgrade && result.ok) {
+            const guest = await readProfileCache(GUEST_PROFILE_ID);
+            if (!alive) return;
+            if (guest?.guestId && !cache!.importedGuestIds?.includes(guest.guestId)) {
+              const imported = mergeGuestProfile(guest.profile, cache!.profile, EMPTY_PROFILE);
+              if (imported) {
+                cache = { ...cache!, profile: imported, dirty: true, importedGuestIds: [...(cache!.importedGuestIds ?? []), guest.guestId] };
+                // Commit the imported ID with the data before clearing its
+                // source. Reopening after interruption cannot double rewards.
+                await writeProfileCache(id, cache);
+                await clearProfileCache(GUEST_PROFILE_ID);
+                setNotice('Your device quest is now connected to your account.');
+              } else {
+                setNotice('Your account has a different course. We opened that quest and kept your guest quest on this device.');
+              }
+            }
+            await deviceStorage.removeItem(GUEST_MODE_KEY);
+          }
+        }
+        hydrate(cache!.profile);
+        persist();
+        writer.current = {
+          id,
+          update(profile) {
+            if (!alive || !cache || JSON.stringify(profile) === JSON.stringify(cache.profile)) return;
+            cache = { ...cache, profile, dirty: id !== GUEST_PROFILE_ID };
+            // Save locally on every committed change; only network traffic is
+            // debounced. Closing the app during the debounce preserves work.
+            persist();
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => { void flush().catch(() => undefined); }, 900);
+          },
+          flush,
+        };
+        unregister = registerProfileWriter({ id, flush, stop, drain: () => localWrites });
+        setLoading(false);
+        setLoadedId(id);
+        if (cache?.dirty) void flush().catch(() => undefined);
+      } catch {
+        if (alive) {
+          setBlocked(true);
+          setLoadedId(id);
+          setError('Your saved progress could not be opened safely. Try again to keep your existing progress.');
+          setLoading(false);
+        }
+      }
+    })();
+    const foreground = AppState.addEventListener('change', (state) => {
+      if (!cache) return;
+      void (async () => {
+        await flush();
+        if (state !== 'active' || id === GUEST_PROFILE_ID || !alive || cache?.dirty) return;
+        const baselineAtFetch = cache.baseline;
+        const result = await fetchProfile(id);
+        if (!alive || !cache) return;
+        setOffline(!result.ok);
+        if (result.ok && result.profile && !cache.pendingMutation && cache.baseline === baselineAtFetch) {
+          const merged = mergeProfile(cache.profile, cache.baseline, result.profile);
+          cache = { ...cache, profile: merged, baseline: result.profile };
+          hydrate(merged);
+          persist();
+        }
+      })().catch(() => undefined);
+    });
+    const retryTimer = setInterval(() => { if (alive && cache && AppState.currentState === 'active') void flush().catch(() => undefined); }, 20000);
     return () => {
-      if (timer.current) clearTimeout(timer.current);
+      stop();
+      unregister?.();
+      foreground.remove();
+      clearInterval(retryTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    user?.id,
-    loading,
-    onboarding.courseId,
-    onboarding.experienceLevelId,
-    onboarding.goalScoreId,
-    onboarding.examTimeframeId,
-    onboarding.placementLevelId,
-    onboarding.onboarded,
-    quest.xp,
-    quest.gems,
-    quest.streakDays,
-    quest.lastSessionOn,
-    quest.earned.length,
-    quest.sessions,
-    // Equipping is a deliberate choice with no other trigger behind it, so it
-    // has to be its own dependency or a swap made between sessions never saves.
-    quest.equippedId,
-    quest.streakShieldUsed,
-  ]);
+  }, [id, attempt]);
 
-  return (
-    <ProfileSyncContext.Provider value={{ loading, offline }}>{children}</ProfileSyncContext.Provider>
-  );
+  useEffect(() => {
+    if (!loading && !blocked && writer.current?.id === id) writer.current.update(snapshot);
+  }, [snapshot, id, loading, blocked]);
+
+  return <ProfileSyncContext.Provider value={{ loading: loading || (id !== null && loadedId !== id), offline, blocked, error, notice, retry }}>{children}</ProfileSyncContext.Provider>;
 }
 
-export function useProfileSync(): ProfileSyncValue {
-  return useContext(ProfileSyncContext);
-}
+export function useProfileSync(): ProfileSyncValue { return useContext(ProfileSyncContext); }

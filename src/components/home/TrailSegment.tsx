@@ -1,7 +1,7 @@
+import { BossSprite } from '@/components/creatures/BossSprite';
 import React, { useMemo } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Polygon } from 'react-native-svg';
-import { MASCOT_ART } from '@/components/Mascot';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Mascot } from '@/components/Mascot';
 import { Glyph } from '@/components/icons';
 import { colors, fonts, palette } from '@/theme';
 import type { QuestNode, QuestNodeState, QuestUnit } from '@/types/quest';
@@ -69,6 +69,7 @@ interface TrailSegmentProps {
   nextPlace?: string;
   stateOf: (nodeId: string) => QuestNodeState;
   onSelect: (node: QuestNode) => void;
+  animated?: boolean;
   /** Start the endless review for a track that has been cleared. */
   onReview?: (unit: QuestUnit) => void;
 }
@@ -117,8 +118,8 @@ function layout(
   const stops = nodes.map((node, i) => {
     const state = stateOf(node.id);
     const current = state === 'current';
-    const off = OFF[i % OFF.length];
-    const nextOff = i + 1 < nodes.length ? OFF[(i + 1) % OFF.length] : off + 20;
+    const off = OFF[i % OFF.length] * Math.min(1, Math.max(0.4, (width - 170) / 200));
+    const nextOff = i + 1 < nodes.length ? OFF[(i + 1) % OFF.length] * Math.min(1, Math.max(0.4, (width - 170) / 200)) : off + 20;
     const pad = current ? CURRENT_PAD : 0;
     const at = y + pad;
     y += (current ? CURRENT_STEP : STEP) + pad;
@@ -147,7 +148,7 @@ export function trackHeight(
 
 export const TrailSegment = React.memo(TrailSegmentImpl);
 
-function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onReview }: TrailSegmentProps) {
+function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onReview, animated = true }: TrailSegmentProps) {
   const { track } = unit;
   const { stops, boss, bossTop, height } = useMemo(
     () => layout(unit, mode, stateOf, width),
@@ -239,12 +240,12 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onR
                 pointerEvents="none"
                 style={[styles.mascot, { left: Math.max(6, half + off - 148), top: top - 6 }]}
               >
-                <Image source={MASCOT_ART.map} style={styles.mascotArt} resizeMode="contain" />
+                <Mascot pose="point" size={112} animated={animated} shadow={false} />
               </View>
             ) : null}
 
             <View style={[styles.slot, { left: half + off - size / 2, top, width: size }]}>
-              <QuestNodeButton node={node} state={state} track={track} onPress={() => onSelect(node)} />
+              <QuestNodeButton node={node} state={state} track={track} animated={animated} onPress={() => onSelect(node)} />
             </View>
           </React.Fragment>
         );
@@ -403,12 +404,7 @@ function GateBossCard({
     >
       <View style={styles.bossLip} />
       <View style={styles.bossFace}>
-        <View style={styles.bossCrest}>
-          {/* A pointy-top hexagon, from the design's clip-path. */}
-          <Svg width={28} height={28} viewBox="0 0 100 100">
-            <Polygon points="50,0 100,25 100,75 50,100 0,75 0,25" fill="#E4D3FA" />
-          </Svg>
-        </View>
+        <BossSprite nodeId={node.id} size={82} />
         <View style={styles.bossBody}>
           <Text style={styles.bossKicker}>TRACK {unit.track.n} BOSS</Text>
           <Text style={styles.bossTitle} numberOfLines={2}>

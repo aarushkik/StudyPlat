@@ -1,6 +1,9 @@
+import { Glyph, type GlyphName } from '@/components/icons';
+import { BossSprite } from '@/components/creatures/BossSprite';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, glossRound, spring, typography } from '@/theme';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 import type { TrackTheme } from '@/data/tracks';
 import type { QuestNode, QuestNodeState } from '@/types/quest';
 
@@ -14,7 +17,7 @@ import type { QuestNode, QuestNodeState } from '@/types/quest';
  * shape in the middle.
  *
  * There is exactly one current stop on the map, and it is the only thing that
- * animates — a pulsing ring and a floating flag. Everything else is still, so
+ * animates — a pulsing ring and a fixed flag. Everything else is still, so
  * the eye goes straight to it.
  */
 
@@ -36,9 +39,11 @@ interface QuestNodeButtonProps {
   state: QuestNodeState;
   track: TrackTheme;
   onPress: () => void;
+  animated?: boolean;
 }
 
-export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButtonProps) {
+export function QuestNodeButton({ node, state, track, onPress, animated = true }: QuestNodeButtonProps) {
+  const { motionEnabled } = useMotionPreference();
   const current = state === 'current';
   const done = state === 'complete';
   const locked = state === 'locked';
@@ -54,30 +59,24 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
   const flag = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!current) return;
+    if (!current || !animated || !motionEnabled) { pulse.setValue(0); flag.setValue(0); return; }
     const ring = Animated.loop(
       Animated.timing(pulse, { toValue: 1, duration: 2000, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     );
-    const bob = Animated.loop(
-      Animated.sequence([
-        Animated.timing(flag, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(flag, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
     ring.start();
-    bob.start();
     return () => {
       ring.stop();
-      bob.stop();
     };
-  }, [current, pulse, flag]);
+  }, [current, pulse, flag, animated, motionEnabled]);
 
-  const to = (v: number) =>
+  const to = (v: number) => {
+    if (!motionEnabled) { press.setValue(v); return; }
     Animated.spring(press, {
       toValue: v,
       useNativeDriver: true,
       ...(v === 1 ? spring.press : spring.release),
     }).start();
+  };
   const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, lip - 2] });
 
   return (
@@ -120,6 +119,7 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
         // Sealed stops are still tappable. Most of the map is locked, and a
         // stop that does nothing at all when tapped reads as broken; the sheet
         // can at least say what it is and what opens it.
+        accessibilityHint={locked ? "Opens details and the unlock requirement" : "Opens quest details"}
         accessibilityState={{ disabled: false }}
         onPressIn={() => to(1)}
         onPressOut={() => to(0)}
@@ -141,6 +141,7 @@ export function QuestNodeButton({ node, state, track, onPress }: QuestNodeButton
         >
           <View pointerEvents="none" style={glossRound(size, locked ? 0.16 : current ? 0.2 : 0.28)} />
           <Emblem node={node} state={state} track={track} size={size} />
+          {node.kind === 'boss' && done ? <View style={{position:'absolute',bottom:3,right:6,backgroundColor:colors.surface,borderRadius:12,padding:3}}><Glyph name="check" size={13} color={colors.successDeep} strokeWidth={3}/></View> : null}
         </Animated.View>
       </Pressable>
 
@@ -160,88 +161,11 @@ const STATE_LABEL: Record<QuestNodeState, string> = {
   complete: 'completed',
 };
 
-/**
- * What sits inside a stop.
- *
- * Cleared stops always show a tick regardless of kind — once it is done, what
- * it was matters less than that it is behind you. Sealed stops show nothing:
- * a lock icon on every sealed stop turns most of the track into padlocks.
- */
-function Emblem({
-  node,
-  state,
-  track,
-  size,
-}: {
-  node: QuestNode;
-  state: QuestNodeState;
-  track: TrackTheme;
-  size: number;
-}) {
-  const s = size / 70;
-
-  if (state === 'locked') {
-    return (
-      <View style={styles.lock}>
-        <View style={styles.lockShackle} />
-        <View style={styles.lockBody} />
-      </View>
-    );
-  }
-
-  const ink = state === 'complete' ? colors.white : colors.ink;
-
-  if (state === 'complete') {
-    return <View style={[styles.tick, { width: 26 * s, height: 26 * s, borderColor: colors.white }]} />;
-  }
-
-  switch (node.kind) {
-    // A play triangle — the thing you actually sit and learn. White, because
-    // the only unfinished stop on the map is the current one and its face is
-    // orange. The other emblems stay ink for the same reason: the design draws
-    // them in the track colour, which on the amber track is the fill itself.
-    case 'lesson':
-      return (
-        <View
-          style={{
-            width: 0,
-            height: 0,
-            marginLeft: 6 * s,
-            borderLeftWidth: 22 * s,
-            borderLeftColor: colors.white,
-            borderTopWidth: 15 * s,
-            borderBottomWidth: 15 * s,
-            borderTopColor: 'transparent',
-            borderBottomColor: 'transparent',
-          }}
-        />
-      );
-    // Stacked bars, rising — a drill is repetition that builds.
-    case 'drill':
-      return (
-        <View style={styles.bars}>
-          {[10, 17, 24].map((h) => (
-            <View key={h} style={{ width: 6 * s, height: h * s, borderRadius: 2, backgroundColor: ink }} />
-          ))}
-        </View>
-      );
-    // An open book.
-    case 'study':
-      return <View style={[styles.book, { width: 28 * s, height: 22 * s, borderColor: ink }]} />;
-    // A star — the optional extra.
-    case 'bonus':
-      return <View style={[styles.star, { borderBottomColor: ink, borderLeftWidth: 13 * s, borderRightWidth: 13 * s, borderBottomWidth: 9 * s }]} />;
-    // Crossed bars for a fight, in the track's own dark.
-    case 'boss':
-      return (
-        <View style={{ width: 30 * s, height: 30 * s, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={[styles.blade, { backgroundColor: ink, transform: [{ rotate: '45deg' }] }]} />
-          <View style={[styles.blade, { backgroundColor: ink, transform: [{ rotate: '-45deg' }] }]} />
-        </View>
-      );
-    default:
-      return null;
-  }
+/** Kind remains visible on locked stops so the path reads as a varied itinerary. */
+function Emblem({ node, state, size }: {node:QuestNode;state:QuestNodeState;track:TrackTheme;size:number}) {
+  if (node.kind === 'boss') return <BossSprite nodeId={node.id} size={size * 0.96} dim={state === 'locked'} />;
+  const icon: Record<string,GlyphName> = {lesson:'book',drill:'bolt',study:'target',bonus:'sparkle'};
+  return <View style={{opacity:state === 'locked' ? 0.42 : 1}}><Glyph name={state === 'complete' ? 'check' : icon[node.kind]} size={size * 0.4} color={state === 'complete' ? colors.white : colors.ink} strokeWidth={2.6}/></View>;
 }
 
 const styles = StyleSheet.create({
@@ -291,36 +215,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   labelCurrent: { fontSize: 12, lineHeight: 15, color: colors.ink },
-  labelLocked: { color: colors.lockedText },
+  labelLocked: { color: colors.textSecondary },
 
-  // A tick drawn as two borders of a rotated box — no icon font needed.
-  tick: {
-    borderRightWidth: 4,
-    borderBottomWidth: 4,
-    transform: [{ rotate: '45deg' }, { translateY: -3 }],
-  },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
-  book: { borderWidth: 3, borderRadius: 4 },
-  star: {
-    width: 0,
-    height: 0,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  blade: { position: 'absolute', width: 30, height: 6, borderRadius: 3 },
-
-  // A padlock: a rounded body with a shackle standing on top of it.
-  lock: { alignItems: 'center', justifyContent: 'center' },
-  lockShackle: {
-    width: 14,
-    height: 9,
-    borderWidth: 4,
-    borderBottomWidth: 0,
-    borderColor: colors.ink,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    opacity: 0.45,
-    marginBottom: -1,
-  },
-  lockBody: { width: 22, height: 16, borderRadius: 4, backgroundColor: colors.ink, opacity: 0.45 },
 });

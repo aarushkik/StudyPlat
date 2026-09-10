@@ -1,3 +1,4 @@
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { chunky, chunkyRadius, colors, depth, spacing, spring, typography } from '@/theme';
@@ -37,6 +38,7 @@ export function ChunkyCard({
   contentStyle,
   accessibilityLabel,
 }: ChunkyCardProps) {
+  const { motionEnabled } = useMotionPreference();
   const press = useRef(new Animated.Value(0)).current;
   const c = chunky({
     depth: selected ? depth.button : depth.card,
@@ -44,12 +46,14 @@ export function ChunkyCard({
     shadow: selected ? accent : colors.ink,
   });
 
-  const to = (v: number) =>
+  const to = (v: number) => {
+    if (!motionEnabled) { press.setValue(v); return; }
     Animated.spring(press, {
       toValue: v,
       useNativeDriver: true,
       ...(v === 1 ? spring.press : spring.release),
     }).start();
+  };
   const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] });
 
   const face = (

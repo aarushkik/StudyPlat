@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { AppButton } from '@/components/ui';
 import { Glyph } from '@/components/icons';
 import { Mascot } from '@/components/Mascot';
@@ -31,15 +32,16 @@ interface QuizFeedbackPanelProps {
  */
 export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel, onContinue, retry }: QuizFeedbackPanelProps) {
   const insets = useSafeAreaInsets();
+  const { reduceMotion } = useMotionPreference();
   const slide = useRef(new Animated.Value(90)).current;
   const fade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(slide, { toValue: 0, useNativeDriver: true, speed: 14, bounciness: 6 }),
-      Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }),
-    ]).start();
-  }, [slide, fade]);
+    slide.setValue(0);
+    const animation = Animated.timing(fade, { toValue: 1, duration: reduceMotion ? 0 : 180, useNativeDriver: true });
+    animation.start();
+    return () => animation.stop();
+  }, [slide, fade, reduceMotion]);
 
   const accent = correct ? colors.successDark : colors.dangerDark;
 
@@ -56,14 +58,14 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
         },
       ]}
     >
-      <View style={styles.headerRow}>
+      <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}><View style={styles.headerRow}>
         <Mascot size={70} pose={correct ? 'thumbsup' : 'wince'} shadow={false} />
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
             <View style={[styles.verdictDot, { backgroundColor: accent }]}>
               <Glyph name={correct ? 'check' : 'close'} size={13} color={colors.white} strokeWidth={3.4} />
             </View>
-            <Text style={[styles.title, { color: accent }]}>{correct ? 'Nailed it' : 'Not quite'}</Text>
+            <Text accessibilityLiveRegion="polite" style={[styles.title, { color: accent }]}>{correct ? 'Nailed it' : 'Not quite'}</Text>
           </View>
           {!correct && answer ? (
             <Text style={styles.answer}>
@@ -74,6 +76,7 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
         </View>
       </View>
 
+      </ScrollView>
       {/* The retry sits above Continue and is the quieter of the two. Moving
           on is always the safe choice; spending a one-per-session ability
           should be a decision, not the thing under your thumb. */}
@@ -103,6 +106,7 @@ const styles = StyleSheet.create({
   // a soft tinted sheet was the last surface still drawn in the old language,
   // and next to the ink-bordered answer cards above it, it read as unfinished.
   panel: {
+    maxHeight: '60%', width: '100%', maxWidth: 620, alignSelf: 'center',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     borderWidth: 3,

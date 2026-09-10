@@ -157,3 +157,107 @@ $$;
 -- too — it would fail on the uid check, but the smaller surface is worth having.
 revoke all on function public.delete_account() from public, anon;
 grant execute on function public.delete_account() to authenticated;
+
+-- Durable daily count and idempotent multi-device synchronization.
+alter table public.profiles add column if not exists today_count integer not null default 0;
+
+create table if not exists public.profile_sync_receipts (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  mutation_id uuid not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, mutation_id)
+);
+alter table public.profile_sync_receipts enable row level security;
+drop policy if exists "read own sync receipt" on public.profile_sync_receipts;
+drop policy if exists "insert own sync receipt" on public.profile_sync_receipts;
+create policy "read own sync receipt" on public.profile_sync_receipts for select to authenticated using (user_id = (select auth.uid()));
+create policy "insert own sync receipt" on public.profile_sync_receipts for insert to authenticated with check (user_id = (select auth.uid()));
+grant select, insert on public.profile_sync_receipts to authenticated;
+
+-- JSON counter helper keeps malformed or extreme clients from overflowing SQL integers.
+create or replace function public.studyplat_counter(value jsonb)
+returns integer language sql immutable set search_path = '' as $$
+  select case when jsonb_typeof(value) = 'number'
+    then greatest(0, least(1000000000::numeric, floor((value #>> '{}')::numeric)))::integer
+    else 0 end;
+$$;
+
+create or replace function public.sync_profile(p_mutation_id uuid, p_profile jsonb, p_baseline jsonb)
+returns jsonb language plpgsql security invoker set search_path = '' as $$
+declare
+  uid uuid := auth.uid();
+  current_profile public.profiles%rowtype;
+  merged jsonb;
+  field text;
+  local_skill jsonb;
+  prior_skill jsonb;
+  server_skill jsonb;
+  seen_count integer;
+  correct_count integer;
+  latest_day date;
+  proposed_day date;
+  base_day date;
+begin
+  if uid is null then raise exception 'Not signed in'; end if;
+  if p_mutation_id is null or jsonb_typeof(p_profile) <> 'object' or jsonb_typeof(p_baseline) <> 'object' then
+    raise exception 'Invalid progress';
+  end if;
+  insert into public.profiles (id) values (uid) on conflict (id) do nothing;
+  -- All devices serialize at this lock. A replay returns the latest profile
+  -- without adding rewards again, even after an earlier request timed out.
+  select * into current_profile from public.profiles where id = uid for update;
+  if exists (select 1 from public.profile_sync_receipts where user_id = uid and mutation_id = p_mutation_id) then
+    return to_jsonb(current_profile);
+  end if;
+  merged := to_jsonb(current_profile);
+  foreach field in array array['course_id','experience_level_id','goal_score_id','exam_timeframe_id','placement_level_id','equipped_companion'] loop
+    if p_profile ? field and (p_profile->field) is distinct from (p_baseline->field) then
+      merged := jsonb_set(merged, array[field], p_profile->field);
+    end if;
+  end loop;
+  foreach field in array array['xp','gems','sessions','perfect_sessions'] loop
+    merged := jsonb_set(merged, array[field], to_jsonb(least(1000000000,
+      public.studyplat_counter(merged->field) + greatest(0, public.studyplat_counter(p_profile->field) - public.studyplat_counter(p_baseline->field)))));
+  end loop;
+  merged := jsonb_set(merged, '{onboarded}', to_jsonb(current_profile.onboarded or coalesce((p_profile->>'onboarded')::boolean, false)));
+  merged := jsonb_set(merged, '{best_streak}', to_jsonb(greatest(current_profile.best_streak, public.studyplat_counter(p_profile->'best_streak'))));
+  merged := jsonb_set(merged, '{completed_stops}', coalesce((
+    select jsonb_agg(distinct stop) from jsonb_array_elements(coalesce(merged->'completed_stops','[]'::jsonb) || coalesce(p_profile->'completed_stops','[]'::jsonb)) as stops(stop)
+    where jsonb_typeof(stop) = 'string'
+  ), '[]'::jsonb));
+  for field, local_skill in select * from jsonb_each(coalesce(p_profile->'skills','{}'::jsonb)) loop
+    prior_skill := coalesce(p_baseline->'skills'->field, '{}'::jsonb);
+    server_skill := coalesce(merged->'skills'->field, '{}'::jsonb);
+    seen_count := least(1000000000, public.studyplat_counter(server_skill->'seen') + greatest(0, public.studyplat_counter(local_skill->'seen') - public.studyplat_counter(prior_skill->'seen')));
+    correct_count := least(seen_count, public.studyplat_counter(server_skill->'correct') + greatest(0, public.studyplat_counter(local_skill->'correct') - public.studyplat_counter(prior_skill->'correct')));
+    merged := jsonb_set(merged, array['skills',field], jsonb_build_object('seen', seen_count, 'correct', correct_count));
+  end loop;
+  latest_day := current_profile.last_session_on;
+  proposed_day := (p_profile->>'last_session_on')::date;
+  base_day := (p_baseline->>'last_session_on')::date;
+  if proposed_day is not null and (latest_day is null or proposed_day >= latest_day) then
+    merged := jsonb_set(merged, '{last_session_on}', to_jsonb(proposed_day));
+    merged := jsonb_set(merged, '{today_count}', to_jsonb(case when proposed_day = latest_day
+      then least(1000000000, current_profile.today_count + greatest(0, public.studyplat_counter(p_profile->'today_count') - case when base_day = proposed_day then public.studyplat_counter(p_baseline->'today_count') else 0 end))
+      else public.studyplat_counter(p_profile->'today_count') end));
+    merged := jsonb_set(merged, '{streak_days}', to_jsonb(case when proposed_day = latest_day then greatest(current_profile.streak_days, public.studyplat_counter(p_profile->'streak_days')) else public.studyplat_counter(p_profile->'streak_days') end));
+    merged := jsonb_set(merged, '{streak_shield_used}', to_jsonb(coalesce((p_profile->>'streak_shield_used')::boolean, false) or (proposed_day = latest_day and current_profile.streak_shield_used)));
+  end if;
+  update public.profiles set
+    course_id = merged->>'course_id', experience_level_id = merged->>'experience_level_id',
+    goal_score_id = merged->>'goal_score_id', exam_timeframe_id = merged->>'exam_timeframe_id',
+    placement_level_id = merged->>'placement_level_id', onboarded = (merged->>'onboarded')::boolean,
+    xp = (merged->>'xp')::integer, gems = (merged->>'gems')::integer,
+    sessions = (merged->>'sessions')::integer, perfect_sessions = least((merged->>'sessions')::integer, (merged->>'perfect_sessions')::integer),
+    best_streak = (merged->>'best_streak')::integer, streak_days = (merged->>'streak_days')::integer,
+    last_session_on = (merged->>'last_session_on')::date, today_count = (merged->>'today_count')::integer,
+    completed_stops = array(select jsonb_array_elements_text(merged->'completed_stops')),
+    skills = merged->'skills', equipped_companion = merged->>'equipped_companion',
+    streak_shield_used = (merged->>'streak_shield_used')::boolean
+  where id = uid returning * into current_profile;
+  insert into public.profile_sync_receipts(user_id, mutation_id) values (uid, p_mutation_id);
+  return to_jsonb(current_profile);
+end;
+$$;
+revoke all on function public.sync_profile(uuid, jsonb, jsonb) from public, anon;
+grant execute on function public.sync_profile(uuid, jsonb, jsonb) to authenticated;

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -13,6 +14,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Glyph } from '@/components/icons';
+import { AccountSaveCard } from '@/components/account/AccountSaveCard';
+import { NextQuestCard } from '@/components/home/NextQuestCard';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { useOnboarding } from '@/state/OnboardingContext';
+import { getCourse } from '@/data';
 import {
   BattlesPanel,
   LessonSheet,
@@ -26,7 +32,7 @@ import {
   type TrackMode,
   type QuestTab,
 } from '@/components/home';
-import { colors, duration, easing, radius, spacing, typography } from '@/theme';
+import { colors, duration, easing, fonts, radius, spacing, typography } from '@/theme';
 import { questionCountFor } from '@/data/questMap';
 import { useQuest } from '@/state/QuestContext';
 import type { QuestNode, QuestUnit } from '@/types/quest';
@@ -51,8 +57,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  */
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
+  const width = Math.min(windowWidth, 620);
   const quest = useQuest();
+  const { courseId } = useOnboarding();
 
   const [tab, setTab] = useState<QuestTab>('map');
   const [selected, setSelected] = useState<QuestNode | null>(null);
@@ -60,9 +68,15 @@ export function HomeScreen() {
   /** A track to scroll to once the map tab is visible. See the effect below. */
   const [pendingJump, setPendingJump] = useState<number | null>(null);
   const [bannerHeight, setBannerHeight] = useState(96);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [awayFromStart, setAwayFromStart] = useState(false);
 
   const units = quest.map.units;
   const completedSet = useMemo(() => new Set(quest.completed), [quest.completed]);
+  const currentNode = useMemo(
+    () => units.flatMap((unit) => unit.nodes).find((node) => node.id === quest.currentNodeId) ?? null,
+    [units, quest.currentNodeId],
+  );
 
   /**
    * Track heights are not uniform — the one holding the current stop is taller,
@@ -78,7 +92,7 @@ export function HomeScreen() {
   const modes = useMemo<TrackMode[]>(() => {
     const openIndex = units.findIndex((u) => u.nodes.some((n) => quest.stateOf(n.id) === 'current'));
     return units.map((u, i) => {
-      if (openIndex === -1) return i === 0 ? 'open' : 'locked';
+      if (openIndex === -1) return u.nodes.every((n) => quest.stateOf(n.id) === 'complete') ? 'cleared' : 'locked';
       if (i < openIndex) return 'cleared';
       if (i === openIndex) return 'open';
       if (i === openIndex + 1) return 'next';
@@ -103,7 +117,7 @@ export function HomeScreen() {
   );
 
   const startSelected = () => {
-    if (!selected) return;
+    if (!selected || quest.stateOf(selected.id) === 'locked') return;
     const node = selected;
     setSelected(null);
     navigation.navigate('Quiz', {
@@ -126,7 +140,12 @@ export function HomeScreen() {
       // Which track the viewport is in: the last one whose top has passed
       // under the pinned banner. Collapsed tracks are only ~124pt tall, so a
       // fold line further down the screen would name a track you cannot see.
-      const line = y + bannerHeight + 8;
+      // Header and top inset belong to the list, not to segment metrics.
+      const line = Math.max(0, y - headerHeight + 8);
+      setAwayFromStart((away) => {
+        const nextAway = y > headerHeight + 180;
+        return away === nextAway ? away : nextAway;
+      });
       let next = 0;
       for (let i = 0; i < metrics.offsets.length; i += 1) {
         if (metrics.offsets[i] <= line) next = i;
@@ -136,7 +155,7 @@ export function HomeScreen() {
         setActiveIndex(next);
       }
     },
-    [metrics, bannerHeight],
+    [metrics, headerHeight],
   );
 
   /**
@@ -165,22 +184,23 @@ export function HomeScreen() {
         unit={item}
         width={width}
         mode={modes[index]}
+        animated={tab === 'map'}
         nextPlace={units[index + 1]?.track.place}
         stateOf={quest.stateOf}
         onSelect={setSelected}
         onReview={startReview}
       />
     ),
-    [width, quest.stateOf, modes, units, startReview],
+    [width, quest.stateOf, modes, units, startReview, tab],
   );
 
   const getItemLayout = useCallback(
     (_: ArrayLike<QuestUnit> | null | undefined, index: number) => ({
       length: metrics.heights[index] ?? 0,
-      offset: metrics.offsets[index] ?? 0,
+      offset: bannerHeight + headerHeight + (metrics.offsets[index] ?? 0),
       index,
     }),
-    [metrics],
+    [metrics, bannerHeight, headerHeight],
   );
 
   /**
@@ -211,9 +231,9 @@ export function HomeScreen() {
    */
   useEffect(() => {
     if (tab !== 'map' || pendingJump == null) return;
-    listRef.current?.scrollToOffset({ offset: metrics.offsets[pendingJump] ?? 0, animated: false });
+    listRef.current?.scrollToOffset({ offset: headerHeight + (metrics.offsets[pendingJump] ?? 0), animated: false });
     setPendingJump(null);
-  }, [tab, pendingJump, metrics]);
+  }, [tab, pendingJump, metrics, headerHeight]);
 
   const activeUnit = units[activeIndex] ?? units[0];
 
@@ -243,6 +263,19 @@ export function HomeScreen() {
             scrollEventThrottle={32}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingTop: bannerHeight, paddingBottom: spacing.xl }}
+            ListHeaderComponent={
+              <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+                <NextQuestCard
+                  node={currentNode}
+                  course={getCourse(courseId)?.name ?? 'Your study adventure'}
+                  todayCount={quest.todayCount}
+                  dailyGoal={quest.dailyGoal}
+                  onContinue={() => currentNode ? setSelected(currentNode) : setTab('practice')}
+                  active={tab === 'map'}
+                />
+                <AccountSaveCard compact />
+              </View>
+            }
             ListFooterComponent={
               <TrailEnd
                 cleared={quest.completed.length}
@@ -271,6 +304,17 @@ export function HomeScreen() {
               />
             ) : null}
           </View>
+          {awayFromStart && currentNode ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open your next quest, ${currentNode.title}`}
+              onPress={() => setSelected(currentNode)}
+              style={({ pressed }) => [styles.continueDock, pressed && { opacity: 0.88 }]}
+            >
+              <Glyph name="play" size={17} color={colors.ink} />
+              <Text style={styles.continueText}>Next quest</Text>
+            </Pressable>
+          ) : null}
       </View>
 
       {tab === 'practice' ? (
@@ -314,16 +358,20 @@ export function HomeScreen() {
  * panel that begins invisible reads as a load, not a move.
  */
 function TabFade({ children, style }: { children: React.ReactNode; style?: object }) {
+  const { motionEnabled } = useMotionPreference();
   const enter = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(enter, {
+    if (!motionEnabled) { enter.setValue(1); return; }
+    const animation = Animated.timing(enter, {
       toValue: 1,
       duration: duration.base,
       easing: easing.out,
       useNativeDriver: true,
-    }).start();
-  }, [enter]);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [enter, motionEnabled]);
 
   return (
     <Animated.View
@@ -388,7 +436,7 @@ function TrailEnd({ cleared, total, tracks }: { cleared: number; total: number; 
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', backgroundColor: colors.background },
   mapArea: { flex: 1 },
   hidden: { display: 'none' },
   // Opaque, so the trail never shows through the strip above the banner.
@@ -397,9 +445,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: spacing.md,
+    paddingTop: 0,
     backgroundColor: colors.background,
   },
+  continueDock: { position: 'absolute', bottom: 16, right: 18, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.current, borderWidth: 3, borderBottomWidth: 6, borderColor: colors.ink, borderRadius: 18, minHeight: 48, paddingHorizontal: 16 },
+  continueText: { fontFamily: fonts.bodyHeavy, fontSize: 13, color: colors.ink },
 
   end: {
     alignItems: 'center',

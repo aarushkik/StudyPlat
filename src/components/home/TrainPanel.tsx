@@ -1,18 +1,29 @@
-import React, { useMemo, useRef } from 'react';
-import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard, PropBadge } from '@/components/ui';
-import { chunky, colors, fonts, palette } from '@/theme';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuest } from '@/state/QuestContext';
-import { useOnboarding } from '@/state/OnboardingContext';
-import { drillSize } from '@/data';
-import type { PropName } from '@/data/props';
-import { weakSpots, weakSpotMeta } from '@/data/weakSpots';
-import type { RootStackParamList } from '@/navigation/types';
+import React, { useMemo, useRef } from "react";
+import {
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { BossSprite } from "@/components/creatures/BossSprite";
+import { useMotionPreference } from "@/hooks/useMotionPreference";
+import { MASCOT_ART } from "@/components/Mascot";
+import { ChunkyCard, PropBadge } from "@/components/ui";
+import { chunky, colors, fonts, palette } from "@/theme";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQuest } from "@/state/QuestContext";
+import { useOnboarding } from "@/state/OnboardingContext";
+import { drillSize, countForSkills } from "@/data";
+import { questionCountFor } from "@/data/questMap";
+import type { PropName } from "@/data/props";
+import { weakSpots, weakSpotMeta } from "@/data/weakSpots";
+import type { RootStackParamList } from "@/navigation/types";
 
-type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type Nav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
 /**
  * Practice — everything off the trail.
@@ -29,18 +40,36 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  *
  * The emblems were flat colour swatches — four rounded squares that said
  * nothing and looked like art that had not arrived. They carry props now,
- * chosen for the mode: a lantern burns down for a timed set, a chest holds
- * what you got wrong, a banner is a fight you have already had.
+ * chosen for the mode: a lantern lights a quick set and a chest holds
+ * missed topics. Rematches use the actual guardian portrait.
  */
-const MODES: { name: string; emblem: PropName; tile: string; count: number; xp: number }[] = [
-  { name: 'Timed set', emblem: 'lantern', tile: '#FBE6C7', count: 8, xp: 40 },
-  { name: 'Mistakes', emblem: 'chest', tile: '#D6F2F6', count: 6, xp: 30 },
-  { name: 'Boss rematch', emblem: 'banner', tile: '#E8DFF7', count: 8, xp: 45 },
-  { name: 'Free response', emblem: 'bookstack', tile: '#DEEFE1', count: 5, xp: 35 },
+const MODES: {
+  name: string;
+  emblem: PropName;
+  tile: string;
+  count: number;
+  xp: number;
+}[] = [
+  {
+    name: "Quick practice",
+    emblem: "lantern",
+    tile: "#FBE6C7",
+    count: 8,
+    xp: 40,
+  },
+  { name: "Mistakes", emblem: "chest", tile: "#D6F2F6", count: 6, xp: 30 },
+  { name: "Boss rematch", emblem: "banner", tile: "#E8DFF7", count: 8, xp: 45 },
+  {
+    name: "Mixed review",
+    emblem: "bookstack",
+    tile: "#DEEFE1",
+    count: 5,
+    xp: 35,
+  },
 ];
 
 export function TrainPanel() {
-  const { xp, skills, map, completed } = useQuest();
+  const { xp, skills, map, earned } = useQuest();
   const { courseId } = useOnboarding();
   const navigation = useNavigation<Nav>();
 
@@ -52,16 +81,20 @@ export function TrainPanel() {
 
   /** Every topic with at least one wrong answer against it. */
   const missed = useMemo(
-    () => Object.entries(skills).filter(([, s]) => s.correct < s.seen).map(([tag]) => tag),
+    () =>
+      Object.entries(skills)
+        .filter(([, s]) => s.correct < s.seen)
+        .map(([tag]) => tag),
     [skills],
   );
 
   /** Bosses already beaten — the only ones there is anything to rematch. */
   const rematches = useMemo(() => {
-    const cleared = new Set(completed);
-    return map.units.flatMap((u) => u.nodes.filter((n) => n.kind === 'boss')).filter((b) => cleared.has(b.id))
-      .length;
-  }, [map, completed]);
+    const cleared = new Set(earned);
+    return map.units
+      .flatMap((u) => u.nodes.filter((n) => n.kind === "boss"))
+      .filter((b) => cleared.has(b.id));
+  }, [map, earned]);
 
   /**
    * The line under each mode name.
@@ -72,15 +105,17 @@ export function TrainPanel() {
    * they were, because they were never claims.
    */
   const modeMeta = (name: string): string => {
-    if (name === 'Mistakes') {
-      if (missed.length === 0) return 'Nothing missed yet';
-      return `${missed.length} topic${missed.length === 1 ? '' : 's'} missed`;
+    if (name === "Mistakes") {
+      if (missed.length === 0) return "Nothing missed yet";
+      return `${missed.length} topic${missed.length === 1 ? "" : "s"} missed`;
     }
-    if (name === 'Boss rematch') {
-      if (rematches === 0) return 'Beat a boss first';
-      return `${rematches} beaten`;
+    if (name === "Boss rematch") {
+      if (rematches.length === 0) return "Beat a boss first";
+      return `${rematches.length} beaten`;
     }
-    return name === 'Timed set' ? 'Exam pacing' : 'Long form';
+    return name === "Quick practice"
+      ? "A short practice set"
+      : "A mix of course topics";
   };
 
   /**
@@ -90,24 +125,63 @@ export function TrainPanel() {
    * session without one as off-map, so it pays XP and holds the streak but
    * clears nothing and costs nothing if it goes badly.
    */
-  const drill = (title: string, count: number, drillXp: number, focus?: string[]) =>
-    navigation.navigate('Quiz', { title, count: sized(count), xp: drillXp, focus });
+  const drill = (
+    title: string,
+    count: number,
+    drillXp: number,
+    focus?: string[],
+  ) =>
+    navigation.navigate("Quiz", {
+      title,
+      count: focus?.length
+        ? Math.min(count, countForSkills(courseId, focus))
+        : sized(count),
+      xp: drillXp,
+      focus,
+    });
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.flex}
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text style={styles.title}>Practice</Text>
-          <Text style={styles.subtitle}>Off the trail. Nothing here can hurt your streak.</Text>
+          <Text style={styles.subtitle}>
+            Off the trail. Nothing here can hurt your streak.
+          </Text>
         </View>
-        <Image source={MASCOT_ART.point} style={styles.headArt} resizeMode="contain" />
+        <Image
+          source={MASCOT_ART.point}
+          style={styles.headArt}
+          resizeMode="contain"
+        />
       </View>
 
       <Recommended
         xp={xp}
-        count={sized(12)}
-        focus={weak.filter((w) => w.pct >= 0).slice(0, 2).map((w) => w.name).join(' and ')}
-        onStart={() => drill('Weak-spot drill', 12, 60, weak.map((w) => w.name))}
+        count={Math.min(
+          12,
+          countForSkills(
+            courseId,
+            weak.map((w) => w.name),
+          ),
+        )}
+        focus={weak
+          .filter((w) => w.pct >= 0)
+          .slice(0, 2)
+          .map((w) => w.name)
+          .join(" and ")}
+        onStart={() =>
+          drill(
+            "Weak-spot drill",
+            12,
+            60,
+            weak.map((w) => w.name),
+          )
+        }
       />
 
       <Text style={styles.section}>WEAKEST CATEGORIES</Text>
@@ -128,7 +202,7 @@ export function TrainPanel() {
                 </View>
               ) : null}
             </View>
-            <Text style={styles.weakPct}>{w.pct >= 0 ? `${w.pct}%` : '—'}</Text>
+            <Text style={styles.weakPct}>{w.pct >= 0 ? `${w.pct}%` : "—"}</Text>
           </ChunkyCard>
         ))}
       </View>
@@ -139,21 +213,58 @@ export function TrainPanel() {
           // A rematch needs something to rematch. Rather than run a generic
           // set under a name that promises otherwise, the card goes quiet
           // until the first boss is down.
-          const off = m.name === 'Boss rematch' && rematches === 0;
-          const focus = m.name === 'Mistakes' && missed.length > 0 ? missed : undefined;
+          const off =
+            (m.name === "Boss rematch" && rematches.length === 0) ||
+            (m.name === "Mistakes" && missed.length === 0);
+          const lastBoss = rematches[rematches.length - 1];
+          const focus =
+            m.name === "Mistakes" && missed.length > 0 ? missed : undefined;
           return (
             <ChunkyCard
               key={m.name}
-              onPress={off ? undefined : () => drill(m.name, m.count, m.xp, focus)}
+              onPress={
+                off
+                  ? undefined
+                  : () => {
+                      if (m.name === "Boss rematch" && lastBoss) {
+                        const unit = map.units.find((item) =>
+                          item.nodes.some((node) => node.id === lastBoss.id),
+                        );
+                        navigation.navigate("Quiz", {
+                          nodeId: lastBoss.id,
+                          title: lastBoss.title,
+                          unit: unit?.index,
+                          boss: true,
+                          count: questionCountFor(lastBoss),
+                          xp: lastBoss.xp,
+                        });
+                      } else drill(m.name, m.count, m.xp, focus);
+                    }
+              }
               accessibilityLabel={off ? undefined : `Start ${m.name}`}
               style={styles.gridItem}
               contentStyle={[styles.modeCard, off && styles.modeCardOff]}
             >
-              <PropBadge name={m.emblem} tint={m.tile} size={44} dim={off} />
-              <Text style={[styles.modeName, off && styles.modeDim]}>{m.name}</Text>
+              {m.name === "Boss rematch" ? (
+                <BossSprite
+                  nodeId={
+                    lastBoss?.id ??
+                    map.units[0]?.nodes.find((node) => node.kind === "boss")?.id
+                  }
+                  size={54}
+                  dim={off}
+                />
+              ) : (
+                <PropBadge name={m.emblem} tint={m.tile} size={44} dim={off} />
+              )}
+              <Text style={[styles.modeName, off && styles.modeDim]}>
+                {m.name}
+              </Text>
               <Text style={[styles.modeMeta, off && styles.modeDim]}>
                 {modeMeta(m.name)}
-                {off ? '' : ` · ${sized(m.count)}Q`}
+                {off
+                  ? ""
+                  : ` · ${m.name === "Boss rematch" && lastBoss ? questionCountFor(lastBoss) : focus?.length ? Math.min(m.count, countForSkills(courseId, focus)) : sized(m.count)}Q`}
               </Text>
             </ChunkyCard>
           );
@@ -181,9 +292,26 @@ function Recommended({
   onStart: () => void;
 }) {
   const press = useRef(new Animated.Value(0)).current;
-  const c = chunky({ depth: 6, radius: 26, shadow: '#05707F', background: colors.ink, border: colors.ink });
-  const to = (v: number) =>
-    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+  const { reduceMotion } = useMotionPreference();
+  const c = chunky({
+    depth: 6,
+    radius: 26,
+    shadow: "#05707F",
+    background: colors.ink,
+    border: colors.ink,
+  });
+  const to = (v: number) => {
+    if (reduceMotion) {
+      press.setValue(v);
+      return;
+    }
+    Animated.spring(press, {
+      toValue: v,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
 
   return (
     <Pressable
@@ -199,7 +327,16 @@ function Recommended({
         style={[
           c.face,
           styles.hero,
-          { transform: [{ translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] }) }] },
+          {
+            transform: [
+              {
+                translateY: press.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, c.press],
+                }),
+              },
+            ],
+          },
         ]}
       >
         {/* A turquoise wash bleeding off the top-right corner. */}
@@ -207,7 +344,8 @@ function Recommended({
         <Text style={styles.heroKicker}>RECOMMENDED TODAY</Text>
         <Text style={styles.heroTitle}>Weak-spot drill</Text>
         <Text style={styles.heroBody}>
-          {count} questions{focus ? ` on ${focus}` : ' from wherever you are weakest'}.
+          {count} questions
+          {focus ? ` on ${focus}` : " across a few topics to find your focus"}.
         </Text>
         <View style={styles.heroCta}>
           <Text style={styles.heroCtaText}>START · 4 MIN</Text>
@@ -222,7 +360,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 26 },
 
-  head: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 6 },
+  head: { flexDirection: "row", alignItems: "flex-end", gap: 4, marginTop: 6 },
   headText: { flex: 1 },
   title: {
     fontFamily: fonts.displayHeavy,
@@ -231,32 +369,48 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     color: colors.ink,
   },
-  subtitle: { fontFamily: fonts.bodySemibold, fontSize: 13.5, color: palette.mutedDeep, marginTop: 3 },
+  subtitle: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 13.5,
+    color: palette.mutedDeep,
+    marginTop: 3,
+  },
   headArt: { width: 104, height: 104, marginBottom: -8 },
 
   heroWrap: { marginTop: 12 },
-  hero: { padding: 18, overflow: 'hidden' },
+  hero: { padding: 18, overflow: "hidden" },
   heroGlow: {
-    position: 'absolute',
+    position: "absolute",
     right: -78,
     top: -74,
     width: 230,
     height: 230,
     borderRadius: 115,
-    backgroundColor: 'rgba(5,177,201,0.18)',
+    backgroundColor: "rgba(5,177,201,0.18)",
   },
-  heroKicker: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.8, color: '#7FE0EC' },
-  heroTitle: { fontFamily: fonts.displayHeavy, fontSize: 24, lineHeight: 26, color: colors.white, marginTop: 4 },
+  heroKicker: {
+    fontFamily: fonts.bodyBlack,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    color: "#7FE0EC",
+  },
+  heroTitle: {
+    fontFamily: fonts.displayHeavy,
+    fontSize: 24,
+    lineHeight: 26,
+    color: colors.white,
+    marginTop: 4,
+  },
   heroBody: {
     fontFamily: fonts.body,
     fontSize: 13.5,
     lineHeight: 19,
-    color: '#A9C3C9',
+    color: "#A9C3C9",
     marginTop: 5,
     maxWidth: 250,
   },
   heroCta: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 14,
     backgroundColor: colors.primary,
     borderWidth: 3,
@@ -265,8 +419,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
   },
-  heroCtaText: { fontFamily: fonts.bodyBlack, fontSize: 13, letterSpacing: 1, color: '#052F37' },
-  heroXp: { fontFamily: fonts.bodySemibold, fontSize: 11.5, color: '#7C9199', marginTop: 12 },
+  heroCtaText: {
+    fontFamily: fonts.bodyBlack,
+    fontSize: 13,
+    letterSpacing: 1,
+    color: "#052F37",
+  },
+  heroXp: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 11.5,
+    color: "#7C9199",
+    marginTop: 12,
+  },
 
   section: {
     fontFamily: fonts.bodyBlack,
@@ -277,10 +441,21 @@ const styles = StyleSheet.create({
   },
   stack: { marginTop: 9, gap: 9 },
 
-  weakCard: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13 },
+  weakCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 13,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+  },
   weakBody: { flex: 1 },
   weakName: { fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.ink },
-  weakMeta: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  weakMeta: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
   barTrack: {
     marginTop: 8,
     height: 10,
@@ -288,17 +463,30 @@ const styles = StyleSheet.create({
     backgroundColor: palette.sand,
     borderWidth: 2,
     borderColor: colors.ink,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
-  barFill: { height: '100%', backgroundColor: palette.ember },
-  weakPct: { fontFamily: fonts.displayHeavy, fontSize: 20, color: palette.ember },
+  barFill: { height: "100%", backgroundColor: palette.ember },
+  weakPct: {
+    fontFamily: fonts.displayHeavy,
+    fontSize: 20,
+    color: palette.ember,
+  },
 
-  grid: { marginTop: 9, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  grid: { marginTop: 9, flexDirection: "row", flexWrap: "wrap", gap: 10 },
   // Two per row: half the 375-wide gutter box, less half the 10pt gap.
-  gridItem: { width: '48%' },
+  gridItem: { width: "48%" },
   modeCard: { padding: 14 },
-  modeCardOff: { backgroundColor: '#F5EEE0' },
+  modeCardOff: { backgroundColor: "#F5EEE0" },
   modeDim: { opacity: 0.55 },
-  modeName: { fontFamily: fonts.bodyHeavy, fontSize: 14.5, color: colors.ink, marginTop: 10 },
-  modeMeta: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted },
+  modeName: {
+    fontFamily: fonts.bodyHeavy,
+    fontSize: 14.5,
+    color: colors.ink,
+    marginTop: 10,
+  },
+  modeMeta: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
 });

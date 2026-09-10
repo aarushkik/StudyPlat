@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, radius, spacing, spring, typography } from '@/theme';
 
@@ -22,16 +23,18 @@ const KEYS = ['A', 'B', 'C', 'D', 'E'];
  *
  * Each option carries a lettered key so a student can talk about "C" out loud,
  * and the card sits on a lip that sinks when pressed — the same physics as the
- * buttons elsewhere. Feedback is deliberately gentle: correct pops, wrong gives
+ * buttons elsewhere. Feedback is deliberately gentle: correct changes color, wrong gives
  * a small shake rather than a jolt, and the answer that *was* right lights up
  * quietly beside it instead of shouting.
  */
 export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerChoiceProps) {
+  const { motionEnabled } = useMotionPreference();
   const shake = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const press = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (!motionEnabled) { shake.setValue(0); pop.setValue(0); return; }
     if (state === 'wrong') {
       shake.setValue(0);
       Animated.sequence([
@@ -40,32 +43,23 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
         Animated.timing(shake, { toValue: 0.5, duration: 70, useNativeDriver: true }),
         Animated.timing(shake, { toValue: 0, duration: 70, useNativeDriver: true }),
       ]).start();
-    } else if (state === 'correct') {
-      pop.setValue(0);
-      Animated.sequence([
-        Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 14 }),
-        Animated.spring(pop, { toValue: 0, useNativeDriver: true, speed: 40, bounciness: 14 }),
-      ]).start();
     }
-  }, [state, shake, pop]);
+    return () => { shake.stopAnimation(); pop.stopAnimation(); };
+  }, [state, shake, pop, motionEnabled]);
 
   const s = STATE[state];
   const translateX = shake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
   const sink = press.interpolate({ inputRange: [0, 1], outputRange: [0, 3] });
-  /**
-   * Correct answers *lift* rather than scale. These cards run the full width of
-   * the screen's padding, so a springy scale — which overshoots its target by
-   * design — pushed the card past both edges and made it look broken at the
-   * exact moment the student got it right.
-   */
-  const lift = pop.interpolate({ inputRange: [0, 1], outputRange: [0, -7] });
+  const lift = pop.interpolate({ inputRange: [0, 1], outputRange: [0, 0] });
 
-  const to = (v: number) =>
+  const to = (v: number) => {
+    if (!motionEnabled) { press.setValue(v); return; }
     Animated.spring(press, {
       toValue: v,
       useNativeDriver: true,
       ...(v === 1 ? spring.press : spring.release),
     }).start();
+  };
 
   return (
     <Animated.View style={[styles.holder, { transform: [{ translateX }, { translateY: lift }] }]}>

@@ -1,3 +1,4 @@
+import { BossSprite } from '@/components/creatures/BossSprite';
 import React, { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
@@ -22,39 +23,6 @@ interface ProgressPanelProps {
 }
 
 /**
- * The last seven days, ending today.
- *
- * This used to be a hard-coded curve that rose pleasingly to the right. It
- * looked good and it was a lie: a student who had never opened the app saw a
- * full week of invented activity above a mastery figure of 0%. Per-day session
- * counts are not stored yet, but the streak is, and that is enough to say
- * truthfully which of the last seven days were practised.
- */
-function lastSevenDays(streakDays: number): { label: string; hit: boolean; today: boolean }[] {
-  const initials = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const now = new Date();
-  return Array.from({ length: 7 }, (_, i) => {
-    const offset = 6 - i;
-    const d = new Date(now);
-    d.setDate(now.getDate() - offset);
-    return {
-      label: initials[d.getDay()],
-      // The streak counts back from today, so the most recent `streakDays`
-      // days are the practised ones.
-      hit: offset < streakDays,
-      today: offset === 0,
-    };
-  });
-}
-
-/** One line under the week, saying what the squares mean. */
-function streakDaysLabel(streakDays: number): string {
-  if (streakDays === 0) return 'No sessions yet — finish a stop and this week fills in.';
-  if (streakDays === 1) return 'One day running. Come back tomorrow to keep it.';
-  return `${streakDays} days running.`;
-}
-
-/**
  * Progress — the whole run, measured.
  *
  * One number at the top, because a student who opens this tab wants to know if
@@ -66,11 +34,10 @@ function streakDaysLabel(streakDays: number): string {
  * is a menu, and it has nowhere better to be.
  */
 export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
-  const { map, stateOf, completed } = useQuest();
+  const { map, stateOf, completed, earned, sessions, perfectSessions, bestStreak } = useQuest();
   const navigation = useNavigation<Nav>();
   const { courseId } = useOnboarding();
   const { streakDays, skills } = useQuest();
-  const week = useMemo(() => lastSevenDays(streakDays), [streakDays]);
   const weak = useMemo(() => weakSpots(skills, courseId), [skills, courseId]);
 
   const { tracks, mastery, bossesBeaten, bossTotal, nextBoss } = useMemo(() => {
@@ -87,11 +54,11 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
     return {
       tracks: rows,
       mastery: Math.round((cleared.size / map.order.length) * 100),
-      bossesBeaten: bosses.filter((b) => cleared.has(b.id)).length,
+      bossesBeaten: bosses.filter((b) => earned.includes(b.id)).length,
       bossTotal: bosses.length,
       nextBoss: bosses.find((b) => stateOf(b.id) !== 'complete'),
     };
-  }, [map, completed, stateOf]);
+  }, [map, completed, earned, stateOf]);
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -106,7 +73,7 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
       <ChunkyCard style={styles.masteryWrap} contentStyle={styles.mastery}>
         <View style={styles.masteryTop}>
           <View>
-            <Text style={styles.overline}>COURSE MASTERY</Text>
+            <Text style={styles.overline}>PATH EXPLORED</Text>
             <Text style={styles.big}>
               {mastery}
               <Text style={styles.bigUnit}>%</Text>
@@ -118,16 +85,9 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
         </View>
 
         <View style={styles.bars}>
-          {week.map((d, i) => (
-            <View key={i} style={styles.barCol}>
-              <View style={[styles.day, d.hit && styles.dayHit, d.today && styles.dayToday]} />
-              <Text style={[styles.barLabel, d.today && styles.barLabelToday]}>{d.label}</Text>
-            </View>
-          ))}
+          {[{ value: sessions, label: 'Sessions' }, { value: perfectSessions, label: 'Perfect sets' }, { value: bestStreak, label: 'Best streak' }].map((stat) => <View key={stat.label} style={styles.barCol}><Text style={styles.bigUnit}>{stat.value}</Text><Text style={styles.barLabel}>{stat.label}</Text></View>)}
         </View>
-        <Text style={styles.weekNote}>
-          {streakDaysLabel(streakDays)}
-        </Text>
+        <Text style={styles.weekNote}>{streakDays > 0 ? `${streakDays}-day streak. Keep a little practice in your day.` : 'Finish a practice session to start your streak.'} Path progress includes your placement head start.</Text>
       </ChunkyCard>
 
       <Text style={styles.section}>TRACK BY TRACK</Text>
@@ -158,7 +118,7 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
         <>
           <Text style={styles.section}>NEXT FIGHT</Text>
           <ChunkyCard onPress={() => onSelect(nextBoss)} style={styles.stackTop} contentStyle={styles.bossRow}>
-            <PropBadge name="banner" tint={palette.violetLight} size={46} radius={18} />
+            <BossSprite nodeId={nextBoss.id} size={76} />
             <View style={styles.bossBody}>
               <Text style={styles.bossName} numberOfLines={2}>
                 {nextBoss.title}

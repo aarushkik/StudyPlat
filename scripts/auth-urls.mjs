@@ -29,8 +29,11 @@ Supabase → Authentication → URL Configuration → Redirect URLs
 Add all of these:
 
   ${scheme}://auth/callback                 ← production / dev build
+  ${scheme}://auth/recovery                 ← password reset
+  http://localhost:8082/auth/callback       ← local web preview
+  http://localhost:8082/auth/recovery       ← local web reset
   exp://${lan}:8081/--/auth/callback        ← Expo Go on this machine
-  exp://**                                  ← covers Expo Go on any IP
+  exp://${lan}:8081/--/auth/recovery        ← Expo Go password reset
 
 Google Cloud Console and Azure both need this ONE redirect URI:
 

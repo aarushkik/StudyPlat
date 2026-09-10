@@ -2,18 +2,20 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, palette, spring } from '@/theme';
+import { Glyph, type GlyphName } from '@/components/icons';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 export type QuestTab = 'map' | 'practice' | 'progress' | 'you';
 
-const TABS: { id: QuestTab; label: string }[] = [
-  { id: 'map', label: 'PATH' },
-  { id: 'practice', label: 'PRACTICE' },
-  { id: 'progress', label: 'PROGRESS' },
-  { id: 'you', label: 'PROFILE' },
+const TABS: { id: QuestTab; label: string; glyph: GlyphName }[] = [
+  { id: 'map', label: 'Path', glyph: 'map' },
+  { id: 'practice', label: 'Practice', glyph: 'bolt' },
+  { id: 'progress', label: 'Progress', glyph: 'chart' },
+  { id: 'you', label: 'Profile', glyph: 'avatar' },
 ];
 
 const ON = '#052F37';
-const OFF = palette.mutedLight;
+const OFF = palette.mutedDark;
 /** The active tile is a pale turquoise, not the brand fill — ink still reads. */
 const TILE = '#7FE0EC';
 
@@ -46,7 +48,7 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
           >
             {on ? <View style={styles.tileLip} /> : null}
             <Tile on={on}>
-              <TabIcon id={tab.id} on={on} />
+              <Glyph name={tab.glyph} size={23} color={on ? ON : OFF} strokeWidth={2.6} />
               <Text style={[styles.label, { color: on ? ON : OFF }]}>{tab.label}</Text>
             </Tile>
           </Pressable>
@@ -63,11 +65,15 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
  * buttons.
  */
 function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
+  const { motionEnabled } = useMotionPreference();
   const pop = useRef(new Animated.Value(on ? 1 : 0)).current;
 
   useEffect(() => {
-    Animated.spring(pop, { toValue: on ? 1 : 0, useNativeDriver: true, ...spring.pop }).start();
-  }, [on, pop]);
+    if (!motionEnabled) { pop.setValue(on ? 1 : 0); return; }
+    const animation = Animated.spring(pop, { toValue: on ? 1 : 0, useNativeDriver: true, ...spring.pop });
+    animation.start();
+    return () => animation.stop();
+  }, [on, pop, motionEnabled]);
 
   return (
     <Animated.View
@@ -85,30 +91,6 @@ function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
   );
 }
 
-function TabIcon({ id, on }: { id: QuestTab; on: boolean }) {
-  const c = on ? ON : OFF;
-
-  if (id === 'map') {
-    // A 22pt bounding box means a 15.6pt square turned 45°. Its corners are
-    // softened — a knife-edge diamond is the one hostile shape in the bar.
-    return <View style={[styles.diamond, { backgroundColor: c }]} />;
-  }
-  if (id === 'practice') {
-    return <View style={[styles.ring, { borderColor: c }]} />;
-  }
-  if (id === 'progress') {
-    // Three steps climbing, drawn flush so they read as one staircase.
-    return (
-      <View style={styles.stairs}>
-        <View style={{ width: 7, height: 8, backgroundColor: c, borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
-        <View style={{ width: 8, height: 15, backgroundColor: c, borderTopRightRadius: 3 }} />
-        <View style={{ width: 9, height: 22, backgroundColor: c, borderTopRightRadius: 3 }} />
-      </View>
-    );
-  }
-  return <View style={[styles.disc, { backgroundColor: c }]} />;
-}
-
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
@@ -120,12 +102,13 @@ const styles = StyleSheet.create({
     paddingTop: 9,
     paddingHorizontal: 10,
   },
-  tab: { position: 'relative' },
+  tab: { position: 'relative', flex: 1, minWidth: 0, marginHorizontal: 3 },
   tile: {
     alignItems: 'center',
     gap: 5,
     paddingVertical: 7,
-    paddingHorizontal: 11,
+    paddingHorizontal: 3,
+    minHeight: 58,
     borderRadius: 19,
     borderWidth: 3,
     borderColor: 'transparent',
@@ -141,7 +124,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     backgroundColor: colors.ink,
   },
-  label: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 0.6 },
+  label: { fontFamily: fonts.bodyBlack, fontSize: 11, letterSpacing: 0 },
 
   diamond: { width: 15.6, height: 15.6, borderRadius: 4, margin: 3.2, transform: [{ rotate: '45deg' }] },
   ring: { width: 22, height: 22, borderRadius: 11, borderWidth: 4 },

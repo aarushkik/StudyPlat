@@ -4,7 +4,7 @@
     "slug": "studyplat",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/studyplat-icon.png",
     "userInterfaceStyle": "light",
     "scheme": "studyplat",
     "ios": {
@@ -12,25 +12,31 @@
       "bundleIdentifier": "com.aarushkik.studyplat",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "buildNumber": "1",
+      "privacyManifests": {
+        "NSPrivacyTracking": false
       }
     },
     "android": {
       "package": "com.aarushkik.studyplat",
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/studyplat-icon.png"
     },
     "plugins": [
       "expo-font",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/mascot/logo-mark.png",
+          "imageWidth": 160,
+          "backgroundColor": "#05B1C9"
+        }
+      ]
     ],
     "extra": {
       "eas": {

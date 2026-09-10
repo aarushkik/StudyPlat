@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Glyph } from '@/components/icons';
 import { chunky, chunkyRadius, colors, depth, fonts, spacing, spring } from '@/theme';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 interface SelectRowProps {
   /** Leading art — an illustration, glyph, or level bars. */
@@ -44,23 +45,27 @@ export function SelectRow({
   bareLeading = false,
 }: SelectRowProps) {
   const press = useRef(new Animated.Value(0)).current;
+  const { reduceMotion } = useMotionPreference();
   const c = chunky({
     depth: selected ? depth.button : depth.card,
     radius: chunkyRadius.card,
     shadow: selected ? accent : colors.ink,
   });
 
-  const to = (v: number) =>
+  const to = (v: number) => {
+    if (reduceMotion) { press.setValue(v); return; }
     Animated.spring(press, {
       toValue: v,
       useNativeDriver: true,
       ...(v === 1 ? spring.press : spring.release),
     }).start();
+  };
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
       onPress={onPress}
       onPressIn={() => to(1)}
       onPressOut={() => to(0)}
@@ -85,11 +90,11 @@ export function SelectRow({
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={styles.title}>
             {title}
           </Text>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={2}>
+            <Text style={styles.subtitle}>
               {subtitle}
             </Text>
           ) : null}
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
   },
   body: { flex: 1, minWidth: 0, gap: 1 },
   title: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 20, color: colors.ink },
-  subtitle: { fontFamily: fonts.bodySemibold, fontSize: 12.5, lineHeight: 16, color: colors.textMuted },
+  subtitle: { fontFamily: fonts.bodySemibold, fontSize: 13, lineHeight: 18, color: colors.textSecondary },
   // Always ink-ruled, filled only when chosen. An empty circle that changes
   // only its border colour is easy to miss at a glance down a list of eight.
   check: {

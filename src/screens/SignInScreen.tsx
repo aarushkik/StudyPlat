@@ -1,223 +1,146 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+  KeyboardAvoidingView, Platform, Pressable, ScrollView,
+  StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
-import { MASCOT_ART } from '@/components/Mascot';
-import { Wordmark } from '@/components/ui';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Mascot } from '@/components/Mascot';
+import { StudyCamp } from '@/components/Mascot/StudyCamp';
+import { AppButton, TopBackButton, Wordmark } from '@/components/ui';
+import { Glyph } from '@/components/icons';
 import { links, openLink } from '@/lib/links';
-import { chunky, colors, duration, easing, fonts, palette, spring } from '@/theme';
-import { useAuth, type AuthProvider } from '@/state/AuthContext';
+import { colors, fonts, palette } from '@/theme';
+import { useAuth, appleSignInEnabled } from '@/state/AuthContext';
+import { ProviderButton } from '@/components/ui/ProviderButton';
+import { useNavigation } from '@react-navigation/native';
 
-/**
- * The way in.
- *
- * There is deliberately no guest path. The whole app is built around a chosen
- * course — the map, the question bank, the progress — so a guest would land on
- * a map belonging to nobody, and anything they earned would vanish the moment
- * they closed the app.
- *
- * Email sits above the providers rather than below them. Most students will
- * tap Google, but the email form is the one that still works when a school
- * blocks third-party sign-in, and burying it under a divider makes it look
- * like an afterthought rather than a supported route.
- *
- * On the night ground, like the splash it follows, so the app opens on one
- * continuous dark beat before the map's daylight.
- */
+type Mode = 'welcome' | 'signIn' | 'signUp' | 'reset';
+
+/** A real offline entry point, with account sync available when wanted. */
 export function SignInScreen() {
   const {
-    signIn,
-    signInWithEmail,
-    signUpWithEmail,
-    emailPending,
-    pending,
-    error,
-    clearError,
-    canPreview,
-    previewSignIn,
+    signIn, isGuest, signInWithEmail, signUpWithEmail, emailPending, pending, error, clearError,
+    continueAsGuest, resetPassword, updatePassword, recovering, cancelRecovery,
   } = useAuth();
-
-  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+  const { width, height } = useWindowDimensions();
+  const navigation = useNavigation();
+  const [mode, setMode] = useState<Mode>(isGuest ? 'signUp' : 'welcome');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [note, setNote] = useState<string | null>(null);
-
-  const rise = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(rise, {
-      toValue: 1,
-      duration: duration.slow,
-      easing: easing.out,
-      useNativeDriver: true,
-    }).start();
-  }, [rise]);
-
-  const busy = pending !== null || emailPending;
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+  const latch = useRef(false);
+  const passwordInput = useRef<TextInput>(null);
+  const busy = pending !== null || emailPending || working;
+  const welcome = mode === 'welcome' && !recovering;
   const signingUp = mode === 'signUp';
+  const resetting = mode === 'reset';
+
+  const changeMode = (next: Mode) => {
+    if (busy) return;
+    setMode(next); setPassword(''); setConfirmation('');
+    clearError(); setNote(null); setLocalError(null);
+  };
 
   const submit = async () => {
-    setNote(null);
-    const message = signingUp
-      ? await signUpWithEmail(email, password)
-      : await signInWithEmail(email, password);
-    if (message) setNote(message);
+    if (latch.current || busy) return;
+    clearError(); setNote(null); setLocalError(null);
+    if (recovering && password !== confirmation) {
+      setLocalError('Your passwords don’t match. Enter the same password in both fields.');
+      return;
+    }
+    latch.current = true; setWorking(true);
+    try {
+      const message = recovering ? await updatePassword(password)
+        : resetting ? await resetPassword(email)
+          : signingUp ? await signUpWithEmail(email, password)
+            : await signInWithEmail(email, password);
+      if (message) setNote(message);
+    } finally { latch.current = false; setWorking(false); }
+  };
+
+  const start = async () => {
+    if (latch.current || busy) return;
+    if (isGuest) { navigation.goBack(); return; }
+    latch.current = true; setWorking(true);
+    try { await continueAsGuest(); }
+    finally { latch.current = false; setWorking(false); }
   };
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Animated.View
-              style={[
-                styles.hero,
-                {
-                  opacity: rise,
-                  transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-                },
-              ]}
-            >
-              <Image source={MASCOT_ART.wave} style={styles.mascot} resizeMode="contain" />
-              <Wordmark size={34} variant="light" />
-              <Text style={styles.tagline}>
-                {signingUp
-                  ? 'Make an account to keep your map, your streak and your XP.'
-                  : 'Sign in to pick up where you left off.'}
-              </Text>
-            </Animated.View>
-
-            <Animated.View style={[styles.form, { opacity: rise }]}>
-              {error ? (
-                <Pressable onPress={clearError} accessibilityRole="button" style={styles.error}>
-                  <Text style={styles.errorText}>{error}</Text>
-                  <Text style={styles.errorDismiss}>Tap to dismiss</Text>
-                </Pressable>
-              ) : null}
-
-              {note ? (
-                <View style={styles.note}>
-                  <Text style={styles.noteText}>{note}</Text>
+      <LinearGradient colors={[palette.night, '#153F4A', palette.night]} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={[styles.scroll, welcome && styles.welcomeScroll]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+            {welcome ? (
+              <>
+                <View style={styles.brand}><Wordmark size={30} variant="light" /><View style={styles.edition}><Text style={styles.editionText}>THE AP ADVENTURE</Text></View></View>
+                <View style={styles.welcomeBody}>
+                  <StudyCamp size={Math.min(width - 40, height < 720 ? 220 : 270)} />
+                  <Text accessibilityRole="header" style={styles.headline}>Small steps.{'\n'}Big discoveries.</Text>
+                  <Text style={styles.tagline}>Turn your AP practice into an adventure.{'\n'}Stu’s coming with you.</Text>
+                  <View style={styles.features}>
+                    <Feature icon="book" label="8 AP courses" />
+                    <View style={styles.featureDot} />
+                    <Feature icon="sparkle" label="Your pace" />
+                  </View>
                 </View>
-              ) : null}
-
-              <Field
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@school.edu"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                autoComplete="email"
-              />
-              <Field
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder={signingUp ? 'At least 6 characters' : 'Your password'}
-                secureTextEntry
-                textContentType={signingUp ? 'newPassword' : 'password'}
-                autoComplete={signingUp ? 'new-password' : 'current-password'}
-                onSubmitEditing={submit}
-                returnKeyType="go"
-              />
-
-              <ChunkyButton
-                label={signingUp ? 'Create account' : 'Sign in'}
-                busy={emailPending}
-                disabled={busy}
-                onPress={submit}
-                fill={colors.primary}
-                text={colors.ink}
-              />
-
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  setMode(signingUp ? 'signIn' : 'signUp');
-                  clearError();
-                  setNote(null);
-                }}
-                hitSlop={10}
-                style={styles.switch}
-              >
-                <Text style={styles.switchText}>
-                  {signingUp ? 'Already have an account? Sign in' : 'New here? Create an account'}
-                </Text>
-              </Pressable>
-
-              <View style={styles.dividerRow}>
-                <View style={styles.rule} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.rule} />
-              </View>
-
-              <ProviderButton
-                provider="google"
-                label="Continue with Google"
-                busy={pending === 'google'}
-                disabled={busy}
-                onPress={() => signIn('google')}
-              />
-              <ProviderButton
-                provider="azure"
-                label="Continue with Microsoft"
-                busy={pending === 'azure'}
-                disabled={busy}
-                onPress={() => signIn('azure')}
-              />
-
-              {canPreview ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Preview the app without signing in"
-                  onPress={previewSignIn}
-                  style={({ pressed }) => [styles.preview, pressed && styles.previewPressed]}
-                >
-                  <Text style={styles.previewText}>Preview without an account</Text>
-                  <Text style={styles.previewNote}>
-                    Development builds only. Disappears once Supabase keys are set.
-                  </Text>
-                </Pressable>
-              ) : null}
-
-              {/* Real links. This line asserts that continuing means agreeing
-                  to these documents, which is only fair if they can be opened
-                  from the place the assertion is made — and App Store review
-                  checks that the privacy policy URL loads. */}
-              <Text style={styles.legal}>
-                By continuing you agree to the{' '}
-                <Text style={styles.legalLink} onPress={() => openLink(links.terms)}>
-                  Terms
-                </Text>{' '}
-                and{' '}
-                <Text style={styles.legalLink} onPress={() => openLink(links.privacy)}>
-                  Privacy Policy
-                </Text>
-                .
-              </Text>
-            </Animated.View>
+                <View style={styles.actions}>
+                  <ProviderButton provider="google" busy={pending === 'google'} disabled={busy} onPress={() => signIn('google')} />
+                  <ProviderButton provider="azure" busy={pending === 'azure'} disabled={busy} onPress={() => signIn('azure')} />
+                  {appleSignInEnabled && <ProviderButton provider="apple" busy={pending === 'apple'} disabled={busy} onPress={() => signIn('apple')} />}
+                  {error ? <Message text={error} error /> : null}
+                  <AppButton label="Continue as guest" icon="arrow-right" loading={working} disabled={busy} onPress={start} />
+                  <Text style={styles.deviceNote}>Progress saved on this device</Text>
+                  <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeMode('signIn')} style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
+                    <Text style={styles.textButtonLabel}>Sign in or create an account with email</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.formTop}>
+                  <TopBackButton color="#BCD8DD" onPress={() => recovering ? cancelRecovery() : isGuest ? navigation.goBack() : changeMode('welcome')} />
+                  <Wordmark size={25} variant="light" />
+                  <View style={{ width: 44 }} />
+                </View>
+                <View style={styles.formHero}>
+                  <Mascot size={100} pose={recovering || resetting ? 'thinking' : 'reading'} shadow={false} />
+                  <Text accessibilityRole="header" style={styles.formTitle}>{recovering ? 'A fresh start.' : resetting ? 'Forgot your password?' : signingUp ? 'Your quest, saved.' : 'Welcome back, explorer.'}</Text>
+                  <Text style={styles.tagline}>{recovering ? 'Choose a new password for your account.' : resetting ? 'We’ll email you a link to reset it.' : signingUp ? 'Create an account to sync your progress across devices.' : 'Your next discovery is waiting for you.'}</Text>
+                </View>
+                <View style={styles.form}>
+                  {!recovering && !resetting && <>
+                    <ProviderButton provider="google" busy={pending === 'google'} disabled={busy} onPress={() => signIn('google')} />
+                    <ProviderButton provider="azure" busy={pending === 'azure'} disabled={busy} onPress={() => signIn('azure')} />
+                    {appleSignInEnabled && <ProviderButton provider="apple" busy={pending === 'apple'} disabled={busy} onPress={() => signIn('apple')} />}
+                    <Text style={styles.or}>OR USE EMAIL</Text>
+                  </>}
+                  {error || localError ? <Message text={localError ?? error!} error /> : null}
+                  {note ? <Message text={note} /> : null}
+                  {!recovering && <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" textContentType="emailAddress" autoComplete="email" editable={!busy} returnKeyType={resetting ? 'go' : 'next'} onSubmitEditing={resetting ? submit : () => passwordInput.current?.focus()} />}
+                  {!resetting || recovering ? <Field inputRef={passwordInput} label={recovering ? 'New password' : 'Password'} value={password} onChangeText={setPassword} placeholder={signingUp || recovering ? 'At least 8 characters' : 'Your password'} secureTextEntry textContentType={signingUp || recovering ? 'newPassword' : 'password'} autoComplete={signingUp || recovering ? 'new-password' : 'current-password'} editable={!busy} onSubmitEditing={recovering ? undefined : submit} returnKeyType={recovering ? 'next' : 'go'} /> : null}
+                  {recovering && <Field label="Confirm password" value={confirmation} onChangeText={setConfirmation} placeholder="Enter it again" secureTextEntry textContentType="newPassword" autoComplete="new-password" editable={!busy} onSubmitEditing={submit} returnKeyType="go" />}
+                  {!signingUp && !resetting && !recovering && <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeMode('reset')} style={styles.forgot}><Text style={styles.linkText}>Forgot password?</Text></Pressable>}
+                  <AppButton label={recovering ? 'Save new password' : resetting ? 'Send reset link' : signingUp ? 'Create account' : 'Sign in'} loading={busy} onPress={submit} />
+                  {!recovering && <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeMode(signingUp || resetting ? 'signIn' : 'signUp')} style={styles.textButton}>
+                    <Text style={styles.textButtonLabel}>{signingUp || resetting ? 'Back to sign in' : 'New here? Create an account'}</Text>
+                  </Pressable>}
+                  {!recovering && <Pressable accessibilityRole="button" disabled={busy} onPress={start} style={styles.textButton}><Text style={styles.linkText}>Continue without an account</Text></Pressable>}
+                </View>
+              </>
+            )}
+            <View style={styles.legal}>
+              <Pressable accessibilityRole="link" accessibilityLabel="Read the Terms of Use" onPress={() => openLink(links.terms)} style={styles.legalTarget}><Text style={styles.legalText}>Terms of Use</Text></Pressable>
+              <Text style={styles.legalDot}>·</Text>
+              <Pressable accessibilityRole="link" accessibilityLabel="Read the Privacy Policy" onPress={() => openLink(links.privacy)} style={styles.legalTarget}><Text style={styles.legalText}>Privacy Policy</Text></Pressable>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -225,281 +148,56 @@ export function SignInScreen() {
   );
 }
 
-/** One labelled input, drawn in the app's ink. */
-function Field({
-  label,
-  ...input
-}: { label: string } & React.ComponentProps<typeof TextInput>) {
+function Feature({ icon, label }: { icon: React.ComponentProps<typeof Glyph>['name']; label: string }) {
+  return <View style={styles.feature}><Glyph name={icon} size={15} color={palette.turquoiseLight} /><Text style={styles.featureText}>{label}</Text></View>;
+}
+function Message({ text, error = false }: { text: string; error?: boolean }) {
+  return <View accessibilityRole={error ? 'alert' : undefined} accessibilityLiveRegion="polite" style={[styles.message, error && styles.error]}><Text style={[styles.messageText, error && styles.errorText]}>{text}</Text></View>;
+}
+function Field({ label, inputRef, ...input }: { label: string; inputRef?: React.RefObject<TextInput | null> } & React.ComponentProps<typeof TextInput>) {
   const [focused, setFocused] = useState(false);
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
-      <TextInput
-        {...input}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholderTextColor="#5E7880"
-        style={[styles.input, focused && styles.inputFocused]}
-      />
-    </View>
-  );
-}
-
-/** The app's chunky button, on the dark ground. */
-function ChunkyButton({
-  label,
-  busy,
-  disabled,
-  onPress,
-  fill,
-  text,
-}: {
-  label: string;
-  busy: boolean;
-  disabled: boolean;
-  onPress: () => void;
-  fill: string;
-  text: string;
-}) {
-  const press = useRef(new Animated.Value(0)).current;
-  const c = chunky({ depth: 6, radius: 26, shadow: colors.ink, background: fill });
-  const to = (v: number) =>
-    Animated.spring(press, {
-      toValue: v,
-      useNativeDriver: true,
-      ...(v === 1 ? spring.press : spring.release),
-    }).start();
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled, busy }}
-      disabled={disabled}
-      onPressIn={() => to(1)}
-      onPressOut={() => to(0)}
-      onPress={onPress}
-      style={[c.wrap, styles.buttonWrap, disabled && !busy && styles.dimmed]}
-    >
-      <View style={c.lip} />
-      <Animated.View
-        style={[
-          c.face,
-          styles.button,
-          { transform: [{ translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] }) }] },
-        ]}
-      >
-        {busy ? (
-          <ActivityIndicator color={text} />
-        ) : (
-          <Text style={[styles.buttonText, { color: text }]}>{label}</Text>
-        )}
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-/**
- * One provider button.
- *
- * White face with the provider's own mark, which is what Google's and
- * Microsoft's brand guidelines ask for and what a user recognises without
- * reading. It still sits on the app's ink border and hard lip, so it belongs
- * here rather than looking like a pasted-in widget.
- *
- * Apple will need to join these before submission — guideline 5.1.1(v)
- * requires it wherever third-party sign-in is offered — but it cannot be
- * tested without an Apple Developer membership, so the button is held back
- * rather than shipped as one that fails. `AuthProvider` already carries the
- * case; adding the button back is a few lines.
- */
-function ProviderButton({
-  provider,
-  label,
-  busy,
-  disabled,
-  onPress,
-}: {
-  provider: AuthProvider;
-  label: string;
-  busy: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const press = useRef(new Animated.Value(0)).current;
-  const c = chunky({ depth: 6, radius: 26, shadow: colors.ink, background: colors.white });
-  const to = (v: number) =>
-    Animated.spring(press, {
-      toValue: v,
-      useNativeDriver: true,
-      ...(v === 1 ? spring.press : spring.release),
-    }).start();
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled, busy }}
-      disabled={disabled}
-      onPressIn={() => to(1)}
-      onPressOut={() => to(0)}
-      onPress={onPress}
-      style={[c.wrap, styles.buttonWrap, disabled && !busy && styles.dimmed]}
-    >
-      <View style={c.lip} />
-      <Animated.View
-        style={[
-          c.face,
-          styles.button,
-          styles.providerButton,
-          { transform: [{ translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] }) }] },
-        ]}
-      >
-        {busy ? (
-          <ActivityIndicator color={colors.ink} />
-        ) : (
-          <>
-            {provider === 'google' ? <GoogleMark /> : <MicrosoftMark />}
-            <Text style={[styles.buttonText, styles.providerText]}>{label}</Text>
-          </>
-        )}
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-/** Google's four-colour G, drawn to their brand geometry. */
-function GoogleMark() {
-  return (
-    <Svg width={21} height={21} viewBox="0 0 48 48">
-      <Path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z" />
-      <Path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z" />
-      <Path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z" />
-      <Path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z" />
-    </Svg>
-  );
-}
-
-/** Microsoft's four squares. */
-function MicrosoftMark() {
-  return (
-    <Svg width={19} height={19} viewBox="0 0 23 23">
-      <Path fill="#F25022" d="M1 1h10v10H1z" />
-      <Path fill="#7FBA00" d="M12 1h10v10H12z" />
-      <Path fill="#00A4EF" d="M1 12h10v10H1z" />
-      <Path fill="#FFB900" d="M12 12h10v10H12z" />
-    </Svg>
-  );
+  return <View style={styles.field}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <TextInput {...input} ref={inputRef} accessibilityLabel={label} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} autoCapitalize="none" autoCorrect={false} placeholderTextColor="#8BA7AF" selectionColor={palette.turquoiseLight} style={[styles.input, focused && styles.inputFocused]} />
+  </View>;
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.night },
-  safe: { flex: 1 },
-  flex: { flex: 1 },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 28 },
-
-  hero: { alignItems: 'center', gap: 4 },
-  mascot: { width: 132, height: 132 },
-  tagline: {
-    fontFamily: fonts.bodySemibold,
-    fontSize: 14,
-    lineHeight: 19,
-    color: '#A9C3C9',
-    textAlign: 'center',
-    marginTop: 6,
-    maxWidth: 290,
-  },
-
-  form: { marginTop: 20 },
-
-  field: { marginBottom: 12 },
-  fieldLabel: {
-    fontFamily: fonts.bodyBlack,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: '#7C9199',
-    marginBottom: 6,
-    marginLeft: 4,
-  },
-  // Ink-bordered like every other surface, but on a lifted dark fill rather
-  // than cream: a white field on the night ground would out-shout the buttons.
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: fonts.bodySemibold,
-    fontSize: 15.5,
-    color: colors.white,
-  },
-  inputFocused: { borderColor: colors.primary, backgroundColor: 'rgba(5,177,201,0.10)' },
-
-  buttonWrap: { marginBottom: 12 },
-  dimmed: { opacity: 0.5 },
-  button: { alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
-  providerButton: { flexDirection: 'row', gap: 11 },
-  buttonText: { fontFamily: fonts.bodyBlack, fontSize: 15.5, letterSpacing: 0.3 },
-  providerText: { color: colors.ink, fontSize: 15 },
-
-  switch: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 12, marginBottom: 4 },
-  switchText: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, color: colors.primary },
-
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 14 },
-  rule: { flex: 1, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.14)' },
-  dividerText: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.6, color: '#6D858C' },
-
-  error: {
-    backgroundColor: 'rgba(217,85,47,0.16)',
-    borderWidth: 3,
-    borderColor: palette.ember,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 14,
-  },
-  errorText: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, lineHeight: 18, color: '#FFD9CD' },
-  errorDismiss: { fontFamily: fonts.bodySemibold, fontSize: 11.5, color: '#E0A08C', marginTop: 4 },
-
-  note: {
-    backgroundColor: 'rgba(5,177,201,0.16)',
-    borderWidth: 3,
-    borderColor: colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 14,
-  },
-  noteText: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, lineHeight: 18, color: '#BDF0F7' },
-
-  // Visually quieter than everything else on the screen, and it says what it
-  // is. A dev door should never look like a supported option.
-  preview: {
-    marginTop: 6,
-    alignItems: 'center',
-    borderWidth: 3,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.22)',
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  previewPressed: { backgroundColor: 'rgba(255,255,255,0.05)' },
-  previewText: { fontFamily: fonts.bodyHeavy, fontSize: 13.5, color: '#A9C3C9' },
-  previewNote: { fontFamily: fonts.body, fontSize: 11, color: '#6D858C', marginTop: 3, textAlign: 'center' },
-
-  legal: {
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    lineHeight: 16,
-    color: '#6D858C',
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  // Underlined rather than a different colour: on the night ground a link
-  // colour bright enough to read would pull the eye away from the buttons.
-  legalLink: { textDecorationLine: 'underline', color: '#A9C3C9' },
+  root: { flex: 1, backgroundColor: palette.night }, flex: { flex: 1 },
+  scroll: { flexGrow: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
+  welcomeScroll: { justifyContent: 'space-between' },
+  brand: { alignItems: 'center', gap: 8 },
+  edition: { borderWidth: 1, borderColor: '#44616A', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  editionText: { fontFamily: fonts.bodyBlack, fontSize: 9, letterSpacing: 2.1, color: '#C4D9D7' },
+  welcomeBody: { alignItems: 'center', paddingTop: 10, paddingBottom: 22 },
+  headline: { fontFamily: fonts.displayHeavy, color: palette.cream, fontSize: 34, lineHeight: 37, letterSpacing: -0.6, textAlign: 'center', marginTop: -4 },
+  tagline: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: '#BDD2D6', textAlign: 'center', maxWidth: 340, marginTop: 12 },
+  features: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 13, marginTop: 20 },
+  feature: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  featureText: { fontFamily: fonts.bodyBold, color: '#CCE5E5', fontSize: 12 },
+  featureDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#72989D' },
+  actions: { gap: 4 },
+  deviceNote: { fontFamily: fonts.body, fontSize: 11, lineHeight: 16, textAlign: 'center', color: '#ACC6CD', marginTop: 8 },
+  textButton: { minHeight: 44, paddingHorizontal: 8, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  textButtonLabel: { fontFamily: fonts.bodyHeavy, fontSize: 14, lineHeight: 20, color: '#D9EFF0', textAlign: 'center' },
+  pressed: { opacity: 0.65 },
+  formTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: -8 },
+  formHero: { alignItems: 'center', paddingTop: 18, paddingBottom: 26 },
+  formTitle: { fontFamily: fonts.displayHeavy, color: palette.cream, fontSize: 29, lineHeight: 34, textAlign: 'center', marginTop: 8 },
+  form: { paddingBottom: 16 },
+  or: { fontFamily: fonts.bodyBlack, color: '#ABC7CC', fontSize: 10, letterSpacing: 1.6, textAlign: 'center', marginVertical: 14 },
+  field: { marginBottom: 16 },
+  fieldLabel: { fontFamily: fonts.bodyBold, fontSize: 13, color: '#DBEBED', marginBottom: 8, marginLeft: 2 },
+  input: { backgroundColor: '#173943', borderWidth: 2, borderColor: '#49626B', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 16, fontFamily: fonts.bodySemibold, fontSize: 16, color: colors.white, minHeight: 56 },
+  inputFocused: { borderColor: palette.turquoiseLight, backgroundColor: '#17434D' },
+  forgot: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', marginTop: -10, marginBottom: 8 },
+  linkText: { fontFamily: fonts.bodyBold, fontSize: 13, color: palette.turquoiseLight, textAlign: 'center' },
+  message: { padding: 16, borderWidth: 1.5, borderColor: palette.turquoise, borderRadius: 18, backgroundColor: '#144552', marginBottom: 18 },
+  messageText: { fontFamily: fonts.bodySemibold, fontSize: 14, lineHeight: 21, color: '#D1F4F7' },
+  error: { backgroundColor: '#4A302C', borderColor: '#E49D82' },
+  errorText: { color: '#FFE4D9' },
+  legal: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'center' },
+  legalTarget: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
+  legalText: { fontFamily: fonts.body, fontSize: 11, color: '#ACC6CD', textDecorationLine: 'underline' },
+  legalDot: { color: '#7C9DA5' },
 });

@@ -1,6 +1,9 @@
-import React, { useMemo, useRef, useState } from 'react';
+import { BossEncounter } from '@/components/creatures/BossEncounter';
+import { CompanionSprite } from '@/components/creatures/CompanionSprite';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Modal,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,9 +15,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, usePreventRemove, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppButton, PropBadge } from '@/components/ui';
+import { AppButton } from '@/components/ui';
 import { Glyph } from '@/components/icons';
 import { Mascot } from '@/components/Mascot';
 import {
@@ -29,6 +32,9 @@ import { colors, duration, easing, radius, spacing, typography } from '@/theme';
 import { getPlacementQuiz, questionsForStop, questionsForSkills, placementQuestions } from '@/data';
 import { companionById } from '@/data/companions';
 import { scorePlacement, type AnsweredQuestion } from '@/utils/placementScoring';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { sessionClearsStop } from '@/utils/questProgress';
+import { findNode, getQuestMap, questionCountFor } from '@/data/questMap';
 import { isStreakMilestone } from '@/utils/streaks';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { useQuest } from '@/state/QuestContext';
@@ -51,7 +57,8 @@ const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
  */
 export function QuizScreen() {
   const navigation = useNavigation<Nav>();
-  const { params } = useRoute<Route>();
+  const { params, key: routeKey } = useRoute<Route>();
+  const { reduceMotion } = useMotionPreference();
   const { courseId, setPlacementLevelId, setStartChoice } = useOnboarding();
   const { recordSession, ability, equippedId } = useQuest();
   const companion = companionById(equippedId);
@@ -73,14 +80,15 @@ export function QuizScreen() {
   /** Questions missed this session, queued to be asked again at the end. */
   const [requeued, setRequeued] = useState<PlacementQuestion[]>([]);
   const [hasRequeued, setHasRequeued] = useState(false);
-  const session = params?.title != null ? { title: params.title, xp: params.xp ?? 20, nodeId: params.nodeId } : null;
+  const stop = params?.nodeId ? findNode(getQuestMap(courseId), params.nodeId)?.node : undefined;
+  const session = params ? { title: params.title ?? stop?.title ?? 'Practice', xp: stop?.xp ?? params.xp ?? 20, nodeId: params.nodeId } : null;
 
   const questions = useMemo(() => {
     // No params at all is the placement quest, which samples across the whole
     // course rather than running every question in it.
     if (!session) return placementQuestions(courseId);
     const key = session.nodeId ?? session.title;
-    const count = params?.count ?? 5;
+    const count = stop ? questionCountFor(stop) : Math.max(1, Math.min(40, Math.floor(params?.count ?? 5)));
     // A stop knows its unit, so it draws from that unit first and only falls
     // back to the rest of the course if it needs more than the unit holds.
     if (params?.unit != null) return questionsForStop(courseId, params.unit, count, key);
@@ -123,7 +131,7 @@ export function QuizScreen() {
   const run = useMemo(() => [...questions, ...extra, ...requeued], [questions, extra, requeued]);
   const total = run.length;
 
-  const [phase, setPhase] = useState<'intro' | 'quiz'>(session ? 'quiz' : 'intro');
+  const [phase, setPhase] = useState<'intro' | 'study' | 'quiz'>(stop?.kind === 'lesson' ? 'study' : session ? 'quiz' : 'intro');
   const [index, setIndex] = useState(0);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
@@ -164,10 +172,19 @@ export function QuizScreen() {
    */
   const checking = useRef(false);
 
+  const finished = useRef(false);
+  const [exitAction, setExitAction] = useState<(() => void) | null>(null);
+  const [confirmExit, setConfirmExit] = useState<(() => void) | null>(null);
+  useEffect(() => { exitAction?.(); }, [exitAction]);
+  useEffect(() => () => { qAnim.stopAnimation(); }, [qAnim]);
+  usePreventRemove(answered.length > 0 && !exitAction, ({ data }) => {
+    if (endless) finish(answered);
+    else setConfirmExit(() => () => navigation.dispatch(data.action));
+  });
   const question = run[Math.min(index, total - 1)];
-  const isChoiceBased = !!question.choices;
+  const isChoiceBased = !!question?.choices;
   const isLast = !endless && index + 1 >= total;
-  const progress = (index + (checked ? 1 : 0)) / total;
+  const progress = total ? (index + (checked ? 1 : 0)) / total : 0;
   const canCheck = isChoiceBased ? selectedChoiceId !== null : textAnswer.trim().length > 0;
 
   const evaluate = (): boolean => {
@@ -217,7 +234,7 @@ export function QuizScreen() {
   };
 
   const onCheck = () => {
-    if (!canCheck || checked || checking.current) return;
+    if (!question || !canCheck || checked || checking.current || finished.current) return;
     checking.current = true;
     const correct = evaluate();
     setIsCorrect(correct);
@@ -238,6 +255,9 @@ export function QuizScreen() {
   };
 
   const finish = (all: AnsweredQuestion[]) => {
+    if (finished.current) return;
+    finished.current = true;
+    if (!all.length) { setExitAction(() => () => navigation.goBack()); return; }
     const correct = all.filter((a) => a.correct).length;
 
     if (session) {
@@ -250,19 +270,21 @@ export function QuizScreen() {
         ? Math.max(5, correct * REVIEW_XP_EACH)
         : Math.max(5, Math.round((session.xp * correct) / Math.max(1, all.length)));
       const earned = Math.round(base * xpMultiplier(all));
-      recordSession(
+      const accepted = recordSession(
         earned,
         session.nodeId,
         // What this session actually got right, by skill. Without it the
         // weakest-category list and every accuracy achievement stay empty.
         all.map((a) => ({ skillTag: a.question.skillTag, correct: a.correct })),
+        routeKey,
       );
-      navigation.replace('LessonComplete', { title: session.title, correct, total: all.length, xp: earned });
+      const cleared = stop ? sessionClearsStop(all.map((a) => ({ skillTag: a.question.skillTag, correct: a.correct })), questionCountFor(stop)) : undefined;
+      setExitAction(() => () => navigation.replace('LessonComplete', { title: session.title, correct, total: all.length, xp: accepted ? earned : 0, cleared, bossNodeId: stop?.kind === 'boss' ? stop.id : undefined }));
       return;
     }
 
     setPlacementLevelId(scorePlacement(all).level);
-    navigation.replace('PlacementResult');
+    setExitAction(() => () => navigation.replace('PlacementResult'));
   };
 
   /**
@@ -301,7 +323,7 @@ export function QuizScreen() {
   const canRetry = Boolean(session) && ability === 'retry' && !retryUsed && checked && !isCorrect;
 
   const onContinue = () => {
-    if (advancing.current) return;
+    if (advancing.current || !checked || finished.current) return;
 
     // Top up a batch before running out, so the next question is already
     // there when the transition lands rather than one render later.
@@ -315,7 +337,7 @@ export function QuizScreen() {
        * re-ask too would otherwise never reach the end. Both attempts are
        * recorded, because both happened.
        */
-      if (ability === 'requeue' && !hasRequeued) {
+      if (session && ability === 'requeue' && !hasRequeued) {
         const missed = answered.filter((a) => !a.correct).map((a) => a.question);
         if (missed.length > 0) {
           setHasRequeued(true);
@@ -338,7 +360,8 @@ export function QuizScreen() {
       return;
     }
     advancing.current = true;
-    Animated.timing(qAnim, { toValue: 0, duration: duration.fast, easing: easing.in, useNativeDriver: true }).start(() => {
+    Animated.timing(qAnim, { toValue: 0, duration: reduceMotion ? 0 : duration.fast, easing: easing.in, useNativeDriver: true }).start(({ finished: completedAnimation }) => {
+      if (!completedAnimation) { advancing.current = false; return; }
       // Clamped as well as latched: the latch is the fix, the clamp means a
       // future path into this callback cannot crash the screen either.
       setIndex((i) => Math.min(i + 1, total - 1));
@@ -350,7 +373,7 @@ export function QuizScreen() {
       setHintShown(false);
       checking.current = false;
       advancing.current = false;
-      Animated.timing(qAnim, { toValue: 1, duration: duration.base, easing: easing.out, useNativeDriver: true }).start();
+      Animated.timing(qAnim, { toValue: 1, duration: reduceMotion ? 0 : duration.base, easing: easing.out, useNativeDriver: true }).start();
     });
   };
 
@@ -366,7 +389,22 @@ export function QuizScreen() {
 
   const correctAnswerText = isChoiceBased
     ? question.choices?.find((c) => c.id === question.correctAnswerId)?.text
-    : question.acceptedAnswers?.[0];
+    : question?.acceptedAnswers?.[0];
+
+  if (!question) return <SafeAreaView style={styles.root}><View style={styles.introBody}><Mascot pose="reading" size={130} /><Text style={typography.title}>You’re all caught up.</Text><Text style={[typography.body, styles.introText]}>There are no questions in this practice set. Pick another topic to keep exploring.</Text><AppButton label="Back to practice" onPress={() => navigation.goBack()} /></View></SafeAreaView>;
+
+  if (phase === 'study') {
+    const notes = questions.filter((item, i, all) => all.findIndex((other) => other.skillTag === item.skillTag) === i).slice(0, 4);
+    return <SafeAreaView style={styles.root} edges={['top', 'bottom']}><StatusBar style="dark" />
+      <ScrollView contentContainerStyle={styles.studyContent}>
+        <View style={styles.studyHeading}><Mascot size={82} pose="reading" /><View style={{ flex: 1 }}><Text style={typography.overline}>FIELD NOTES</Text><Text style={typography.title}>{session?.title}</Text></View></View>
+        <Text style={[typography.body, { marginBottom: 18 }]}>A few ideas to take with you. Read them, then try the practice questions.</Text>
+        {notes.map((item) => <View key={item.id} style={styles.studyCard}><Text style={typography.heading}>{item.skillTag}</Text><Text style={[typography.body, { color: colors.ink, marginTop: 8 }]}>{item.explanation}</Text></View>)}
+        <AppButton label={`Try ${questions.length} questions`} icon="arrow-right" onPress={() => setPhase('quiz')} />
+        <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.skip}><Text style={styles.skipText}>Back to the map</Text></Pressable>
+      </ScrollView>
+    </SafeAreaView>;
+  }
 
   // --- Intro (placement only): take the quest, or skip to the first unit ---
   if (phase === 'intro') {
@@ -441,9 +479,9 @@ export function QuizScreen() {
             <Animated.View
               style={{
                 opacity: qAnim,
-                transform: [{ translateY: qAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
               }}
             >
+              {stop?.kind === 'boss' ? <BossEncounter nodeId={stop.id} correct={answered.filter(a => a.correct).length} total={total}/> : null}
               <QuestionCard question={question}>
                 {isChoiceBased ? (
                   question.choices!.map((choice, i) => (
@@ -462,6 +500,7 @@ export function QuizScreen() {
                       styles.input,
                       checked && { borderColor: isCorrect ? colors.success : colors.danger },
                     ]}
+                    accessibilityLabel="Your answer"
                     placeholder="Type your answer"
                     placeholderTextColor={colors.textMuted}
                     value={textAnswer}
@@ -495,7 +534,7 @@ export function QuizScreen() {
                   nobody sees a control that does not apply to them. */}
               {companionAction ? (
                 <View style={styles.companionBar}>
-                  <PropBadge name={companion!.emblem} tint={companion!.tint} size={34} radius={12} />
+                  <CompanionSprite id={companion!.id} tint={companion!.tint} size={34} radius={12} />
                   <View style={styles.companionText}>
                     <Text style={styles.companionName}>{companion!.name}</Text>
                     <Text style={styles.companionNote} numberOfLines={1}>
@@ -534,6 +573,13 @@ export function QuizScreen() {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
+      <Modal transparent visible={confirmExit !== null} animationType="fade" onRequestClose={() => setConfirmExit(null)}>
+        <View style={styles.exitBackdrop}><View accessibilityViewIsModal style={styles.exitCard}>
+          <Text style={typography.title}>Leave this practice?</Text><Text style={[typography.body, { marginVertical: 16 }]}>This unfinished session won’t be saved. Your earlier progress is safe.</Text>
+          <AppButton label="Keep studying" onPress={() => setConfirmExit(null)} />
+          <AppButton label="Leave session" tone="secondary" style={{ marginTop: 16 }} onPress={() => { const action = confirmExit; setConfirmExit(null); setExitAction(() => action); }} />
+        </View></View>
+      </Modal>
       <StreakMilestoneOverlay
         visible={overlayVisible}
         streakCount={milestoneStreak}
@@ -563,6 +609,11 @@ const REVIEW_XP_EACH = 4;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  studyContent: { padding: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
+  studyHeading: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  studyCard: { padding: 18, borderWidth: 3, borderColor: colors.ink, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
+  exitBackdrop: { flex: 1, backgroundColor: '#0B2029AA', padding: 24, alignItems: 'center', justifyContent: 'center' },
+  exitCard: { width: '100%', maxWidth: 400, borderWidth: 3, borderColor: colors.ink, borderRadius: 26, backgroundColor: colors.surface, padding: 24 },
 
   companionBar: {
     flexDirection: 'row',

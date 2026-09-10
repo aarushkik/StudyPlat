@@ -14,8 +14,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'CourseSelection'>;
 /** Setup step 1: pick the AP course to study. */
 export function CourseSelectionScreen() {
   const navigation = useNavigation<Nav>();
-  const { setCourseId } = useOnboarding();
-  const [selected, setSelected] = useState<string | null>(null);
+  const { courseId, setCourseId } = useOnboarding();
+  const [selected, setSelected] = useState<string | null>(courseId);
 
   const onContinue = () => {
     if (!selected) return;
@@ -31,7 +31,7 @@ export function CourseSelectionScreen() {
         step={1}
         total={5}
         question="Which AP are we taking on?"
-        subtitle="Pick your course — you can add more later."
+        subtitle="Choose one course for this quest."
         mascotPose="neutral"
       />
 

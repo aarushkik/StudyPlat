@@ -385,7 +385,7 @@ out.push(
   q.mc('ap_ready', 'Strong vs weak', 'The conjugate base of a very weak acid is:',
     ['Very weak', 'Relatively strong', 'Neutral', 'A catalyst'], 1,
     `Weak acid, strong conjugate base — the relationship is inverse.`),
-  q.sa('developing', 'Definitions', `At the equivalence point of a titration, moles of acid equal moles of ______. (one word)`,
+  q.sa('developing', 'Definitions', `When an acid and base react in a 1:1 mole ratio, at the equivalence point moles of acid equal moles of ______. (one word)`,
     ['base'], `Equivalence is stoichiometric equality, which is not always pH 7.`),
 );
 

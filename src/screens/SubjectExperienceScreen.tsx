@@ -15,8 +15,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'SubjectExperience'>;
 /** Setup screen 1: how much of the chosen subject the student already knows. */
 export function SubjectExperienceScreen() {
   const navigation = useNavigation<Nav>();
-  const { courseId, setExperienceLevelId } = useOnboarding();
-  const [selected, setSelected] = useState<ExperienceLevelId | null>(null);
+  const { courseId, experienceLevelId, setExperienceLevelId } = useOnboarding();
+  const [selected, setSelected] = useState<ExperienceLevelId | null>(experienceLevelId);
 
   const course = getCourse(courseId);
   const question = `How much ${course?.name ?? 'this course'} is already in your head?`;

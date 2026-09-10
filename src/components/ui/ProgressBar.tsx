@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors, duration, easing, radius } from '@/theme';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 interface ProgressBarProps {
   /** 0–1 fill amount. Animates smoothly whenever it changes. */
@@ -19,17 +20,20 @@ export function ProgressBar({
   height = 14,
   style,
 }: ProgressBarProps) {
-  const target = Math.min(1, Math.max(0, progress));
+  const { reduceMotion } = useMotionPreference();
+  const target = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
   const anim = useRef(new Animated.Value(target)).current;
 
   useEffect(() => {
-    Animated.timing(anim, {
+    const animation = Animated.timing(anim, {
       toValue: target,
-      duration: duration.slow,
+      duration: reduceMotion ? 0 : duration.slow,
       easing: easing.out,
       useNativeDriver: false,
-    }).start();
-  }, [target, anim]);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [target, anim, reduceMotion]);
 
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
@@ -48,7 +52,7 @@ export function ProgressBar({
 
 const styles = StyleSheet.create({
   track: { flex: 1, overflow: 'hidden' },
-  fill: { height: '100%', justifyContent: 'flex-start', minWidth: 14 },
+  fill: { height: '100%', justifyContent: 'flex-start', overflow: 'hidden' },
   // Highlight along the top of the fill, so it reads as a rounded surface.
   sheen: {
     height: 4,

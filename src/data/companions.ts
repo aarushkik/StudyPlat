@@ -1,5 +1,4 @@
 import { palette } from '@/theme';
-import type { PropName } from './props';
 import type { QuestMap } from '@/types/quest';
 import type { SkillTally } from '@/state/QuestContext';
 
@@ -72,16 +71,6 @@ export interface Companion {
   ability: string;
   /** Its colour on the roster tile. */
   tint: string;
-  /**
-   * The prop sprite it carries.
-   *
-   * Chosen for the ability, not decoration: Mira reveals a hint and holds a
-   * lantern, Fen keeps a streak through a missed day and pitches a tent. A
-   * roster of twelve identical coloured squares told you nothing about any of
-   * them; twelve objects are twelve things you can recognise across the app
-   * without reading the name.
-   */
-  emblem: PropName;
   effect: CompanionEffect;
   /** How many missed days a shield covers. Only read for `shield`. */
   shieldDays?: number;
@@ -97,7 +86,7 @@ export interface CompanionStatus extends Companion {
   need: number;
 }
 
-const LOCKED_TINT = '#B8A98D';
+
 
 /** A skill counts as mastered at 80% over a meaningful number of attempts. */
 const MASTERY_PCT = 80;
@@ -122,7 +111,6 @@ export const COMPANIONS: Companion[] = [
   {
     id: 'mira',
     name: 'Mira',
-    emblem: 'lantern',
     ability: 'Reveals one hint per session',
     effect: 'hint',
     tint: palette.turquoise,
@@ -131,7 +119,6 @@ export const COMPANIONS: Companion[] = [
   {
     id: 'ember',
     name: 'Ember',
-    emblem: 'campfire',
     ability: 'Shields a streak day',
     effect: 'shield',
     shieldDays: 1,
@@ -141,7 +128,6 @@ export const COMPANIONS: Companion[] = [
   {
     id: 'pilot',
     name: 'Pilot',
-    emblem: 'chest',
     ability: 'Doubles the gems a session pays',
     effect: 'gems',
     tint: '#3E9E63',
@@ -150,7 +136,6 @@ export const COMPANIONS: Companion[] = [
   {
     id: 'quill',
     name: 'Quill',
-    emblem: 'bookstack',
     ability: 'One retry per session',
     effect: 'retry',
     tint: palette.violet,
@@ -159,77 +144,69 @@ export const COMPANIONS: Companion[] = [
   {
     id: 'cobalt',
     name: 'Cobalt',
-    emblem: 'milestone',
     // Was "Freezes a boss timer once" — there is no boss timer to freeze.
     ability: 'Doubles XP for a flawless session',
     effect: 'xpPerfect',
-    tint: LOCKED_TINT,
+    tint: '#81A9CF',
     unlock: { label: '14-day streak', measure: (s) => ({ have: s.bestStreak, need: 14 }) },
   },
   {
     id: 'marrow',
     name: 'Marrow',
-    emblem: 'duckboard',
     // Was "Skips one boss phase" — bosses do not have phases in this build.
     ability: '+50% XP from boss stops',
     effect: 'xpBoss',
-    tint: LOCKED_TINT,
+    tint: '#D1B89A',
     unlock: { label: 'Beat 5 bosses', measure: (s) => ({ have: bossesBeaten(s), need: 5 }) },
   },
   {
     id: 'tessel',
     name: 'Tessel',
-    emblem: 'forge',
     ability: '+20% XP on practice drills',
     effect: 'xpDrill',
-    tint: LOCKED_TINT,
+    tint: '#D7B360',
     unlock: { label: 'Master 3 categories', measure: (s) => ({ have: mastered(s), need: 3 }) },
   },
   {
     id: 'nix',
     name: 'Nix',
-    emblem: 'signpost',
     ability: 'Strikes out one wrong option',
     effect: 'eliminate',
-    tint: LOCKED_TINT,
+    tint: '#8CBDBC',
     unlock: { label: 'Clear 6 tracks', measure: (s) => ({ have: tracksCleared(s), need: 6 }) },
   },
   {
     id: 'fen',
     name: 'Fen',
-    emblem: 'tent',
     ability: 'Shields two streak days',
     effect: 'shield',
     shieldDays: 2,
-    tint: LOCKED_TINT,
+    tint: '#95B773',
     unlock: { label: '30-day streak', measure: (s) => ({ have: s.bestStreak, need: 30 }) },
   },
   {
     id: 'slate',
     name: 'Slate',
-    emblem: 'backpack',
     ability: 'Re-asks anything you get wrong',
     effect: 'requeue',
-    tint: LOCKED_TINT,
+    tint: '#96A0B5',
     unlock: { label: 'Clear 4 tracks', measure: (s) => ({ have: tracksCleared(s), need: 4 }) },
   },
   {
     id: 'vesper',
     name: 'Vesper',
-    emblem: 'lighthouse',
     ability: 'Doubles the gems a session pays',
     effect: 'gems',
-    tint: LOCKED_TINT,
+    tint: '#BB99C8',
     unlock: { label: 'Finish 50 sessions', measure: (s) => ({ have: s.sessions, need: 50 }) },
   },
   {
     id: 'orrin',
     name: 'Orrin',
-    emblem: 'banner',
     // Was "Starts every boss one phase down" — see Marrow.
     ability: '+50% XP from boss stops',
     effect: 'xpBoss',
-    tint: LOCKED_TINT,
+    tint: '#DAA164',
     unlock: { label: 'Beat 15 bosses', measure: (s) => ({ have: bossesBeaten(s), need: 15 }) },
   },
 ];

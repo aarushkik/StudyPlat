@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { apCourses } from '@/data/apCourses';
+import { sanitizeOnboarding } from '@/utils/onboarding';
 import type {
   ExamTimeframeId,
   ExperienceLevelId,
@@ -12,9 +14,7 @@ import type {
  * Local onboarding state for the session.
  *
  * Holds every choice the student makes during setup + placement so they carry
- * through to the placeholder home screen. In-memory by design for this
- * milestone — it's the seam where persistence (AsyncStorage) or a backend
- * profile plugs in later without changing any screen.
+ * through setup and into the course. ProfileSync persists these choices.
  */
 interface OnboardingContextValue extends OnboardingState {
   setCourseId: (id: string) => void;
@@ -54,15 +54,20 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
    */
   const hydrate = useCallback((next: Partial<OnboardingState> & { onboarded?: boolean }) => {
     const { onboarded: done, ...rest } = next;
-    setState((prev) => ({ ...prev, ...rest }));
-    if (done !== undefined) setOnboarded(done);
+    setState((prev) => sanitizeOnboarding({ ...prev, ...rest }));
+    if (done !== undefined) setOnboarded(Boolean(done) && apCourses.some((course) => course.id === next.courseId));
   }, []);
   const patch = useCallback((p: Partial<OnboardingState>) => setState((s) => ({ ...s, ...p })), []);
 
   const value = useMemo<OnboardingContextValue>(
     () => ({
       ...state,
-      setCourseId: (courseId) => patch({ courseId }),
+      setCourseId: (courseId) => {
+        if (!apCourses.some((course) => course.id === courseId)) return;
+        setState((previous) => previous.courseId === courseId ? previous : {
+          ...previous, courseId, experienceLevelId: null, placementLevelId: null, startChoice: null,
+        });
+      },
       setExperienceLevelId: (experienceLevelId) => patch({ experienceLevelId }),
       setGoalScoreId: (goalScoreId) => patch({ goalScoreId }),
       setExamTimeframeId: (examTimeframeId) => patch({ examTimeframeId }),

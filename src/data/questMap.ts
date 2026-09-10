@@ -1,9 +1,11 @@
+import { bossForNode } from './bosses';
 import type { AccentName } from '@/theme';
 import { trackAt, tracksFor, type TrackTheme } from './tracks';
 import type { BossTier, QuestMap, QuestNode, QuestNodeKindId, QuestUnit } from '@/types/quest';
 import type { CourseCategory, PlacementLevelId } from '@/types';
 import { apCourses } from './apCourses';
 import { COURSE_UNITS, DEFAULT_UNITS, type UnitSpec } from './courseUnits';
+import { getPlacementQuiz } from './placementQuestions';
 
 /**
  * Builds the quest map for a course.
@@ -29,9 +31,9 @@ export const BOSS_TIERS = ['Sentry', 'Warden', 'Enforcer', 'Champion', 'Vanguard
 
 /** The "study a source" stop is named for how the subject actually reads. */
 const READING_BY_CATEGORY: Record<CourseCategory, { title: string; summary: string }> = {
-  stem: { title: 'Data dive', summary: 'Read a figure and a short passage, then answer what they actually show.' },
-  history: { title: 'Source study', summary: 'Work through a primary source and place it in its moment.' },
-  english: { title: 'Close reading', summary: 'Take one passage apart line by line and name the moves in it.' },
+  stem: { title: 'Knowledge check', summary: 'Apply the ideas from this study unit and review the reasoning behind each answer.' },
+  history: { title: 'Knowledge check', summary: 'Connect the ideas from this study unit and review the reasoning behind each answer.' },
+  english: { title: 'Knowledge check', summary: 'Practice the reading and writing concepts in this study unit.' },
 };
 
 const BASE_XP: Record<QuestNodeKindId, number> = { lesson: 20, drill: 25, study: 25, bonus: 15, boss: 60 };
@@ -53,10 +55,12 @@ function difficultyFor(unitIndex: number, stage: number, kind: QuestNodeKindId):
 
 /** How many questions a stop is worth. Bosses grow with their rank. */
 export function questionCountFor(node: QuestNode): number {
-  if (node.kind === 'boss') return 6 + (node.tier ?? 1);
-  if (node.kind === 'bonus') return 4;
-  if (node.kind === 'drill') return 6;
-  return 5;
+  const requested = node.kind === 'boss' ? 6 + (node.tier ?? 1) : node.kind === 'bonus' ? 4 : node.kind === 'drill' ? 6 : 5;
+  const match = node.id.match(/^(.*)-u(\d+)-s\d+-/);
+  if (!match) return requested;
+  const available = getPlacementQuiz(match[1]).questions.filter((question) => question.unit !== undefined && question.unit < Number(match[2])).length;
+  return Math.min(requested, available);
+
 }
 
 function buildStage(
@@ -67,7 +71,8 @@ function buildStage(
   spec: UnitSpec,
   stage: number,
 ): QuestNode[] {
-  const topic = spec.topics[stage - 1];
+  const unitSkills = [...new Set(getPlacementQuiz(courseId).questions.filter((question) => question.unit === unitIndex).map((question) => question.skillTag))];
+  const topic = unitSkills[(stage - 1) % unitSkills.length] ?? spec.topics[stage - 1];
   const area = track.place;
   const tier = stage as BossTier;
   const idBase = `${courseId}-u${unitIndex + 1}-s${stage}`;
@@ -79,8 +84,8 @@ function buildStage(
     title: topic,
     // Topics lead the sentence rather than being lowercased into it — half of
     // them are proper nouns ("Song China", "DNA structure", "Hess's law").
-    summary: `${topic} — learn it, then practice it right away.`,
-    skills: [topic],
+    summary: `Review ${topic} and related ideas in ${spec.title}, then put them into practice. Get 60% correct to clear this stop.`,
+    skills: [topic, ...unitSkills.filter((skill) => skill !== topic).slice(0, 2)],
     xp: round5(BASE_XP.lesson * xpScale),
     minutes: BASE_MINUTES.lesson,
     stage,
@@ -96,11 +101,11 @@ function buildStage(
       supportKind === 'drill' ? 'Skill drill' : supportKind === 'study' ? reading.title : 'Bonus cache',
     summary:
       supportKind === 'drill'
-        ? `Mixed questions: ${topic}, plus everything before it in this area.`
+        ? `Mixed practice from ${spec.title}. Get 60% correct to clear this stop.`
         : supportKind === 'study'
           ? reading.summary
           : 'A short bonus round off the main trail. Clear it for extra XP.',
-    skills: supportKind === 'bonus' ? ['Bonus'] : spec.topics.slice(0, stage),
+    skills: unitSkills.slice(0, 6),
     xp: round5(BASE_XP[supportKind] * xpScale),
     minutes: BASE_MINUTES[supportKind],
     stage,
@@ -112,11 +117,11 @@ function buildStage(
     id: `${idBase}-boss`,
     kind: 'boss',
     tier,
-    title: `${BOSS_TIERS[stage - 1]} of ${area}`,
+    title: bossForNode(`${idBase}-boss`)?.name ?? `${BOSS_TIERS[stage - 1]} of ${area}`,
     summary: isFinal
-      ? `The area boss — all of ${spec.title} at once. Beat it to open the next area.`
-      : `A timed fight: ${topic}, plus everything up to it. Clear it to move deeper into ${area}.`,
-    skills: spec.topics.slice(0, stage),
+      ? `The area boss — questions from ${spec.title} and earlier study units. Get 60% correct to open the next area.`
+      : `A challenge on ${spec.title} and earlier study units. Get 60% correct to move deeper into ${area}.`,
+    skills: unitSkills.slice(0, 6),
     xp: round5((BASE_XP.boss + tier * 10 + unitIndex * 8) * (isFinal ? 1.25 : 1)),
     minutes: BASE_MINUTES.boss + tier,
     stage,

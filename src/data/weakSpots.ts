@@ -32,7 +32,7 @@ function smoothed(correct: number, seen: number): number {
  * because a two-question session is not a drill.
  */
 function drillLength(courseId: string | null, tag: string): number {
-  return Math.max(3, Math.min(8, countForSkills(courseId, [tag])));
+  return Math.min(8, countForSkills(courseId, [tag]));
 }
 
 export interface WeakSpot {
@@ -62,18 +62,17 @@ export function weakSpots(skills: SkillTally, courseId: string | null, limit = 3
 
   if (ranked.length > 0) return ranked.slice(0, limit);
 
-  // Nothing measured yet. Suggest the course's own first topics rather than
-  // inventing numbers — the cards say "not attempted yet", so no accuracy is
-  // claimed.
-  //
-  // Taken from the question bank's tags, not the unit outline. The outline
-  // names the same topic differently ("Moles and molar mass" against the
-  // bank's "Moles"), so a card built from it opened a drill that could not
-  // match a single question and silently served the whole course instead —
-  // the button named a topic and then asked about something else.
+  // With no mistakes, suggest untried topics first; retain real accuracy
+  // when revisiting a topic that has already been answered perfectly.
   return skillTagsFor(courseId)
+    .sort((a, b) => (skills[a]?.seen ?? 0) - (skills[b]?.seen ?? 0))
     .slice(0, limit)
-    .map((name) => ({ name, pct: -1, seen: 0, wrong: 0, count: drillLength(courseId, name) }));
+    .map((name) => {
+      const tally = skills[name];
+      const seen = tally?.seen ?? 0;
+      return { name, pct: seen ? Math.round(tally.correct / seen * 100) : -1,
+        seen, wrong: seen - (tally?.correct ?? 0), count: drillLength(courseId, name) };
+    });
 }
 
 /** The supporting line under a weak spot. */

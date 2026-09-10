@@ -34,28 +34,7 @@ export function PlacementResultScreen() {
   const shift = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    /**
-     * Staggered in parallel, not sequenced.
-     *
-     * This used to wait for the mascot's bouncy spring to report completion
-     * before fading the card in. When that spring does not settle — a dropped
-     * frame, a backgrounded app, a paused animation loop — the sequence never
-     * advances and the entire result stays at opacity 0, leaving the student
-     * looking at a mascot and a button on an empty screen.
-     *
-     * Nothing the student needs to read should be gated behind an animation
-     * finishing. A delay gives the same staggered feel and always arrives.
-     */
-    Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 6, bounciness: 14 }),
-      Animated.sequence([
-        Animated.delay(260),
-        Animated.parallel([
-          Animated.timing(fade, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.spring(shift, { toValue: 0, useNativeDriver: true, speed: 12, bounciness: 6 }),
-        ]),
-      ]),
-    ]).start();
+    scale.setValue(1); fade.setValue(1); shift.setValue(0);
   }, [scale, fade, shift]);
 
   // Setup is finished here and nowhere else. Marking it saves through
@@ -105,7 +84,7 @@ export function PlacementResultScreen() {
               leading={<Glyph name="map" size={20} color={colors.textSecondary} strokeWidth={2.1} />}
               text={
                 headStart > 0
-                  ? `${headStart} stops already behind you across ${map.units.length} regions`
+                  ? `${headStart} stops opened by placement across ${map.units.length} regions`
                   : `${map.units.length} regions charted and waiting`
               }
               />

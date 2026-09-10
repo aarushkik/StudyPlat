@@ -88,7 +88,7 @@ export const colors = {
   // Text
   textPrimary: palette.ink,
   textSecondary: palette.mutedDark,
-  textMuted: palette.muted,
+  textMuted: palette.mutedDark,
   textFaint: palette.mutedLight,
   textOnInk: palette.parchment,
   textOnPrimary: palette.inkDeep,

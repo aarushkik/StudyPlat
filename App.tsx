@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import {
   NavigationContainer,
   DefaultTheme,
@@ -65,7 +65,7 @@ export default function App() {
   /**
    * Hold on the brand ground until the fonts are ready — but never forever.
    *
-   * `useFonts` fetches from the network on first launch. If that fails, or is
+   * The font files are bundled locally; a failed native font load is recoverable. If that fails, or is
    * simply slow on a bad connection, blocking on `fontsLoaded` alone leaves
    * the app as a blank coloured rectangle with nothing on it and no way out.
    * An error, or two seconds, is enough: the app renders in the system font,
@@ -78,7 +78,7 @@ export default function App() {
   }, []);
 
   if (!fontsLoaded && !fontError && !waitedForFonts) {
-    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.night, alignItems: 'center', justifyContent: 'center', gap: 18 }}><Text style={{ color: colors.white, fontSize: 28, fontWeight: '700' }}>StudyPlat</Text><ActivityIndicator color={colors.primaryLight} /></View>;
   }
 
   return (

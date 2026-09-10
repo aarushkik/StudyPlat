@@ -1,161 +1,403 @@
-import React, { useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard, PropBadge, TopBackButton } from '@/components/ui';
-import { unlockLabel, type CompanionStatus } from '@/data/companions';
-import { useQuest } from '@/state/QuestContext';
-import { colors, fonts, palette } from '@/theme';
-import type { RootStackParamList } from '@/navigation/types';
+import { BossFieldGuide } from "@/components/creatures/BossFieldGuide";
+import { CompanionSprite } from "@/components/creatures/CompanionSprite";
+import React, { useMemo, useState } from "react";
+import {
+  AccessibilityInfo,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Glyph } from "@/components/icons";
+import { ChunkyCard, TopBackButton } from "@/components/ui";
+import { unlockLabel, type CompanionStatus } from "@/data/companions";
+import { useQuest } from "@/state/QuestContext";
+import { colors, fonts, palette } from "@/theme";
+import type { RootStackParamList } from "@/navigation/types";
 
-type Nav = NativeStackNavigationProp<RootStackParamList, 'Characters'>;
+type Nav = NativeStackNavigationProp<RootStackParamList, "Characters">;
 
-/**
- * The companion roster.
- *
- * Every locked companion names the exact condition that unlocks it, because a
- * locked slot that says nothing is just a reminder you do not have something.
- * Tapping an owned one equips it; tapping a locked one says how far along that
- * condition is rather than doing nothing.
- *
- * Both halves are real. Ownership is derived from progress, so the fifth boss
- * unlocks Marrow the moment it falls, and the equipped companion's ability is
- * read by the quiz and by `recordSession` — the ability line on a card is a
- * description of what the next session will actually do.
- */
+/** The illustrated field guide for companions and guardians. */
 export function CharactersScreen() {
   const navigation = useNavigation<Nav>();
-  const { companions, equippedId, equip } = useQuest();
+  const { companions, equippedId, equip, map, earned } = useQuest();
+  const { width, fontScale } = useWindowDimensions();
+  const [page, setPage] = useState<"companions" | "bosses">("companions");
   const [note, setNote] = useState<string | null>(null);
-
-  const owned = useMemo(() => companions.filter((c) => c.owned).length, [companions]);
+  const owned = useMemo(() => companions.filter((c) => c.owned), [companions]);
+  const locked = useMemo(
+    () => companions.filter((c) => !c.owned),
+    [companions],
+  );
+  const bossCount = map.units.flatMap((u) =>
+    u.nodes.filter((n) => n.kind === "boss"),
+  );
+  const defeated = bossCount.filter((n) => earned.includes(n.id)).length;
+  const equipped = companions.find((c) => c.id === equippedId);
+  const columns = Math.min(width, 620) >= 360 && fontScale < 1.3 ? 2 : 1;
+  const cardWidth = (Math.min(width, 620) - 36 - (columns - 1) * 12) / columns;
 
   const tap = (c: CompanionStatus) => {
-    if (!c.owned) {
-      // The condition *and* the distance to it. "Beat 5 bosses" alone leaves a
-      // student guessing whether they are one away or five.
-      setNote(`${c.name} unlocks at ${c.unlock?.label.toLowerCase()} — ${c.have} of ${c.need}`);
-      return;
-    }
-    equip(c.id);
-    setNote(`${c.name} equipped — ${c.ability.toLowerCase()}`);
+    const message = !c.owned
+      ? `${c.name}: ${unlockLabel(c)}. Progress: ${Math.min(c.have, c.need)} of ${c.need}.`
+      : `${c.name} is coming along. ${c.ability}.`;
+    if (c.owned) equip(c.id);
+    setNote(message);
+    AccessibilityInfo.announceForAccessibility(message);
+  };
+
+  const renderCard = (c: CompanionStatus) => {
+    const isOn = c.owned && c.id === equippedId;
+    const progress = c.need > 0 ? Math.min(1, c.have / c.need) : 1;
+    return (
+      <ChunkyCard
+        key={c.id}
+        onPress={() => tap(c)}
+        selected={isOn}
+        accent={c.tint}
+        style={{ width: cardWidth }}
+        contentStyle={[styles.card, !c.owned && styles.cardLocked]}
+        accessibilityLabel={`${c.name}. ${c.ability}. ${c.owned ? (isOn ? "Equipped" : "Tap to equip") : `${unlockLabel(c)}, ${Math.min(c.have, c.need)} of ${c.need}`}`}
+      >
+        <View style={styles.cardTop}>
+          <CompanionSprite id={c.id} tint={c.tint} size={112} dim={!c.owned} />
+          {isOn ? (
+            <View style={styles.equippedCheck}>
+              <Glyph
+                name="check"
+                size={15}
+                color={colors.ink}
+                strokeWidth={3}
+              />
+            </View>
+          ) : null}
+          {!c.owned ? (
+            <Glyph name="lock" size={17} color={colors.textSecondary} />
+          ) : null}
+        </View>
+        <Text style={styles.name}>{c.name}</Text>
+        <Text style={styles.ability}>{c.ability}</Text>
+        {!c.owned ? (
+          <View style={styles.unlock}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[styles.progressFill, { width: `${progress * 100}%` }]}
+              />
+            </View>
+            <Text style={styles.unlockLabel}>{unlockLabel(c)}</Text>
+            <Text style={styles.unlockCount}>
+              {Math.min(c.have, c.need)} / {c.need}
+            </Text>
+          </View>
+        ) : (
+          <View style={[styles.tag, isOn && styles.tagOn]}>
+            <Text style={styles.tagText}>
+              {isOn ? "Coming along" : "Choose companion"}
+            </Text>
+          </View>
+        )}
+      </ChunkyCard>
+    );
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <StatusBar style="dark" />
-
       <View style={styles.head}>
         <TopBackButton onPress={() => navigation.goBack()} color={colors.ink} />
         <View style={styles.headText}>
-          <Text style={styles.title}>Characters</Text>
-          <Text style={styles.subtitle}>{owned} of {companions.length} unlocked</Text>
-        </View>
-        <Image source={MASCOT_ART.wave} style={styles.headArt} resizeMode="contain" />
-      </View>
-
-      {note ? (
-        <View style={styles.note}>
-          <Text style={styles.noteText} numberOfLines={2}>
-            {note}
+          <Text style={styles.title}>The field guide</Text>
+          <Text style={styles.subtitle}>
+            {page === "bosses"
+              ? `${defeated} of ${bossCount.length} guardians cleared`
+              : `${owned.length} of ${companions.length} ready to explore`}
           </Text>
         </View>
-      ) : null}
-
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.grid}>
-          {companions.map((c) => {
-            const isOn = c.owned && c.id === equippedId;
-            return (
-              <ChunkyCard
-                key={c.id}
-                onPress={() => tap(c)}
-                selected={isOn}
-                accent={c.tint}
-                style={styles.cell}
-                contentStyle={[styles.card, !c.owned && styles.cardLocked]}
-                accessibilityLabel={`${c.name}, ${
-                  c.owned ? (isOn ? 'equipped' : 'owned') : `locked, ${unlockLabel(c)}`
-                }`}
-              >
-                {/* Locked companions show their emblem dimmed rather than
-                    a padlock over it. The card is already sand-coloured and
-                    the tag already names the condition, so a third lock
-                    signal only hid the thing being withheld. */}
-                <PropBadge name={c.emblem} tint={c.tint} size={44} dim={!c.owned} />
-                <Text style={[styles.name, !c.owned && styles.dim]} numberOfLines={1}>
-                  {c.name}
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          paddingHorizontal: 18,
+          paddingBottom: 12,
+        }}
+      >
+        {(["companions", "bosses"] as const).map((item) => (
+          <Pressable
+            key={item}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: page === item }}
+            onPress={() => setPage(item)}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              padding: 12,
+              borderRadius: 15,
+              borderWidth: 2,
+              borderBottomWidth: 4,
+              borderColor: colors.ink,
+              backgroundColor: page === item ? colors.ink : colors.surface,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fonts.displayBold,
+                color: page === item ? colors.surface : colors.ink,
+                fontSize: 16,
+              }}
+            >
+              {item === "companions" ? "Companions" : "Bosses"}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <ScrollView
+        key={page}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {page === "bosses" ? (
+          <BossFieldGuide />
+        ) : (
+          <>
+            <View style={styles.hero}>
+              <View style={styles.heroText}>
+                <Text style={styles.eyebrow}>BETTER TOGETHER</Text>
+                <Text style={styles.heroTitle}>
+                  {equipped?.name ?? "Your companion"} is coming along.
                 </Text>
-                <Text style={[styles.ability, !c.owned && styles.dim]} numberOfLines={2}>
-                  {c.ability}
+                <Text style={styles.heroBody}>
+                  {equipped
+                    ? `${equipped.ability}.`
+                    : "Choose a companion below."}{" "}
+                  Pick a different partner whenever you like.
                 </Text>
-                <View style={[styles.tag, isOn && styles.tagOn, !c.owned && styles.tagLocked]}>
-                  <Text style={[styles.tagText, isOn && styles.tagTextOn, !c.owned && styles.tagTextLocked]} numberOfLines={1}>
-                    {isOn ? 'EQUIPPED' : c.owned ? 'OWNED' : unlockLabel(c).toUpperCase()}
-                  </Text>
+              </View>
+              <CompanionSprite id={equippedId ?? "mira"} size={112} />
+            </View>
+            {note ? (
+              <View style={styles.note} accessibilityLiveRegion="polite">
+                <Text style={styles.noteText}>{note}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss message"
+                  onPress={() => setNote(null)}
+                  style={styles.noteClose}
+                >
+                  <Glyph name="close" size={17} color={colors.ink} />
+                </Pressable>
+              </View>
+            ) : null}
+            <View style={styles.sectionRow}>
+              <Text style={styles.section}>READY FOR ADVENTURE</Text>
+              <Text style={styles.sectionCount}>{owned.length}</Text>
+            </View>
+            <View style={styles.grid}>{owned.map(renderCard)}</View>
+            {locked.length > 0 ? (
+              <>
+                <View style={styles.sectionRow}>
+                  <Text style={styles.section}>MEET ALONG THE WAY</Text>
+                  <Glyph
+                    name="compass"
+                    size={19}
+                    color={colors.textSecondary}
+                  />
                 </View>
-              </ChunkyCard>
-            );
-          })}
-        </View>
+                <Text style={styles.sectionNote}>
+                  Every session brings someone new a little closer.
+                </Text>
+                <View style={styles.grid}>{locked.map(renderCard)}</View>
+              </>
+            ) : null}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-
-  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 4 },
-  headText: { flex: 1, minWidth: 0 },
-  title: { fontFamily: fonts.displayHeavy, fontSize: 28, lineHeight: 30, letterSpacing: -0.5, color: colors.ink },
-  subtitle: { fontFamily: fonts.bodySemibold, fontSize: 12.5, color: palette.mutedDeep, marginTop: 2 },
-  headArt: { width: 74, height: 74, marginBottom: -6 },
-
-  // Feedback for a tap lands here rather than in an alert: the roster is a
-  // grid, and a dialog over it hides the thing you just chose.
-  note: {
-    marginHorizontal: 18,
-    marginTop: 10,
-    backgroundColor: colors.primaryTint,
-    borderWidth: 3,
-    borderColor: colors.ink,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  safe: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 620,
+    alignSelf: "center",
+    backgroundColor: colors.background,
   },
-  noteText: { fontFamily: fonts.bodyHeavy, fontSize: 13, color: palette.inkSoft },
-
-  scroll: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 30 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  cell: { width: '48%' },
-  card: { padding: 13, minHeight: 154 },
-  // Opaque, not a 4% ink tint. Every chunky card sits on a solid ink lip the
-  // same size as its face, so a translucent face lets the lip through and the
-  // card comes back nearly black — taking the ink-coloured name with it. This
-  // is that 4% tint pre-composited over parchment.
-  cardLocked: { backgroundColor: '#F1E9DB' },
-
-  name: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 19, color: colors.ink, marginTop: 9 },
-  ability: { fontFamily: fonts.bodySemibold, fontSize: 11.5, lineHeight: 15, color: colors.textMuted, marginTop: 1 },
-  dim: { opacity: 0.7 },
-
-  tag: {
-    alignSelf: 'flex-start',
-    marginTop: 9,
-    backgroundColor: colors.surfaceSunken,
+  head: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  headText: { flex: 1, minWidth: 0 },
+  title: {
+    fontFamily: fonts.displayHeavy,
+    fontSize: 26,
+    lineHeight: 30,
+    color: colors.ink,
+  },
+  subtitle: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  scroll: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 30 },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 16,
+    paddingVertical: 16,
+    paddingRight: 2,
     borderWidth: 2,
     borderColor: colors.ink,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 24,
+    backgroundColor: palette.turquoiseSky,
   },
-  tagOn: { backgroundColor: colors.primary },
-  tagLocked: { backgroundColor: 'transparent', borderColor: 'rgba(18,48,60,0.3)' },
-  tagText: { fontFamily: fonts.bodyBlack, fontSize: 9, letterSpacing: 0.8, color: palette.inkSoft },
-  tagTextOn: { color: colors.white },
-  tagTextLocked: { color: colors.textMuted },
+  heroText: { flex: 1, minWidth: 0 },
+  eyebrow: {
+    fontFamily: fonts.bodyBlack,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    color: palette.inkSoft,
+  },
+  heroTitle: {
+    fontFamily: fonts.displayHeavy,
+    fontSize: 23,
+    lineHeight: 26,
+    color: colors.ink,
+    marginTop: 5,
+  },
+  heroBody: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    lineHeight: 18,
+    color: palette.inkSoft,
+    marginTop: 5,
+  },
+  note: {
+    marginTop: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    paddingLeft: 13,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  noteText: {
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.ink,
+    paddingVertical: 11,
+  },
+  noteClose: {
+    width: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 25,
+    marginBottom: 12,
+  },
+  section: {
+    fontFamily: fonts.bodyBlack,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: colors.textSecondary,
+  },
+  sectionCount: {
+    fontFamily: fonts.displayHeavy,
+    fontSize: 17,
+    color: colors.ink,
+  },
+  sectionNote: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    marginTop: -5,
+    marginBottom: 13,
+  },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  card: { padding: 15, minHeight: 204, flex: 1 },
+  cardLocked: { backgroundColor: "#F4ECDD" },
+  cardTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  equippedCheck: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  name: {
+    fontFamily: fonts.displayHeavy,
+    fontSize: 22,
+    lineHeight: 26,
+    color: colors.ink,
+    marginTop: 10,
+  },
+  ability: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    marginTop: 2,
+    marginBottom: 14,
+  },
+  tag: {
+    alignSelf: "flex-start",
+    marginTop: "auto",
+    borderRadius: 10,
+    backgroundColor: colors.surfaceSunken,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  tagOn: { backgroundColor: colors.primaryLight },
+  tagText: { fontFamily: fonts.bodyHeavy, fontSize: 10.5, color: colors.ink },
+  unlock: { marginTop: "auto" },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.sand,
+    overflow: "hidden",
+    marginBottom: 7,
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: palette.violet,
+  },
+  unlockLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textSecondary,
+  },
+  unlockCount: {
+    fontFamily: fonts.bodyHeavy,
+    fontSize: 10,
+    color: palette.violet,
+    marginTop: 3,
+  },
 });

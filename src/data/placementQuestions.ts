@@ -2,16 +2,14 @@ import type {
   PlacementLevel,
   PlacementQuestion,
   PlacementQuiz,
-  QuestionDifficulty,
-  Stimulus,
 } from '@/types';
 
 /**
  * The question banks, and the placement quiz built on top of them.
  *
  * Original study scaffolding written against each course's published unit
- * outline — not real exam content. Every course carries forty questions, four
- * per unit, each tagged with the unit it belongs to so a stop on the map can
+ * outline — not real exam content. Questions are tagged with the study unit
+ * they belong to so a stop on the map can
  * ask about the topic on its own plaque rather than about the course at large.
  *
  * The banks themselves live one file per course under `./questions`.
@@ -64,21 +62,21 @@ export const PLACEMENT_LEVELS: Record<string, PlacementLevel> = {
   },
   ap_ready: {
     id: 'ap_ready',
-    title: 'AP Ready',
+    title: 'Confident Builder',
     headline: 'Start with AP-style practice and targeted review',
-    description: 'For students who understand the course and need exam practice.',
+    description: 'A suggested starting point for focused practice. This short check does not predict an AP score.',
   },
   advanced_review: {
     id: 'advanced_review',
     title: 'Advanced Review',
     headline: 'Start with challenge questions, weak-area review, and boss battles',
-    description: 'For students who are close to exam-ready.',
+    description: 'A suggested review route based on this short check. Practice results do not predict an AP score.',
   },
 };
 
 /**
  * Get the placement quiz for a course. Falls back to AP Biology so the flow
- * always has questions during development.
+ * always has a usable bank while onboarding is being restored.
  */
 export function getPlacementQuiz(courseId: string | null): PlacementQuiz {
   const id = courseId && questionsByCourse[courseId] ? courseId : 'ap-biology';
@@ -102,19 +100,7 @@ function shuffleBy<T>(items: T[], key: string): T[] {
   return out;
 }
 
-/**
- * The questions one stop should ask.
- *
- * Its own unit first, so the plaque and the questions agree. A unit holds four
- * and a tier-six boss asks for twelve, so the rest of the course is appended
- * as a fallback — running out mid-session would be worse than a slightly
- * off-topic tail.
- *
- * The selection happens here rather than in the quiz screen because only this
- * function knows where the unit's questions end. Taking a seeded *window* into
- * the combined list, which is what the generic picker does, walks straight
- * past the prefix and asks about the wrong unit.
- */
+/** Select this stop’s unit first, then previously introduced units if needed. */
 export function questionsForStop(
   courseId: string | null,
   unit: number,
@@ -122,9 +108,15 @@ export function questionsForStop(
   key: string,
 ): PlacementQuestion[] {
   const all = getPlacementQuiz(courseId).questions;
-  const own = shuffleBy(all.filter((q) => q.unit === unit), key);
-  const rest = shuffleBy(all.filter((q) => q.unit !== unit), key);
-  return [...own, ...rest].slice(0, Math.max(1, count));
+  const unitBank = all.filter((q) => q.unit === unit);
+  const stage = key.match(/-s(\d+)-(lesson|drill|study|bonus|boss)$/);
+  const tags = [...new Set(unitBank.map((question) => question.skillTag))];
+  const focus = stage?.[2] === 'lesson' ? tags[(Number(stage[1]) - 1) % tags.length] : undefined;
+  const own = focus
+    ? [...shuffleBy(unitBank.filter((q) => q.skillTag === focus), key), ...shuffleBy(unitBank.filter((q) => q.skillTag !== focus), key)]
+    : shuffleBy(unitBank, key);
+  const rest = shuffleBy(all.filter((q) => q.unit !== undefined && q.unit < unit), key);
+  return [...own, ...rest].slice(0, drillSize(courseId, count));
 }
 
 /**
@@ -137,10 +129,8 @@ export function questionsForStop(
  * student drilling their weakest topic and being asked about something else
  * has no way to tell the recommendation was ever real.
  *
- * Tagged questions come first, then the rest of the course as a tail, for the
- * same reason a stop falls back to its course: a bank with two questions on a
- * tag should still be able to run a six-question session. `countForSkills`
- * exists so the count offered is mostly on-topic rather than mostly tail.
+ * Topic drills stay on-topic. Their count is bounded by the matching bank,
+ * so an unrelated tail cannot dilute the skill the student chose to review.
  */
 export function questionsForSkills(
   courseId: string | null,
@@ -151,8 +141,7 @@ export function questionsForSkills(
   const all = getPlacementQuiz(courseId).questions;
   const wanted = new Set(tags);
   const own = shuffleBy(all.filter((q) => wanted.has(q.skillTag)), key);
-  const rest = shuffleBy(all.filter((q) => !wanted.has(q.skillTag)), key);
-  return [...own, ...rest].slice(0, Math.max(1, count));
+  return own.slice(0, drillSize(courseId, count));
 }
 
 /**
@@ -183,9 +172,19 @@ export function countForSkills(courseId: string | null, tags: string[]): number 
  */
 export function placementQuestions(courseId: string | null, count = 8): PlacementQuestion[] {
   const all = getPlacementQuiz(courseId).questions;
-  const step = Math.max(1, Math.floor(all.length / count));
+  const units = [...new Set(all.map((question) => question.unit).filter((unit): unit is number => unit !== undefined))].sort((a, b) => a - b);
+  // The final area teaches test-taking habits; those do not measure subject knowledge.
+  const learningUnits = units.slice(0, -1);
+  const size = drillSize(courseId, count);
+  const difficulty = ['foundation', 'developing', 'ap_ready', 'advanced'] as const;
   const out: PlacementQuestion[] = [];
-  for (let i = 0; i < all.length && out.length < count; i += step) out.push(all[i]);
+  for (let i = 0; i < size; i += 1) {
+    const unit = learningUnits[Math.round((i % learningUnits.length) * (learningUnits.length - 1) / Math.max(1, Math.min(size, learningUnits.length) - 1))];
+    const available = all.filter((question) => question.unit === unit && !out.includes(question));
+    const question = available.find((candidate) => candidate.difficulty === difficulty[i % difficulty.length])
+      ?? available[0] ?? all.find((candidate) => !out.includes(candidate));
+    if (question) out.push(question);
+  }
   return out;
 }
 
@@ -198,5 +197,5 @@ export function placementQuestions(courseId: string | null, count = 8): Placemen
  * student was shown was never true.
  */
 export function drillSize(courseId: string | null, wanted: number): number {
-  return Math.max(1, Math.min(wanted, getPlacementQuiz(courseId).questions.length));
+  return Math.max(1, Math.min(Number.isFinite(wanted) ? Math.floor(wanted) : 5, getPlacementQuiz(courseId).questions.length));
 }

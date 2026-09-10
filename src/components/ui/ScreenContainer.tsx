@@ -39,7 +39,7 @@ export function ScreenContainer({
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.flex, pad, contentStyle]}>{children}</View>
+        <View style={[styles.flex, styles.content, pad, contentStyle]}>{children}</View>
       )}
     </SafeAreaView>
   );
@@ -48,6 +48,7 @@ export function ScreenContainer({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingVertical: spacing.lg },
+  scrollContent: { flexGrow: 1, paddingVertical: spacing.lg, width: '100%', maxWidth: 680, alignSelf: 'center' },
+  content: { width: '100%', maxWidth: 680, alignSelf: 'center', paddingTop: spacing.sm, paddingBottom: spacing.md },
   padded: { paddingHorizontal: spacing.xl },
 });

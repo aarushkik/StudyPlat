@@ -15,8 +15,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'GoalScore'>;
 /** Setup step: what AP score is the student chasing? */
 export function GoalScoreScreen() {
   const navigation = useNavigation<Nav>();
-  const { setGoalScoreId } = useOnboarding();
-  const [selected, setSelected] = useState<ScoreGoalId | null>(null);
+  const { goalScoreId, setGoalScoreId } = useOnboarding();
+  const [selected, setSelected] = useState<ScoreGoalId | null>(goalScoreId);
 
   const onContinue = () => {
     if (!selected) return;

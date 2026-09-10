@@ -19,7 +19,7 @@ export function IntroScreen() {
   return (
     <ScreenContainer>
       <StatusBar style="dark" />
-      <TopBackButton onPress={() => navigation.goBack()} />
+      <TopBackButton onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('SignIn')} />
 
       <View style={styles.center}>
         <SpeechBubble

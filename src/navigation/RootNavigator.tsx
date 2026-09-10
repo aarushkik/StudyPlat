@@ -1,5 +1,8 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '@/components/ui/AppButton';
+import { Mascot } from '@/components/Mascot';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SplashScreen } from '@/screens/SplashScreen';
 import { IntroScreen } from '@/screens/IntroScreen';
@@ -17,7 +20,7 @@ import { SignInScreen } from '@/screens/SignInScreen';
 import { useAuth } from '@/state/AuthContext';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { useProfileSync } from '@/state/ProfileSync';
-import { palette } from '@/theme';
+import { fonts, palette } from '@/theme';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -33,16 +36,21 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * hidden; every screen supplies its own back or close control.
  */
 export function RootNavigator() {
-  const { session, restoring } = useAuth();
-  const { loading } = useProfileSync();
+  const { session, isGuest, restoring, recovering, signOut } = useAuth();
+  const { reduceMotion } = useMotionPreference();
+  const identity = session?.user.id ?? (isGuest ? 'guest' : 'signed-out');
+  const { loading, blocked, error, retry } = useProfileSync();
   const { onboarded } = useOnboarding();
 
   // Hold on the brand ground while the keychain is read and the profile is
   // fetched. Rendering a stack first and swapping it a frame later shows a
   // returning student either a login form or a setup flow they already
   // finished — and a navigator swap mid-flight loses their place.
-  if (restoring || (session && loading)) {
-    return <View style={styles.holding} />;
+  if (restoring || ((session || isGuest) && loading)) {
+    return <View style={styles.holding}><Mascot size={112} pose="reading" shadow={false} /><Text style={styles.title}>Opening your field guide…</Text><ActivityIndicator color={palette.turquoiseLight} /></View>;
+  }
+  if (blocked && (session || isGuest) && !recovering) {
+    return <View style={styles.holding}><Mascot size={112} pose="worried" shadow={false} /><Text style={styles.title}>Let’s reconnect.</Text><Text style={styles.message}>{error}</Text><View style={styles.actions}><AppButton label="Try again" onPress={retry} /><AppButton label="Back to sign in" tone="secondary" onPress={signOut} /></View></View>;
   }
 
   /**
@@ -53,9 +61,9 @@ export function RootNavigator() {
    * frame where a protected screen mounts before a redirect fires. Signing out
    * swaps the stack, which unmounts everything behind it.
    */
-  if (!session) {
+  if ((!session && !isGuest) || recovering) {
     return (
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+      <Stack.Navigator key={recovering ? 'recovery' : 'signed-out'} initialRouteName={recovering ? 'SignIn' : 'Splash'} screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'fade' }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
       </Stack.Navigator>
@@ -64,28 +72,33 @@ export function RootNavigator() {
 
   return (
     <Stack.Navigator
+      key={identity}
       initialRouteName={onboarded ? 'Home' : 'Intro'}
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: reduceMotion ? 'none' : 'fade',
         contentStyle: { backgroundColor: 'transparent' },
       }}
     >
+      {isGuest && <Stack.Screen name="SignIn" component={SignInScreen} />}
       <Stack.Screen name="Intro" component={IntroScreen} />
       <Stack.Screen name="CourseSelection" component={CourseSelectionScreen} />
       <Stack.Screen name="SubjectExperience" component={SubjectExperienceScreen} />
       <Stack.Screen name="GoalScore" component={GoalScoreScreen} />
       <Stack.Screen name="ExamTimeline" component={ExamTimelineScreen} />
       <Stack.Screen name="AchievementPreview" component={AchievementPreviewScreen} />
-      <Stack.Screen name="Quiz" component={QuizScreen} options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="PlacementResult" component={PlacementResultScreen} options={{ animation: 'fade' }} />
-      <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} options={{ animation: 'fade' }} />
-      <Stack.Screen name="Home" component={HomeScreen} options={{ animation: 'fade' }} />
+      <Stack.Screen name="Quiz" component={QuizScreen} options={{ animation: reduceMotion ? 'none' : 'fade' }} />
+      <Stack.Screen name="PlacementResult" component={PlacementResultScreen} options={{ animation: reduceMotion ? 'none' : 'fade' }} />
+      <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} options={{ animation: reduceMotion ? 'none' : 'fade' }} />
+      <Stack.Screen name="Home" component={HomeScreen} options={{ animation: reduceMotion ? 'none' : 'fade' }} />
       <Stack.Screen name="Characters" component={CharactersScreen} />
     </Stack.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  holding: { flex: 1, backgroundColor: palette.night },
+  holding: { flex: 1, backgroundColor: palette.night, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16 },
+  title: { fontFamily: fonts.displayHeavy, fontSize: 24, color: palette.cream, textAlign: 'center' },
+  message: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: '#BDD2D6', maxWidth: 380, textAlign: 'center' },
+  actions: { width: '100%', maxWidth: 380, gap: 16, marginTop: 12 },
 });

@@ -52,7 +52,7 @@ export type MascotSize = 'tiny' | 'small' | 'medium' | 'large' | 'xl';
 export interface MascotProps {
   pose?: MascotPose;
   size?: MascotSize | number;
-  /** Master switch for the idle bob (default true). */
+  /** Kept for caller compatibility; drawn poses no longer idle or float. */
   animated?: boolean;
   /** Soft contact shadow beneath Stu (default true). */
   shadow?: boolean;

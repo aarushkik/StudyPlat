@@ -28,8 +28,8 @@ export function TopBackButton({ onPress, color = colors.textMuted, variant = 'ba
 
 const styles = StyleSheet.create({
   button: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

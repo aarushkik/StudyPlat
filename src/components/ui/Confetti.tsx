@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { colors, confettiColors } from '@/theme';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 interface ConfettiProps {
   /** How many chips. The design uses 18; more reads as noise. */
@@ -19,9 +20,11 @@ interface ConfettiProps {
  * on the JS thread while its numbers are counting up.
  */
 export function Confetti({ count = 18, distance = 560, active = true }: ConfettiProps) {
+  const { motionEnabled } = useMotionPreference();
+  if (!active || !motionEnabled) return null;
   const chips = Array.from({ length: count }, (_, i) => i);
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
       {chips.map((i) => (
         <Chip key={i} index={i} distance={distance} active={active} />
       ))}

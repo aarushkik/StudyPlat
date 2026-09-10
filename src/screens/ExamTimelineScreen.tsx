@@ -15,8 +15,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'ExamTimeline'>;
 /** Setup step: when is the AP exam? Drives pacing/urgency. */
 export function ExamTimelineScreen() {
   const navigation = useNavigation<Nav>();
-  const { setExamTimeframeId } = useOnboarding();
-  const [selected, setSelected] = useState<ExamTimeframeId | null>(null);
+  const { examTimeframeId, setExamTimeframeId } = useOnboarding();
+  const [selected, setSelected] = useState<ExamTimeframeId | null>(examTimeframeId);
 
   const onContinue = () => {
     if (!selected) return;

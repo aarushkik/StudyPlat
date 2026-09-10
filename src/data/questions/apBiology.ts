@@ -53,7 +53,7 @@ out.push(
     `Photolysis splits water in the light reactions, releasing O₂ as a by-product.`),
   q.mc('developing', 'Respiration', 'Which stage of cellular respiration produces the most ATP?',
     ['Glycolysis', 'The Krebs cycle', 'Oxidative phosphorylation', 'Fermentation'], 2,
-    `The electron transport chain and chemiosmosis together yield roughly 34 of the ~38 ATP.`),
+    `The electron transport chain and chemiosmosis together yield most of the ATP made in aerobic cellular respiration.`),
   q.sa('ap_ready', 'Respiration', 'In the absence of oxygen, human muscle cells convert pyruvate into lactic ______. (one word)',
     ['acid'], `Lactic acid fermentation regenerates NAD⁺ so glycolysis can continue without oxygen.`),
 );

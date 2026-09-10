@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     marginBottom: spacing.sm,
   },
-  chipText: { ...typography.overline, color: colors.primary },
+  chipText: { ...typography.overline, color: colors.primaryDeep },
   subtitle: { marginTop: spacing.sm },
 });

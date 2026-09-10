@@ -1,409 +1,290 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { AUTH_STORAGE_KEY, isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { deviceStorage } from '@/lib/storage';
+import { GUEST_MODE_KEY, flushProfile, prepareProfileExit } from '@/lib/profileCache';
 
-/**
- * The providers the app offers. Supabase calls Microsoft "azure".
- *
- * Apple is here but no button renders it yet. Guideline 5.1.1(v) requires Sign
- * in with Apple wherever an app offers third-party sign-in, so it has to exist
- * before submission — but configuring it needs an Apple Developer membership,
- * and a button that cannot be tested is worse than one that is not there. The
- * flow itself is provider-agnostic, so turning it on is a button and a
- * Supabase provider, not new plumbing.
- */
+const browserCompletion = WebBrowser.maybeCompleteAuthSession();
 export type AuthProvider = 'google' | 'azure' | 'apple';
+export const appleSignInEnabled = process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED === 'true';
 
 interface AuthContextValue {
-  /** Null until the stored session has been checked. */
   session: Session | null;
   user: User | null;
-  /** True while the app is restoring a session on launch. */
+  isGuest: boolean;
+  /** True only for an explicit sign-in from the device's guest quest. */
+  guestUpgrade: boolean;
   restoring: boolean;
-  /** Which provider is mid-flight, so the screen can show it. */
   pending: AuthProvider | null;
-  /** Last failure, in words a student could act on. */
+  emailPending: boolean;
+  deleting: boolean;
+  recovering: boolean;
   error: string | null;
+  clearError: () => void;
+  continueAsGuest: () => Promise<void>;
   signIn: (provider: AuthProvider) => Promise<void>;
-  /** Email and password. Returns a note to show on success, or null. */
   signInWithEmail: (email: string, password: string) => Promise<string | null>;
   signUpWithEmail: (email: string, password: string) => Promise<string | null>;
-  /** True while an email request is in flight. */
-  emailPending: boolean;
+  resetPassword: (email: string) => Promise<string | null>;
+  updatePassword: (password: string) => Promise<string | null>;
+  cancelRecovery: () => void;
   signOut: () => Promise<void>;
-  /**
-   * Delete this account and everything attached to it, permanently.
-   *
-   * Required by App Store guideline 5.1.1(ii): an app that creates accounts
-   * has to let someone delete theirs from inside the app. Returns true when
-   * the account is gone.
-   */
   deleteAccount: () => Promise<boolean>;
-  /** True while a deletion is in flight. */
-  deleting: boolean;
-  clearError: () => void;
-  /**
-   * Whether the dev-only preview door is open. See `previewSignIn`.
-   * Always false in a release build and always false once real keys exist.
-   */
-  canPreview: boolean;
-  previewSignIn: () => void;
 }
-
 const AuthContext = createContext<AuthContextValue | null>(null);
+const unavailable = 'Account services are unavailable in this build. You can keep studying on this device.';
 
-/**
- * The dev-only way past the sign-in gate.
- *
- * Two independent conditions, both of which must hold:
- *
- * 1. `__DEV__` — false in every release build, so this cannot ship. The
- *    bundler also strips the branch entirely at build time.
- * 2. Supabase is unconfigured — so the moment real keys land in `.env`, the
- *    door closes on its own rather than lingering as a backdoor next to
- *    working auth.
- *
- * It exists because the app is gated on a session, and until OAuth is wired
- * up there is otherwise no way to look at any screen behind it.
- */
-const CAN_PREVIEW = __DEV__ && !isSupabaseConfigured;
-
-/** Obviously not a real account, in case one ever reaches a log. */
-const PREVIEW_SESSION = {
-  user: {
-    id: '00000000-0000-4000-8000-000000000000',
-    email: 'preview@studyplat.local',
-    user_metadata: { full_name: 'Preview' },
-  },
-} as unknown as Session;
-
-/**
- * Who is signed in.
- *
- * The OAuth flow on native is: open the provider in a system browser sheet,
- * let it redirect back to the app's own scheme, then hand the returned code to
- * Supabase for a session. `openAuthSessionAsync` is what makes the sheet close
- * itself on that redirect — `openBrowserAsync` leaves the user staring at a
- * finished login page with no way back.
- *
- * The redirect URL has to match one registered in Supabase exactly, and the
- * scheme has to match `app.json`. Both are the usual reasons this fails, so
- * the URL is built from `Linking.createURL` rather than hard-coded.
- */
 export function AuthProviderComponent({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [isGuest, setGuest] = useState(false);
+  const guestRef = useRef(false);
+  const [guestUpgrade, setGuestUpgrade] = useState(false);
   const [restoring, setRestoring] = useState(true);
   const [pending, setPending] = useState<AuthProvider | null>(null);
   const [emailPending, setEmailPending] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const busy = useRef(false);
 
-  // Restore whatever is in the keychain, then follow every later change.
   useEffect(() => {
     let alive = true;
-
-    /**
-     * Never hold the splash open forever.
-     *
-     * The navigator shows a bare dark view while `restoring` is true, so if
-     * this promise never settles — a wedged keychain read, a native module
-     * that failed to link — the app is a permanently blank screen with no way
-     * out and nothing on screen to report. Falling through to the sign-in
-     * screen is always recoverable: the worst case is a signed-in user being
-     * asked to sign in again.
-     */
+    let revision = 0;
+    const accept = (next: Session | null) => {
+      if (!alive) return;
+      if (next) {
+        const upgrading = guestRef.current;
+        setGuestUpgrade((previous) => previous || upgrading);
+        guestRef.current = false;
+        setGuest(false);
+        // ProfileSync consumes the persisted guest marker after safely importing.
+      }
+      setSession(next);
+    };
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === 'INITIAL_SESSION') return;
+      revision += 1;
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+      if (next || event === 'SIGNED_OUT') accept(next);
+    });
+    const initialRevision = revision;
     const failsafe = setTimeout(() => {
-      if (alive) setRestoring(false);
-    }, 4000);
-
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (alive) setSession(data.session);
-      })
-      .catch(() => undefined)
-      .finally(() => {
+      if (alive) { setRestoring(false); setError('Restoring your account is taking longer than expected. Try signing in again.'); }
+    }, 6000);
+    void (async () => {
+      try {
+        const guestMode = await deviceStorage.getItem(GUEST_MODE_KEY) === 'true';
+        const { data, error: restoreError } = await supabase.auth.getSession();
+        if (!alive || revision !== initialRevision) return;
+        if (restoreError) throw restoreError;
+        guestRef.current = guestMode && !data.session;
+        setGuest(guestRef.current);
+        setGuestUpgrade(guestMode && Boolean(data.session));
+        setSession(data.session);
+      } catch {
+        if (alive) setError('We could not restore your account. Your saved progress has been kept. Try signing in again.');
+      } finally {
         clearTimeout(failsafe);
         if (alive) setRestoring(false);
-      });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      if (alive) setSession(next);
-    });
-
+      }
+    })();
+    const receiveURL = (url: string) => {
+      if (!isAuthCallback(url)) return;
+      void completeSignIn(url).then(() => {
+        if (alive && isRecoveryURL(url)) setRecovering(true);
+      }).catch((reason) => { if (alive) setError(messageFor(reason)); });
+    };
+    // An OAuth web popup hands its URL to the opening window. It must not
+    // exchange the same PKCE code independently before the opener receives it.
+    if (Platform.OS !== 'web' || browserCompletion.type !== 'success') {
+      void Linking.getInitialURL().then((url) => { if (alive && url) receiveURL(url); });
+    }
+    const urlListener = Linking.addEventListener('url', ({ url }) => receiveURL(url));
+    const refresh = () => {
+      if (AppState.currentState === 'active') supabase.auth.startAutoRefresh();
+      else supabase.auth.stopAutoRefresh();
+    };
+    if (Platform.OS !== 'web') refresh();
+    const appListener = AppState.addEventListener('change', () => { if (Platform.OS !== 'web') refresh(); });
     return () => {
-      alive = false;
-      clearTimeout(failsafe);
-      sub.subscription.unsubscribe();
+      alive = false; clearTimeout(failsafe); sub.subscription.unsubscribe();
+      urlListener.remove(); appListener.remove();
+      if (Platform.OS !== 'web') supabase.auth.stopAutoRefresh();
     };
   }, []);
 
-  const signIn = useCallback(async (provider: AuthProvider) => {
-    if (!isSupabaseConfigured) {
-      setError('This build has no Supabase keys yet. Add them to .env and restart.');
-      return;
-    }
-
-    setError(null);
-    setPending(provider);
+  const continueAsGuest = useCallback(async () => {
+    if (busy.current) return;
+    busy.current = true; setError(null);
     try {
-      const redirectTo = Linking.createURL('auth/callback');
+      await deviceStorage.setItem(GUEST_MODE_KEY, 'true');
+      guestRef.current = true; setGuest(true);
+    } catch { setError('This device could not save your progress. Check available storage and try again.'); }
+    finally { busy.current = false; }
+  }, []);
 
+  const signIn = useCallback(async (provider: AuthProvider) => {
+    if (busy.current) return;
+    if (!isSupabaseConfigured) { setError(unavailable); return; }
+    busy.current = true; setError(null); setPending(provider);
+    try {
+      await flushProfile();
+      const redirectTo = Linking.createURL('auth/callback');
       const { data, error: startError } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo,
-          // Supabase would otherwise navigate the current context itself,
-          // which on native means nothing happens at all.
-          skipBrowserRedirect: true,
-        },
+        options: { redirectTo, skipBrowserRedirect: true, ...(provider === 'azure' ? { scopes: 'email' } : {}) },
       });
       if (startError) throw startError;
-      if (!data?.url) throw new Error('The sign-in provider did not return a URL.');
-
+      if (!data.url) throw new Error('Sign-in could not start.');
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-
-      if (result.type === 'cancel' || result.type === 'dismiss') {
-        // Backing out of the sheet is a normal thing to do, not an error.
-        return;
-      }
-      if (result.type !== 'success' || !result.url) {
-        throw new Error('Sign-in did not complete.');
-      }
-
+      if (result.type === 'cancel' || result.type === 'dismiss') return;
+      if (result.type !== 'success' || !result.url) throw new Error('Sign-in did not complete.');
       await completeSignIn(result.url);
-    } catch (e) {
-      setError(messageFor(e, Linking.createURL('auth/callback')));
-    } finally {
-      setPending(null);
-    }
+    } catch (reason) { setError(messageFor(reason)); }
+    finally { busy.current = false; setPending(null); }
   }, []);
 
-  /**
-   * Email and password.
-   *
-   * Kept alongside OAuth rather than instead of it: a provider account is the
-   * faster path for most students, but email is the one that works when a
-   * school blocks third-party sign-in, and it is the only one that can be
-   * tested without registering an app with Google and Microsoft first.
-   */
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    if (!isSupabaseConfigured) {
-      setError('This build has no Supabase keys yet. Add them to .env and restart.');
-      return null;
-    }
-    const problem = validate(email, password);
-    if (problem) {
-      setError(problem);
-      return null;
-    }
-
-    setError(null);
-    setEmailPending(true);
+  const emailAction = useCallback(async (kind: 'signIn' | 'signUp' | 'reset' | 'update', email: string, password = ''): Promise<string | null> => {
+    if (busy.current) return null;
+    if (!isSupabaseConfigured) { setError(unavailable); return null; }
+    const problem = kind === 'update' ? validateNewPassword(password) : validateEmail(email) ??
+      (kind === 'signUp' ? validateNewPassword(password) : kind === 'signIn' && !password ? 'Enter your password.' : null);
+    if (problem) { setError(problem); return null; }
+    busy.current = true; setEmailPending(true); setError(null);
     try {
-      const { error: e } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (e) throw e;
-      return null;
-    } catch (e) {
-      setError(messageFor(e));
-      return null;
-    } finally {
-      setEmailPending(false);
-    }
-  }, []);
-
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    if (!isSupabaseConfigured) {
-      setError('This build has no Supabase keys yet. Add them to .env and restart.');
-      return null;
-    }
-    const problem = validate(email, password);
-    if (problem) {
-      setError(problem);
-      return null;
-    }
-
-    setError(null);
-    setEmailPending(true);
-    try {
-      const { data, error: e } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
-      if (e) throw e;
-
-      // With email confirmation switched on, Supabase returns a user but no
-      // session. Saying "check your inbox" is the difference between a student
-      // waiting for something and thinking the button is broken.
-      if (data.user && !data.session) {
-        return 'Account created. Check your email to confirm it, then sign in.';
+      await flushProfile();
+      if (kind === 'signIn') {
+        const { error: failure } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (failure) throw failure;
+      } else if (kind === 'signUp') {
+        const { data, error: failure } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: Linking.createURL('auth/callback') } });
+        if (failure) throw failure;
+        if (!data.session) return 'Check your email to confirm your account, then sign in here. Your device progress is safe.';
+      } else if (kind === 'reset') {
+        const { error: failure } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: Linking.createURL('auth/recovery') });
+        if (failure) throw failure;
+        return 'If an account uses that email, a password reset link is on its way. Open it on this device.';
+      } else {
+        const { error: failure } = await supabase.auth.updateUser({ password });
+        if (failure) throw failure;
+        setRecovering(false);
       }
       return null;
-    } catch (e) {
-      setError(messageFor(e));
-      return null;
-    } finally {
-      setEmailPending(false);
-    }
-  }, []);
-
-  const previewSignIn = useCallback(() => {
-    if (!CAN_PREVIEW) return;
-    setError(null);
-    setSession(PREVIEW_SESSION);
-  }, []);
-
-  /**
-   * Delete the account.
-   *
-   * The work happens in `delete_account()` in the database rather than here:
-   * removing a row from `auth.users` needs privileges the publishable key does
-   * not have, and correctly so. The function is `security definer` and pinned
-   * to `auth.uid()`, so it can only ever delete its own caller. The profile row
-   * follows through the cascade.
-   *
-   * The local session is cleared either way. A student who has just deleted
-   * their account and is still looking at their own XP has every reason to
-   * think it did not work.
-   */
-  const deleteAccount = useCallback(async (): Promise<boolean> => {
-    if (!isSupabaseConfigured) {
-      setError('This build has no Supabase keys yet. Add them to .env and restart.');
-      return false;
-    }
-    setError(null);
-    setDeleting(true);
-    try {
-      const { error: e } = await supabase.rpc('delete_account');
-      if (e) throw e;
-      await supabase.auth.signOut().catch(() => undefined);
-      setSession(null);
-      return true;
-    } catch (e) {
-      setError(messageFor(e));
-      return false;
-    } finally {
-      setDeleting(false);
-    }
+    } catch (reason) { setError(messageFor(reason)); return null; }
+    finally { busy.current = false; setEmailPending(false); }
   }, []);
 
   const signOut = useCallback(async () => {
+    if (busy.current) return;
+    busy.current = true; setError(null);
     try {
-      await supabase.auth.signOut();
-    } catch {
-      // Even if the network call fails, drop the local session — a user who
-      // taps sign out and stays signed in has every reason to distrust it.
-    } finally {
-      setSession(null);
-    }
+      // A local persistence failure must not silently throw away this session.
+      await prepareProfileExit(false);
+      const { error: failure } = await supabase.auth.signOut({ scope: 'local' });
+      if (failure) {
+        await deviceStorage.removeItem(AUTH_STORAGE_KEY);
+        await deviceStorage.removeItem(`${AUTH_STORAGE_KEY}-code-verifier`);
+      }
+      await deviceStorage.removeItem(GUEST_MODE_KEY);
+      guestRef.current = false; setGuest(false); setGuestUpgrade(false); setSession(null); setRecovering(false);
+    } catch { setError('We could not safely finish signing out. Check your device storage and try again.'); }
+    finally { busy.current = false; }
   }, []);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      session,
-      user: session?.user ?? null,
-      restoring,
-      pending,
-      error,
-      signIn,
-      signInWithEmail,
-      signUpWithEmail,
-      emailPending,
-      signOut,
-      deleteAccount,
-      deleting,
-      clearError: () => setError(null),
-      canPreview: CAN_PREVIEW,
-      previewSignIn,
-    }),
-    [session, restoring, pending, emailPending, deleting, error, signIn, signInWithEmail, signUpWithEmail, signOut, deleteAccount, previewSignIn],
-  );
+  const deleteAccount = useCallback(async (): Promise<boolean> => {
+    if (busy.current) return false;
+    busy.current = true; setDeleting(true); setError(null);
+    try {
+      if (!guestRef.current) {
+        if (!isSupabaseConfigured) throw new Error(unavailable);
+        const { error: failure } = await supabase.rpc('delete_account');
+        if (failure) throw failure;
+      }
+      await prepareProfileExit(true);
+      await supabase.auth.signOut({ scope: 'local' });
+      await deviceStorage.removeItem(AUTH_STORAGE_KEY);
+      await deviceStorage.removeItem(`${AUTH_STORAGE_KEY}-code-verifier`);
+      await deviceStorage.removeItem(GUEST_MODE_KEY);
+      guestRef.current = false; setGuest(false); setSession(null); setGuestUpgrade(false); setRecovering(false);
+      return true;
+    } catch (reason) { setError(messageFor(reason)); return false; }
+    finally { busy.current = false; setDeleting(false); }
+  }, []);
 
+  const value = useMemo<AuthContextValue>(() => ({
+    session, user: session?.user ?? null, isGuest, guestUpgrade, restoring, pending, emailPending, deleting, recovering, error,
+    clearError: () => setError(null), continueAsGuest, signIn, signOut, deleteAccount,
+    signInWithEmail: (email, password) => emailAction('signIn', email, password),
+    signUpWithEmail: (email, password) => emailAction('signUp', email, password),
+    resetPassword: (email) => emailAction('reset', email),
+    updatePassword: (password) => emailAction('update', '', password),
+    cancelRecovery: () => setRecovering(false),
+  }), [session, isGuest, guestUpgrade, restoring, pending, emailPending, deleting, recovering, error, continueAsGuest, signIn, signOut, deleteAccount, emailAction]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/**
- * Turn the redirect URL into a session.
- *
- * Supabase can hand back either an authorisation `code` (PKCE, the default) or
- * tokens in the URL fragment (implicit). Both are handled: which one arrives
- * depends on the provider and the project's settings, and getting this wrong
- * shows up as a successful-looking login that leaves the user signed out.
- */
-async function completeSignIn(url: string): Promise<void> {
+function isAuthCallback(url: string): boolean {
+  try {
+    const received = new URL(url);
+    return ['auth/callback', 'auth/recovery'].some((path) => {
+      const expected = new URL(Linking.createURL(path));
+      return received.protocol === expected.protocol && received.host === expected.host && received.pathname === expected.pathname;
+    });
+  } catch { return false; }
+}
+function isRecoveryURL(url: string): boolean {
   const parsed = new URL(url);
-  const code = parsed.searchParams.get('code');
-
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) throw error;
-    return;
-  }
-
-  const fragment = new URLSearchParams(parsed.hash.replace(/^#/, ''));
-  const access_token = fragment.get('access_token');
-  const refresh_token = fragment.get('refresh_token');
-  if (access_token && refresh_token) {
-    const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-    if (error) throw error;
-    return;
-  }
-
-  const providerError = parsed.searchParams.get('error_description') ?? fragment.get('error_description');
-  throw new Error(providerError ?? 'Sign-in finished without returning a session.');
+  return url.split(/[?#]/)[0] === Linking.createURL('auth/recovery') || parsed.searchParams.get('type') === 'recovery' || new URLSearchParams(parsed.hash.slice(1)).get('type') === 'recovery';
 }
-
-/** Catch the obvious problems before spending a round trip on them. */
-function validate(email: string, password: string): string | null {
+// Both the native deep-link event and browser sheet can deliver the same URL.
+let lastCallback: { url: string; result: Promise<void> } | null = null;
+function completeSignIn(url: string): Promise<void> {
+  if (lastCallback?.url === url) return lastCallback.result;
+  const result = (async () => {
+    if (!isAuthCallback(url)) throw new Error('This sign-in link is not for StudyPlat.');
+    const parsed = new URL(url);
+    const fragment = new URLSearchParams(parsed.hash.slice(1));
+    if (parsed.searchParams.get('error') || fragment.get('error')) throw new Error('Sign-in was not authorized. Please try again.');
+    const code = parsed.searchParams.get('code');
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) throw error;
+      return;
+    }
+    const access_token = fragment.get('access_token');
+    const refresh_token = fragment.get('refresh_token');
+    if (access_token && refresh_token) {
+      const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+      if (error) throw error;
+      return;
+    }
+    throw new Error('This sign-in link has expired. Request a new one and try again.');
+  })();
+  lastCallback = { url, result };
+  return result;
+}
+function validateEmail(email: string): string | null {
   if (!email.trim()) return 'Enter your email address.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'That does not look like an email address.';
-  if (password.length < 6) return 'Passwords need to be at least 6 characters.';
-  return null;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? null : 'Enter a valid email address.';
 }
-
-/**
- * Provider errors are terse and often technical; say something actionable.
- *
- * The redirect case quotes the exact URL this build is asking for. It has to
- * match a Supabase allow-list entry character for character, and being told
- * "the redirect is wrong" without being told *what it is* leaves you guessing
- * between the scheme, the host and the path.
- */
-function messageFor(e: unknown, redirectTo?: string): string {
-  const raw = e instanceof Error ? e.message : String(e);
-  if (/provider is not enabled/i.test(raw)) {
-    return 'That sign-in method is not switched on in Supabase yet.';
-  }
-  if (/redirect/i.test(raw)) {
-    return redirectTo
-      ? `Supabase has not allow-listed this redirect URL:\n${redirectTo}`
-      : 'The redirect URL is not on the allow-list in Supabase.';
-  }
-  if (/invalid login credentials/i.test(raw)) {
-    return 'That email and password do not match an account.';
-  }
-  if (/already registered|already exists/i.test(raw)) {
-    return 'There is already an account with that email. Try signing in.';
-  }
-  if (/email not confirmed/i.test(raw)) {
-    return 'Confirm your email address first — check your inbox.';
-  }
-  if (/could not find the function|function .* does not exist/i.test(raw)) {
-    return 'Account deletion is not set up on the server yet. Re-run supabase/schema.sql.';
-  }
-  if (/network|fetch/i.test(raw)) {
-    return 'Could not reach the server. Check your connection and try again.';
-  }
-  return raw;
+function validateNewPassword(password: string): string | null { return password.length < 8 ? 'Use a password with at least 8 characters.' : null; }
+function messageFor(reason: unknown): string {
+  const raw = reason instanceof Error ? reason.message : '';
+  if (/invalid login credentials/i.test(raw)) return 'That email and password don’t match an account.';
+  if (/already registered|already exists/i.test(raw)) return 'There is already an account with that email. Try signing in.';
+  if (/email not confirmed/i.test(raw)) return 'Confirm your email address first. Check your inbox, then sign in again.';
+  if (/rate limit|too many requests/i.test(raw)) return 'Too many attempts. Wait a moment, then try again.';
+  if (/network|fetch|timeout/i.test(raw)) return 'We couldn’t reach the server. Check your connection and try again.';
+  if (/provider|redirect/i.test(raw)) return 'This sign-in method is temporarily unavailable. Try email or continue on this device.';
+  if (/function|delete_account/i.test(raw)) return 'Account deletion is temporarily unavailable. Please try again or contact support.';
+  if (/expired|code verifier|flow state/i.test(raw)) return 'This sign-in link has expired. Request a new link on this device.';
+  return 'We couldn’t complete that request. Please try again.';
 }
-
 export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProviderComponent');
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used inside AuthProviderComponent');
+  return context;
 }

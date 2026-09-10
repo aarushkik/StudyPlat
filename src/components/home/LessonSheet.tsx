@@ -1,9 +1,12 @@
+import { BossSprite } from '@/components/creatures/BossSprite';
+import { bossForNode } from '@/data/bosses';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, duration, easing, palette, questNode, radius, shadows, spacing, typography } from '@/theme';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { BOSS_TIERS } from '@/data/questMap';
 import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
 
@@ -20,7 +23,7 @@ interface LessonSheetProps {
 const KIND: Record<QuestNodeKindId, { label: string; glyph: GlyphName; cta: string; again: string }> = {
   lesson: { label: 'Lesson', glyph: 'book', cta: 'Start lesson', again: 'Practice again' },
   drill: { label: 'Drill', glyph: 'bolt', cta: 'Start drill', again: 'Run it again' },
-  study: { label: 'Study', glyph: 'page', cta: 'Open study', again: 'Read it again' },
+  study: { label: 'Knowledge check', glyph: 'page', cta: 'Start review', again: 'Review again' },
   bonus: { label: 'Bonus', glyph: 'chest', cta: 'Open the cache', again: 'Open again' },
   boss: { label: 'Boss battle', glyph: 'swords', cta: 'Enter the battle', again: 'Rematch' },
 };
@@ -32,17 +35,21 @@ const KIND: Record<QuestNodeKindId, { label: string; glyph: GlyphName; cta: stri
  */
 export function LessonSheet({ node, state, unitTitle, onStart, onClose }: LessonSheetProps) {
   const insets = useSafeAreaInsets();
+  const { motionEnabled } = useMotionPreference();
   const rise = useRef(new Animated.Value(0)).current;
   const visible = node !== null;
 
   useEffect(() => {
-    Animated.timing(rise, {
+    if (!motionEnabled) { rise.setValue(visible ? 1 : 0); return; }
+    const animation = Animated.timing(rise, {
       toValue: visible ? 1 : 0,
       duration: visible ? duration.base : duration.fast,
       easing: visible ? easing.out : easing.in,
       useNativeDriver: true,
-    }).start();
-  }, [visible, rise]);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [visible, rise, motionEnabled]);
 
   if (!node) return null;
 
@@ -60,15 +67,18 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, { opacity: rise }]}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Dismiss" onPress={onClose} />
+        <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Dismiss quest details" onPress={onClose} />
       </Animated.View>
 
       <View style={styles.dock} pointerEvents="box-none">
         <Animated.View
+          accessibilityViewIsModal
           style={[styles.sheet, shadows.xl, { paddingBottom: insets.bottom + spacing.lg, transform: [{ translateY }] }]}
         >
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
           <View style={styles.grabber} />
 
+          {isBoss ? <View style={{ alignItems: 'center', paddingBottom: 8 }}><BossSprite nodeId={node.id} size={156} /><Text style={{ color: colors.textSecondary, textAlign: 'center', ...typography.caption }}>{bossForNode(node.id)?.species}</Text></View> : null}
           <View style={styles.head}>
             <View style={[styles.crest, { backgroundColor: scheme.face, borderColor: scheme.edge }]}>
               <Glyph name={kind.glyph} size={30} color={colors.white} strokeWidth={2.4} />
@@ -91,6 +101,8 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
           <Text style={[typography.body, styles.summary]}>
             {sealed ? `${node.summary} Clear the stops before it on the trail to open this one.` : node.summary}
           </Text>
+
+          {!sealed && !cleared && !node.summary.includes('60%') ? <Text style={styles.passNote}>Answer at least 60% correctly to clear this stop.</Text> : null}
 
           {isBoss ? (
             <View style={[styles.bossNote, isAreaBoss && styles.bossNoteFinal]}>
@@ -117,7 +129,7 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
           </View>
 
           <View style={styles.rewards}>
-            <Reward glyph="star" color={colors.gold} value={`${node.xp} XP`} />
+            <Reward glyph="star" color={colors.gold} value={`Up to ${node.xp} base XP`} />
             <View style={styles.rewardDivider} />
             <Reward glyph="clock" color={colors.textSecondary} value={`${node.minutes} min`} />
           </View>
@@ -130,9 +142,10 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
             disabled={sealed}
             onPress={onStart}
           />
-          <Pressable onPress={onClose} hitSlop={8} style={styles.dismiss}>
+          <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8} style={styles.dismiss}>
             <Text style={styles.dismissText}>{sealed ? 'Back to the map' : 'Not right now'}</Text>
           </Pressable>
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -150,8 +163,11 @@ function Reward({ glyph, color, value }: { glyph: GlyphName; color: string; valu
 
 const styles = StyleSheet.create({
   scrim: { backgroundColor: 'rgba(36,27,34,0.42)' },
-  dock: { flex: 1, justifyContent: 'flex-end' },
+  dock: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   sheet: {
+    maxHeight: '90%',
+    maxWidth: 620,
+    width: '100%',
     backgroundColor: colors.surface,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
@@ -192,6 +208,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  passNote: { ...typography.caption, color: colors.ink, marginTop: 10 },
   summary: { marginTop: spacing.lg },
 
   bossNote: {
@@ -221,6 +238,7 @@ const styles = StyleSheet.create({
 
   rewards: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: spacing.lg,

@@ -1,7 +1,10 @@
+import { CompanionSprite } from '@/components/creatures/CompanionSprite';
 import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
-import { ChunkyCard, PropBadge } from '@/components/ui';
+import { AccountSaveCard } from '@/components/account/AccountSaveCard';
+import { links, openLink } from '@/lib/links';
+import { ChunkyCard } from '@/components/ui';
 import { colors, fonts, palette } from '@/theme';
 import { useQuest } from '@/state/QuestContext';
 import { getCourse } from '@/data';
@@ -42,7 +45,7 @@ export function ProfilePanel() {
   ].slice(0, 3);
   // Real progress, not three fixed rows. Closest-to-done leads the list.
   const achievements = achievementsFor({
-    completed,
+    completed: quest.earned,
     map,
     skills: quest.skills,
     sessions: quest.sessions,
@@ -50,9 +53,9 @@ export function ProfilePanel() {
     bestStreak: quest.bestStreak,
     xp,
   }).slice(0, 4);
-  const { user, signOut, deleteAccount, deleting } = useAuth();
+  const { user, isGuest, signOut, deleteAccount, deleting, error: authError } = useAuth();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const { offline } = useProfileSync();
+  const { offline, error: syncError, notice, retry } = useProfileSync();
 
   const toNext = Math.max(0, level * 500 - xp);
   const levelPct = Math.min(100, Math.round(((xp % 500) / 500) * 100));
@@ -70,7 +73,7 @@ export function ProfilePanel() {
           </View>
           <View style={styles.bannerBody}>
             <Text style={styles.name} numberOfLines={1}>
-              {displayName(user?.user_metadata, user?.email)}
+              {isGuest ? 'Your device quest' : displayName(user?.user_metadata, user?.email)}
             </Text>
             <Text style={styles.meta}>
               {course?.name ?? 'Your course'} · Level {level} · {completed.length}/{map.order.length} stops
@@ -84,15 +87,10 @@ export function ProfilePanel() {
       </View>
 
       <View style={styles.body}>
-        {offline ? (
-          <View style={styles.offline}>
-            <Text style={styles.offlineText}>
-              Not syncing — progress is safe on this device but is not reaching your account. Check
-              your connection, or re-run <Text style={styles.offlineCode}>supabase/schema.sql</Text> if
-              you have just updated the app.
-            </Text>
-          </View>
-        ) : null}
+        <AccountSaveCard />
+        {(offline || syncError) && <View style={styles.offline}><Text style={styles.offlineText}>{syncError ?? 'Your latest progress hasn’t reached your account yet. We’ll retry when you reconnect.'}</Text><Pressable accessibilityRole="button" onPress={retry} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={styles.offlineText}>Try again</Text></Pressable></View>}
+        {notice && <View style={styles.offline}><Text style={styles.offlineText}>{notice}</Text></View>}
+        {authError && <View accessibilityRole="alert" style={styles.dangerBox}><Text style={styles.dangerBody}>{authError}</Text></View>}
 
         {/* Not a button. There is nothing behind a streak but the streak, so
             instead of a chevron that goes nowhere the card shows the last
@@ -103,12 +101,8 @@ export function ProfilePanel() {
             <Image source={MASCOT_ART.streakOn} style={styles.streakArt} resizeMode="contain" />
             <View style={styles.streakBody}>
               <Text style={styles.streakTitle}>{streakDays}-day streak</Text>
-              <Text style={styles.streakNote}>Keep one stop a day to hold it</Text>
-              <View style={styles.weekRow}>
-                {Array.from({ length: 7 }, (_, i) => (
-                  <View key={i} style={[styles.day, i < Math.min(streakDays, 7) && styles.dayOn]} />
-                ))}
-              </View>
+              <Text style={styles.streakNote}>One practice session a day keeps it going</Text>
+              <Text style={styles.streakNote}>Best streak: {quest.bestStreak} days</Text>
             </View>
           </View>
         </View>
@@ -137,7 +131,7 @@ export function ProfilePanel() {
               style={styles.companion}
               contentStyle={styles.companionCard}
             >
-              <PropBadge name={c.emblem} tint={c.tint} size={42} dim={!c.owned} />
+              <CompanionSprite id={c.id} tint={c.tint} size={42} dim={!c.owned} />
               <Text style={[styles.companionName, !c.owned && styles.companionDim]}>{c.name}</Text>
               <Text style={[styles.companionMeta, !c.owned && styles.companionDim]} numberOfLines={1}>
                 {c.id === equippedId ? 'Equipped' : unlockLabel(c)}
@@ -184,13 +178,16 @@ export function ProfilePanel() {
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Sign out"
+          accessibilityLabel={isGuest ? "Back to sign in" : "Sign out"}
           onPress={signOut}
           style={({ pressed }) => [styles.signOut, pressed && styles.signOutPressed]}
         >
-          <Text style={styles.signOutText}>Sign out</Text>
+          <Text style={styles.signOutText}>{isGuest ? "Back to sign in" : "Sign out"}</Text>
         </Pressable>
 
+        <View style={styles.legalRow}>
+          {(['privacy', 'terms', 'support'] as const).map((key) => <Pressable key={key} accessibilityRole="link" onPress={() => openLink(links[key])} style={styles.legalLink}><Text style={styles.legalText}>{key === 'privacy' ? 'Privacy' : key === 'terms' ? 'Terms' : 'Support'}</Text></Pressable>)}
+        </View>
         {/* Account deletion, required by App Store guideline 5.1.1(ii) for any
             app that creates accounts — a support email is not accepted.
 
@@ -200,10 +197,10 @@ export function ProfilePanel() {
             before the second tap, exactly how much they are about to lose. */}
         {confirmingDelete ? (
           <View style={styles.dangerBox}>
-            <Text style={styles.dangerTitle}>Delete your account?</Text>
+            <Text style={styles.dangerTitle}>{isGuest ? "Erase this device’s progress?" : "Delete your account?"}</Text>
             <Text style={styles.dangerBody}>
-              This removes your account and everything on it — {xp} XP, your{' '}
-              {streakDays}-day streak, and all {completed.length} stops you have cleared. It cannot
+              This removes {isGuest ? 'the progress saved on this device' : 'your account and its saved progress'} — {xp} XP, your{' '}
+              {streakDays}-day streak, and all {quest.earned.length} stops you have cleared. It cannot
               be undone, and starting again means starting from zero.
             </Text>
             <View style={styles.dangerRow}>
@@ -218,7 +215,7 @@ export function ProfilePanel() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Permanently delete my account"
+                accessibilityLabel={isGuest ? "Permanently erase my device progress" : "Permanently delete my account"}
                 disabled={deleting}
                 onPress={() => void deleteAccount()}
                 style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressedShift]}
@@ -230,12 +227,12 @@ export function ProfilePanel() {
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Delete my account"
+            accessibilityLabel={isGuest ? "Erase device progress" : "Delete my account"}
             onPress={() => setConfirmingDelete(true)}
             hitSlop={8}
             style={styles.deleteLink}
           >
-            <Text style={styles.deleteLinkText}>Delete account</Text>
+            <Text style={styles.deleteLinkText}>{isGuest ? "Erase device progress" : "Delete account"}</Text>
           </Pressable>
         )}
       </View>
@@ -251,8 +248,8 @@ export function ProfilePanel() {
  * so the email's local part is the last resort before a generic greeting.
  */
 function displayName(meta: Record<string, unknown> | undefined, email: string | undefined): string {
-  const named = (meta?.full_name ?? meta?.name) as string | undefined;
-  if (named && named.trim()) return named.trim();
+  const named = meta?.full_name ?? meta?.name;
+  if (typeof named === 'string' && named.trim()) return named.trim();
   if (email) return email.split('@')[0];
   return 'Your quest';
 }
@@ -260,6 +257,9 @@ function displayName(meta: Record<string, unknown> | undefined, email: string | 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingBottom: 26 },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 12 },
+  legalLink: { minHeight: 44, justifyContent: 'center' },
+  legalText: { fontFamily: fonts.bodySemibold, fontSize: 13, color: colors.primaryDeep, textDecorationLine: 'underline' },
 
   banner: {
     backgroundColor: colors.primary,
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
   },
   avatarArt: { width: 86, height: 86, marginBottom: -6 },
   bannerBody: { flex: 1, minWidth: 0 },
-  name: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 27, color: colors.white },
-  meta: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: '#D6F2F6', marginTop: 2 },
+  name: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 27, color: colors.ink },
+  meta: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: colors.ink, marginTop: 2 },
   levelTrack: {
     marginTop: 8,
     height: 11,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   levelFill: { height: '100%', backgroundColor: palette.orange },
-  levelNote: { fontFamily: fonts.bodyBold, fontSize: 11, color: '#D6F2F6', marginTop: 4 },
+  levelNote: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.ink, marginTop: 4 },
 
   body: { paddingHorizontal: 18, paddingTop: 14 },
 

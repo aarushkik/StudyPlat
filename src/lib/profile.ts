@@ -26,6 +26,7 @@ export interface ProfileRow {
   completed_stops: string[];
   /** Per-skill tally as JSON: { [skillTag]: { seen, correct } }. */
   skills: Record<string, { seen: number; correct: number }> | null;
+  today_count: number;
   sessions: number;
   perfect_sessions: number;
   best_streak: number;
@@ -47,6 +48,7 @@ export interface Profile {
   lastSessionOn: string | null;
   completedStops: string[];
   skills: Record<string, { seen: number; correct: number }>;
+  todayCount: number;
   sessions: number;
   perfectSessions: number;
   bestStreak: number;
@@ -67,6 +69,7 @@ export const EMPTY_PROFILE: Profile = {
   lastSessionOn: null,
   completedStops: [],
   skills: {},
+  todayCount: 0,
   sessions: 0,
   perfectSessions: 0,
   bestStreak: 0,
@@ -88,6 +91,7 @@ function fromRow(row: ProfileRow): Profile {
     lastSessionOn: row.last_session_on,
     completedStops: row.completed_stops ?? [],
     skills: row.skills ?? {},
+    todayCount: row.today_count ?? 0,
     sessions: row.sessions ?? 0,
     perfectSessions: row.perfect_sessions ?? 0,
     bestStreak: row.best_streak ?? 0,
@@ -110,6 +114,7 @@ function toRow(userId: string, p: Partial<Profile>): Partial<ProfileRow> & { id:
   if ('lastSessionOn' in p) row.last_session_on = p.lastSessionOn ?? null;
   if ('completedStops' in p) row.completed_stops = p.completedStops ?? [];
   if ('skills' in p) row.skills = p.skills ?? {};
+  if ('todayCount' in p) row.today_count = p.todayCount ?? 0;
   if ('sessions' in p) row.sessions = p.sessions ?? 0;
   if ('perfectSessions' in p) row.perfect_sessions = p.perfectSessions ?? 0;
   if ('bestStreak' in p) row.best_streak = p.bestStreak ?? 0;
@@ -129,58 +134,31 @@ function toRow(userId: string, p: Partial<Profile>): Partial<ProfileRow> & { id:
 export async function fetchProfile(userId: string): Promise<{ ok: boolean; profile: Profile | null }> {
   if (!isSupabaseConfigured) return { ok: false, profile: null };
 
+  try {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
+    .abortSignal(AbortSignal.timeout(10000))
     .maybeSingle();
 
   if (error) return { ok: false, profile: null };
   return { ok: true, profile: data ? fromRow(data as ProfileRow) : null };
+  } catch { return { ok: false, profile: null }; }
 }
 
-/** Create or update the row. Only the keys present in `patch` are written. */
-export async function saveProfile(userId: string, patch: Partial<Profile>): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-  const { error } = await supabase.from('profiles').upsert(toRow(userId, patch), { onConflict: 'id' });
-  return !error;
+/** Apply a durable, idempotent delta. The database locks the profile row so
+ * concurrent devices cannot overwrite one another's earned progress. */
+export async function saveProfile(_userId: string, profile: Profile, baseline: Profile, mutationId: string): Promise<{ ok: boolean; profile: Profile | null }> {
+  if (!isSupabaseConfigured) return { ok: false, profile: null };
+  try {
+    const { data, error } = await supabase.rpc('sync_profile', {
+      p_mutation_id: mutationId,
+      p_profile: toRow(_userId, profile),
+      p_baseline: toRow(_userId, baseline),
+    }).abortSignal(AbortSignal.timeout(10000));
+    return error || !data ? { ok: false, profile: null } : { ok: true, profile: fromRow(data as ProfileRow) };
+  } catch { return { ok: false, profile: null }; }
 }
 
-/**
- * Advance the streak for a session finished today.
- *
- * Kept here rather than in the UI so the rule is written once: same day is a
- * no-op, the next day increments, and any longer gap starts again at one.
- * Dates are compared as plain YYYY-MM-DD in the device's own zone, which is
- * what a student means by "today".
- *
- * `shieldDays` is how many missed days an equipped companion covers — Ember
- * one, Fen two. A shielded gap continues the streak *at its length*, adding
- * nothing: the shield is protection, not a free day, and a student who skipped
- * Tuesday should not come back to a longer streak than one who did not.
- * Whether the shield is then spent is the caller's decision, because only the
- * caller knows if it had one left.
- */
-export function nextStreak(
-  streakDays: number,
-  lastSessionOn: string | null,
-  today: string,
-  shieldDays = 0,
-): number {
-  if (lastSessionOn === today) return Math.max(1, streakDays);
-  if (!lastSessionOn) return 1;
-
-  const gap = Math.round(
-    (Date.parse(`${today}T00:00:00`) - Date.parse(`${lastSessionOn}T00:00:00`)) / 86_400_000,
-  );
-  if (gap === 1) return streakDays + 1;
-  // A gap of two is one missed day, so the shield covers `shieldDays + 1`.
-  if (gap > 1 && gap <= shieldDays + 1) return Math.max(1, streakDays);
-  return 1;
-}
-
-/** Today as YYYY-MM-DD in the device's timezone. */
-export function todayKey(d = new Date()): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
+export { nextStreak, todayKey } from '@/utils/studyDates';

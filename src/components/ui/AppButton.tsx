@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { chunky, chunkyRadius, colors, depth, gloss, spacing, spring, typography } from '@/theme';
+import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 export type ButtonTone = 'primary' | 'secondary' | 'ghost' | 'gold' | 'success' | 'danger';
 type Size = 'md' | 'lg';
@@ -45,17 +46,20 @@ export function AppButton({
   style,
 }: AppButtonProps) {
   const press = useRef(new Animated.Value(0)).current;
+  const { reduceMotion } = useMotionPreference();
   const inactive = disabled || loading;
   const scheme = inactive ? SCHEMES.disabled : SCHEMES[tone];
 
   const c = chunky({ depth: depth.button, radius: chunkyRadius.button, shadow: scheme.lip });
 
-  const to = (v: number) =>
+  const to = (v: number) => {
+    if (reduceMotion) { press.setValue(v); return; }
     Animated.spring(press, {
       toValue: v,
       useNativeDriver: true,
       ...(v === 1 ? spring.press : spring.release),
     }).start();
+  };
 
   const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] });
   const pad = size === 'lg' ? 15 : 11;
@@ -63,7 +67,8 @@ export function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: inactive }}
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
       onPressIn={() => to(1)}
       onPressOut={() => to(0)}
@@ -94,7 +99,7 @@ export function AppButton({
         ) : (
           <View style={styles.row}>
             {icon ? <Glyph name={icon} size={18} color={scheme.text} strokeWidth={2.6} /> : null}
-            <Text style={[typography.button, { color: scheme.text }]} numberOfLines={1}>
+            <Text style={[typography.button, { color: scheme.text, textAlign: 'center', flexShrink: 1 }]}>
               {label}
             </Text>
           </View>

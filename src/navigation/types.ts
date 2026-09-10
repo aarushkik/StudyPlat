@@ -38,7 +38,7 @@ export type RootStackParamList = {
       }
     | undefined;
   PlacementResult: undefined;
-  LessonComplete: { title: string; correct: number; total: number; xp: number };
+  LessonComplete: { title: string; correct: number; total: number; xp: number; cleared?: boolean; bossNodeId?: string };
   Home: undefined;
   /** The companion roster, reached from the HUD avatar and from Profile. */
   Characters: undefined;
