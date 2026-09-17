@@ -44,6 +44,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test",
     "release:check": "node --env-file-if-exists=.env scripts/release-check.mjs",
+    "health:check": "node --env-file-if-exists=.env scripts/health-check.mjs",
     "export:ios": "expo export --platform ios",
     "export:web": "expo export --platform web"
   },

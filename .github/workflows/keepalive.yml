@@ -1,0 +1,38 @@
+# Keeps the free-tier Supabase project from pausing.
+#
+# Supabase pauses free projects after about a week with no API traffic, and a
+# paused project fails every sign-in and every sync until someone notices and
+# unpauses it from the dashboard. One request a day is enough to count as
+# activity. This runs the same read-only health check used locally, so it also
+# fails — and GitHub emails the repo owner — if the project is unreachable or
+# a sign-in provider has been switched off.
+#
+# Both values here are safe to hold as secrets: the URL is public and the
+# publishable key is designed to ship inside the app. Neither is the secret
+# key, which must never appear in CI.
+#
+# GitHub disables scheduled workflows on repositories with no commits for 60
+# days. If the app goes quiet for that long, re-enable it under Actions.
+name: Keep Supabase awake
+on:
+  schedule:
+    # 09:17 UTC daily. Off the hour, because :00 is when everyone else's cron
+    # fires and runs queue behind them.
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+      # No install: the check uses only Node's built-in fetch.
+      - run: node scripts/health-check.mjs
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
