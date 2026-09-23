@@ -43,3 +43,7 @@ yarn-error.*
 # Local secrets
 .env
 .env.local
+
+# Web export output. Built in CI and published to Pages; never committed.
+/dist
+/site/app

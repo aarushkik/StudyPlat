@@ -3,48 +3,165 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>StudyPlat — AP practice as a map</title>
-<meta name="description" content="StudyPlat turns AP course material into a map of practice stops. Free, no ads, no tracking.">
+<title>StudyPlat — AP practice, drawn as a map</title>
+<meta name="description" content="StudyPlat turns AP course material into a map you walk. Eight courses, 960 practice questions, no ads and no tracking. Free.">
+<meta name="theme-color" content="#FBF1E2">
+<link rel="icon" href="img/icon.png">
+<meta property="og:title" content="StudyPlat — AP practice, drawn as a map">
+<meta property="og:description" content="Eight AP courses as an illustrated trail. Free, no ads, no tracking.">
+<meta property="og:image" content="img/icon.png">
+<meta property="og:type" content="website">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <div class="wrap">
-  <header><span class="mark">StudyPlat</span></header>
-
-  <h1>AP practice, drawn as a map</h1>
-  <p class="updated">Ten areas, sixty bosses, one course at a time.</p>
-
-  <p>StudyPlat turns an AP syllabus into a trail you walk. Each unit becomes a
-  place; each stop is a short set of questions; each area ends in a boss. The
-  app watches which topics you actually get wrong and sends you back to those
-  rather than to whatever comes next.</p>
-
-  <div class="card">
-    <h2>Eight courses</h2>
-    <p style="margin-bottom:0">Biology · Calculus AB · Chemistry · Computer
-    Science A · Psychology · U.S. History · World History · English Language</p>
+  <div class="bar">
+    <a class="logo" href="index.html">
+      <span class="logo-word">Study</span><span class="logo-chip">Plat</span>
+    </a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#cast">The cast</a>
+      <a href="#courses">Courses</a>
+      <a href="privacy.html">Privacy</a>
+    </nav>
   </div>
 
-  <h2>Free, and quiet about it</h2>
-  <ul>
-    <li>No advertising, no purchases, no subscriptions</li>
-    <li>No third-party analytics and no cross-app tracking</li>
-    <li>Delete your account and everything on it from inside the app, in two taps</li>
-  </ul>
+  <div class="hero">
+    <div>
+      <span class="kicker">The AP adventure</span>
+      <h1>AP practice,<br>drawn as a map.</h1>
+      <p class="lede">
+        Every unit becomes a place. Every stop is five minutes of questions.
+        Every area ends in a boss. StudyPlat watches what you actually get
+        wrong and sends you back to it — instead of just marching you forward.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="app/">Play in your browser</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+    <div class="hero-art">
+      <div class="hero-blob"></div>
+      <img src="img/stu-map.png" alt="Stu the platypus holding a treasure map" width="520" height="520">
+    </div>
+  </div>
 
-  <h2>About the questions</h2>
-  <p>Every question is original practice material written against each course's
-  published unit outline. None of it is real exam content. StudyPlat is
-  independent and is not affiliated with the College Board.</p>
+  <div class="stats">
+    <div class="stat"><b>8</b><span>AP courses</span></div>
+    <div class="stat"><b>960</b><span>practice questions</span></div>
+    <div class="stat"><b>180</b><span>stops per course</span></div>
+    <div class="stat"><b>Free</b><span>no ads, ever</span></div>
+  </div>
 
-  <nav>
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="terms.html">Terms of Use</a>
-    <a href="support.html">Support</a>
-    <a href="https://github.com/aarushkik/StudyPlat">Source</a>
-  </nav>
-  <footer>AP and Advanced Placement are registered trademarks of the College
-  Board, which is not affiliated with and does not endorse StudyPlat.</footer>
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">Three ideas, and that is the whole app.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="emblem" style="background:#D6F2F6">🗺️</div>
+        <h3>Walk the trail</h3>
+        <p>Ten areas per course, drawn as places — Tidepool Flats, Cell City,
+        Exam Summit. Each stop is a short set of questions on that unit's real
+        topics. Clear the stops, face the boss, the next area opens.</p>
+      </div>
+      <div class="card">
+        <div class="emblem" style="background:#FBE6C7">🎯</div>
+        <h3>It notices what you miss</h3>
+        <p>Every answer is recorded against its topic. The practice tab ranks
+        your weakest categories from what you have actually answered — and the
+        drill behind each one asks about <em>that</em> topic, not the course at
+        large.</p>
+      </div>
+      <div class="card">
+        <div class="emblem" style="background:#E8DFF7">🔥</div>
+        <h3>Come back tomorrow</h3>
+        <p>A streak for turning up, gems for finishing, and a companion whose
+        ability changes how a session plays. Cleared an area? The endless
+        review at its foot keeps going as long as you want it to.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cast">
+    <h2>Bring someone with you</h2>
+    <p class="sub">Twelve companions, each with one ability that actually does something. Sixty bosses to get past.</p>
+    <div class="cast">
+      <div class="face">
+        <img src="img/mira.jpg" alt="Mira, a moth with a lantern" width="300" height="300">
+        <b>Mira</b><span>Reveals one hint per session</span>
+      </div>
+      <div class="face">
+        <img src="img/ember.jpg" alt="Ember, a fox with a scarf" width="300" height="300">
+        <b>Ember</b><span>Shields a streak day</span>
+      </div>
+      <div class="face">
+        <img src="img/pilot.jpg" alt="Pilot, a bird in a flight cap" width="300" height="300">
+        <b>Pilot</b><span>Doubles the gems a session pays</span>
+      </div>
+      <div class="face">
+        <img src="img/boss-waves.jpg" alt="A coastal boss creature" width="420" height="280">
+        <b>…and them</b><span>Six ranks, ten areas, sixty fights</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="courses">
+    <h2>Eight courses</h2>
+    <p class="sub">Each built from that course's published unit outline, with 120 original practice questions.</p>
+    <div class="chips">
+      <span class="chip">AP Biology</span>
+      <span class="chip">AP Calculus AB</span>
+      <span class="chip">AP Chemistry</span>
+      <span class="chip">AP Computer Science A</span>
+      <span class="chip">AP Psychology</span>
+      <span class="chip">AP U.S. History</span>
+      <span class="chip">AP World History</span>
+      <span class="chip">AP English Language</span>
+    </div>
+  </section>
+
+  <div class="band">
+    <div>
+      <h2>Free, and quiet about it</h2>
+      <p>No advertising. No purchases. No subscriptions.</p>
+      <ul>
+        <li>No third-party analytics, and no tracking across other apps</li>
+        <li>We ask Google and Microsoft only for your email and name</li>
+        <li>Delete your account and everything on it, in two taps, from Profile</li>
+        <li>Try it without an account at all — progress stays on your device</li>
+      </ul>
+    </div>
+    <img src="img/stu-cheer.png" alt="Stu celebrating" width="320" height="320">
+  </div>
+
+  <section>
+    <h2>About the questions</h2>
+    <p class="sub" style="max-width:62ch">
+      Every question is original practice material written against each course's
+      published unit outline. None of it is real exam content, and none of it is
+      reproduced from the College Board. StudyPlat is independent and is not
+      affiliated with, endorsed by, or approved by the College Board.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="app/">Play in your browser</a>
+      <a class="btn btn-ghost" href="support.html">Get in touch</a>
+    </div>
+  </section>
+
+  <footer>
+    <nav>
+      <a href="app/">Play</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Use</a>
+      <a href="support.html">Support</a>
+      <a href="https://github.com/aarushkik/StudyPlat">Source</a>
+    </nav>
+    AP and Advanced Placement are registered trademarks of the College Board,
+    which is not affiliated with and does not endorse StudyPlat.
+  </footer>
 </div>
+
 </body>
 </html>

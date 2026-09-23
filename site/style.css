@@ -1,40 +1,227 @@
-/* StudyPlat's public pages. Same palette and type as the app, so someone who
-   arrives here from the sign-in screen recognises where they are. */
+/* StudyPlat's public pages.
+ *
+ * Same palette, type and chunky borders as the app, so someone arriving from
+ * the sign-in screen lands somewhere that looks like where they came from.
+ * One stylesheet for all four pages — the legal pages are the same system with
+ * the decoration turned down.
+ *
+ * No framework and no build step. Four static files that GitHub Pages serves
+ * as-is; the only external request is the font. */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Figtree:wght@400;500;600;700;800&display=swap');
+
 :root {
   --ink: #12303C;
+  --ink-soft: #0B4A56;
   --turquoise: #05B1C9;
+  --turquoise-tint: #EAF9FB;
   --orange: #F5A02B;
+  --violet: #6B4AA0;
   --parchment: #FBF1E2;
   --cream: #FFFDF7;
+  --sand: #EADDC6;
   --muted: #5D767E;
+  --night: #0B2029;
+  --display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --body: 'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* The app's signature: a hard offset shadow with no blur. */
+  --lip: 0 5px 0 var(--ink);
+  --lip-lg: 0 7px 0 var(--ink);
 }
+
 * { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
 body {
   margin: 0;
   background: var(--parchment);
   color: var(--ink);
-  font: 16px/1.65 "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 680px; margin: 0 auto; padding: 32px 22px 80px; }
-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.mark {
+
+img { max-width: 100%; display: block; }
+a { color: var(--ink-soft); }
+
+.wrap { max-width: 940px; margin: 0 auto; padding: 0 22px; }
+.narrow { max-width: 660px; }
+
+/* ---- top bar ---------------------------------------------------------- */
+
+.bar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 0 8px; flex-wrap: wrap;
+}
+.logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+.logo-word { font-family: var(--display); font-weight: 800; font-size: 25px; letter-spacing: -0.5px; color: var(--ink); }
+.logo-chip {
   background: var(--turquoise); color: var(--cream);
-  border: 3px solid var(--ink); border-radius: 14px;
-  padding: 4px 12px; font-weight: 800; letter-spacing: -0.4px;
+  font-family: var(--display); font-weight: 800; font-size: 25px; letter-spacing: -0.5px;
+  border: 3px solid var(--ink); border-radius: 15px;
+  padding: 0 11px; line-height: 1.32;
 }
-h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.6px; margin: 22px 0 4px; }
-h2 { font-size: 19px; margin: 32px 0 6px; letter-spacing: -0.2px; }
-.updated { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
-p, li { color: #24434F; }
-ul { padding-left: 20px; }
-li { margin: 4px 0; }
-a { color: #04788A; }
-nav { margin-top: 10px; font-size: 15px; display: flex; gap: 16px; flex-wrap: wrap; }
+.bar nav { margin-left: auto; display: flex; gap: 20px; font-weight: 600; font-size: 15px; }
+.bar nav a { color: var(--muted); text-decoration: none; }
+.bar nav a:hover { color: var(--ink); }
+
+/* ---- hero ------------------------------------------------------------- */
+
+.hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 30px; align-items: center; padding: 34px 0 10px; }
+
+.kicker {
+  display: inline-block;
+  font-weight: 800; font-size: 11.5px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink-soft); background: var(--turquoise-tint);
+  border: 3px solid var(--ink); border-radius: 20px;
+  padding: 4px 13px; margin-bottom: 16px;
+}
+
+h1 {
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(38px, 6.4vw, 58px); line-height: 1.02; letter-spacing: -1.4px;
+  margin: 0 0 14px;
+}
+.lede { font-size: 18.5px; color: #24434F; margin: 0 0 24px; max-width: 30em; }
+
+.cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.btn {
+  display: inline-block; text-decoration: none;
+  font-family: var(--display); font-weight: 800; font-size: 17px;
+  border: 3px solid var(--ink); border-radius: 22px;
+  padding: 12px 26px; box-shadow: var(--lip);
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.btn:active { transform: translateY(5px); box-shadow: 0 0 0 var(--ink); }
+.btn-primary { background: var(--turquoise); color: var(--ink); }
+.btn-ghost { background: var(--cream); color: var(--ink); }
+
+.hero-art { position: relative; display: grid; place-items: center; }
+.hero-art img { width: min(100%, 360px); filter: drop-shadow(0 12px 0 rgba(18,48,60,.10)); }
+.hero-blob {
+  position: absolute; inset: 12% 4% 8%;
+  background: var(--turquoise-tint);
+  border: 3px solid var(--ink); border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
+  z-index: -1;
+}
+
+/* ---- stat strip ------------------------------------------------------- */
+
+.stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin: 34px 0 6px;
+}
+.stat {
+  background: var(--cream); border: 3px solid var(--ink); border-radius: 20px;
+  box-shadow: var(--lip); padding: 14px 8px; text-align: center;
+}
+.stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 27px; line-height: 1.1; }
+.stat span { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+
+/* ---- sections --------------------------------------------------------- */
+
+section { padding: 46px 0 6px; }
+h2 {
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(26px, 3.6vw, 34px); letter-spacing: -0.7px; line-height: 1.12;
+  margin: 0 0 8px;
+}
+.sub { color: var(--muted); margin: 0 0 24px; font-size: 16.5px; }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .card {
-  background: var(--cream); border: 3px solid var(--ink);
-  border-radius: 20px; padding: 18px 20px; margin: 22px 0;
-  box-shadow: 0 5px 0 var(--ink);
+  background: var(--cream); border: 3px solid var(--ink); border-radius: 22px;
+  box-shadow: var(--lip); padding: 20px;
 }
-.card h2 { margin-top: 0; }
-footer { margin-top: 46px; border-top: 3px solid rgba(18,48,60,.14); padding-top: 16px; color: var(--muted); font-size: 14px; }
-code { background: rgba(18,48,60,.07); padding: 1px 5px; border-radius: 5px; font-size: 14px; }
+.card h3 { font-family: var(--display); font-weight: 700; font-size: 19px; margin: 12px 0 5px; letter-spacing: -0.2px; }
+.card p { margin: 0; font-size: 15.5px; color: #33535F; }
+.emblem {
+  width: 46px; height: 46px; border: 3px solid var(--ink); border-radius: 16px;
+  display: grid; place-items: center; font-size: 22px; line-height: 1;
+}
+
+/* cast ------------------------------------------------------------------ */
+
+.cast { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.face {
+  background: var(--cream); border: 3px solid var(--ink); border-radius: 22px;
+  box-shadow: var(--lip); padding: 12px; text-align: center;
+}
+.face img { border-radius: 14px; border: 3px solid var(--ink); margin-bottom: 9px; }
+.face b { font-family: var(--display); font-weight: 700; font-size: 17px; }
+.face span { display: block; font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* course chips ---------------------------------------------------------- */
+
+.chips { display: flex; flex-wrap: wrap; gap: 9px; }
+.chip {
+  background: var(--cream); border: 3px solid var(--ink); border-radius: 16px;
+  box-shadow: 0 4px 0 var(--ink);
+  padding: 7px 14px; font-weight: 700; font-size: 15px;
+}
+
+/* dark band ------------------------------------------------------------- */
+
+.band {
+  background: var(--night); color: var(--cream);
+  border: 3px solid var(--ink); border-radius: 28px;
+  box-shadow: var(--lip-lg);
+  padding: 30px; margin: 46px 0 8px;
+  display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;
+}
+.band h2 { color: var(--cream); }
+.band p { color: #A9C3C9; margin: 0; }
+.band img { width: 150px; }
+.band ul { margin: 12px 0 0; padding-left: 20px; color: #A9C3C9; }
+.band li { margin: 3px 0; }
+
+/* ---- legal pages ------------------------------------------------------ */
+
+.doc h1 { font-size: clamp(31px, 5vw, 40px); margin-top: 26px; }
+.doc .updated { color: var(--muted); font-size: 14.5px; margin: 0 0 22px; }
+.doc h2 { font-size: 20px; margin: 30px 0 6px; }
+.doc h3 { font-family: var(--display); font-weight: 700; font-size: 17px; margin: 22px 0 4px; }
+.doc p, .doc li { color: #24434F; font-size: 16.5px; }
+.doc ul { padding-left: 21px; }
+.doc li { margin: 5px 0; }
+.callout {
+  background: var(--turquoise-tint); border: 3px solid var(--ink); border-radius: 22px;
+  box-shadow: var(--lip); padding: 18px 20px; margin: 22px 0;
+}
+.callout h2 { margin-top: 0; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* ---- footer ----------------------------------------------------------- */
+
+footer {
+  margin-top: 54px; border-top: 3px solid rgba(18,48,60,.13);
+  padding: 22px 0 54px; color: var(--muted); font-size: 14.5px;
+}
+footer nav { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 10px; font-weight: 600; }
+footer nav a { color: var(--ink-soft); text-decoration: none; }
+footer nav a:hover { text-decoration: underline; }
+
+/* ---- responsive ------------------------------------------------------- */
+
+@media (max-width: 800px) {
+  .hero { grid-template-columns: 1fr; gap: 10px; }
+  .hero-art { order: -1; }
+  .hero-art img { width: min(74%, 280px); }
+  .grid, .cast { grid-template-columns: repeat(2, 1fr); }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .band { grid-template-columns: 1fr; text-align: left; }
+  .band img { width: 120px; }
+}
+@media (max-width: 460px) {
+  .grid, .cast { grid-template-columns: 1fr; }
+  .bar nav { width: 100%; margin-left: 0; gap: 16px; }
+}
+
+/* Respect a reduced-motion preference: the press effect is the only motion
+   here, and it is the kind that bothers people who ask for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn { transition: none; }
+}

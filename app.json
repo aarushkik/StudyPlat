@@ -23,7 +23,9 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/studyplat-icon.png"
+      "favicon": "./assets/studyplat-icon.png",
+      "output": "single",
+      "bundler": "metro"
     },
     "plugins": [
       "expo-font",
@@ -42,6 +44,9 @@
       "eas": {
         "projectId": ""
       }
+    },
+    "experiments": {
+      "baseUrl": "/StudyPlat/app"
     }
   }
 }

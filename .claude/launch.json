@@ -24,6 +24,19 @@
         "site"
       ],
       "port": 8100
+    },
+    {
+      "name": "pages-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8101",
+        "--directory",
+        "/private/tmp/claude-501/-Users-aarushkikkuru-Documents-Github-stuAP/c7255831-de98-4395-9d28-af571424f6d6/scratchpad/pagesroot"
+      ],
+      "port": 8101,
+      "url": "http://localhost:8101"
     }
   ]
 }

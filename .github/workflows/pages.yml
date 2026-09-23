@@ -1,5 +1,23 @@
-name: Publish support pages
+# Publishes the marketing site, the legal pages, and a playable web build.
+#
+# `enablement: true` matters: without it the deploy fails with "Get Pages site
+# failed" on any repository where Pages has never been turned on, which is an
+# unhelpful way to learn that the setting exists.
+#
+# The web build is produced here rather than committed. It is ~18 MB of
+# bundled JS and hashed image assets that change on every export, and a
+# repository is a bad place for build output.
+name: Publish site and web app
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'package-lock.json'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,9 +32,35 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+          cache: npm
+      - run: npm ci
+
+      - name: Build the web app
+        run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Assemble the published tree
+        run: |
+          rm -rf site/app && mkdir -p site/app
+          cp -R dist/. site/app/
+          # Single-page output: every unknown path has to fall back to the app
+          # shell, or a refresh on any screen but the first 404s.
+          cp site/app/index.html site/app/404.html
+          # Pages runs Jekyll by default, which ignores directories starting
+          # with an underscore — including _expo, which holds the JS bundle.
+          touch site/.nojekyll
+
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
