@@ -127,7 +127,9 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     paddingHorizontal: 5,
     borderRadius: 30,
   },
-  tab: { position: 'relative', flex: 1, minWidth: 0, marginHorizontal: 3 },
+  // Rounded to the active pill so a keyboard focus ring matches the shape
+  // the tab takes when it is selected, rather than a square around it.
+  tab: { position: 'relative', flex: 1, minWidth: 0, marginHorizontal: 3, borderRadius: 23 },
   tile: {
     alignItems: 'center',
     gap: 5,

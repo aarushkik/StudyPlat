@@ -24,7 +24,7 @@ import { OnboardingProvider } from "@/state/OnboardingContext";
 import { ProfileSync } from "@/state/ProfileSync";
 import { QuestProvider } from "@/state/QuestContext";
 import { RootNavigator } from "@/navigation/RootNavigator";
-import { ErrorBoundary } from "@/components/ui";
+import { ErrorBoundary, WebFocusStyle } from "@/components/ui";
 import { colors } from "@/theme";
 import { ThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
 
@@ -77,6 +77,7 @@ function ThemedApp() {
 
   return (
     <SafeAreaProvider>
+      <WebFocusStyle />
       {/* Outermost, so a crash anywhere below shows a readable error rather
           than an unexplained blank screen. */}
       <ErrorBoundary>

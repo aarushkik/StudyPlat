@@ -1,6 +1,7 @@
 import React from 'react';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { colors } from '@/theme';
+import { useAppTheme } from '@/theme/ThemeProvider';
 
 /**
  * The StudyPlat glyph set — one original, cohesive icon family drawn on a shared
@@ -66,7 +67,12 @@ interface GlyphProps {
 /** Glyphs drawn as filled shapes rather than outlines. */
 const SOLID = new Set<GlyphName>(['flame', 'gem', 'heart', 'star', 'crown', 'sparkle', 'play', 'bolt']);
 
-export function Glyph({ name, size = 24, color = colors.textPrimary, strokeWidth = 2 }: GlyphProps) {
+export function Glyph({ name, size = 24, color: colorProp, strokeWidth = 2 }: GlyphProps) {
+  // The default comes from the theme. As a default parameter it read the
+  // static light palette — dark ink — so any glyph drawn without an explicit
+  // colour would have vanished on a dark background.
+  const theme = useAppTheme();
+  const color = colorProp ?? theme.colors.textPrimary;
   const solid = SOLID.has(name);
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

@@ -1,5 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { chunky, chunkyRadius, colors, depth, gloss, spacing, spring, typography } from '@/theme';
@@ -55,7 +55,6 @@ export function AppButton({
   const SCHEMES = makeSCHEMES(appTheme);
 
   const press = useRef(new Animated.Value(0)).current;
-  const [focused, setFocused] = useState(false);
   const haptic = useHaptics();
   const { reduceMotion } = useMotionPreference();
   const inactive = disabled || loading;
@@ -85,9 +84,7 @@ export function AppButton({
       onPressIn={() => to(1)}
       onPressOut={() => to(0)}
       onPress={() => { if (hapticFeedback) haptic(); onPress?.(); }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={[c.wrap, style, focused && styles.focused]}
+      style={[c.wrap, style]}
     >
       <View style={[c.lip, tone === 'ghost' && styles.hidden]} />
       <Animated.View
@@ -126,8 +123,8 @@ export function AppButton({
 type Scheme = { fill: string; lip: string; text: string };
 
 const makeSCHEMES = ({ colors }: AppTheme): Record<ButtonTone | 'disabled', Scheme> => ({
-  primary: { fill: colors.primary, lip: colors.ink, text: colors.textOnPrimary },
-  secondary: { fill: colors.surface, lip: colors.ink, text: colors.ink },
+  primary: { fill: colors.primary, lip: colors.lip, text: colors.textOnPrimary },
+  secondary: { fill: colors.surface, lip: colors.lip, text: colors.ink },
   gold: { fill: colors.gold, lip: colors.currentDeep, text: colors.textOnPrimary },
   success: { fill: '#2A6E45', lip: colors.border, text: colors.white },
   danger: { fill: '#A93B1C', lip: colors.border, text: colors.white },
@@ -136,7 +133,6 @@ const makeSCHEMES = ({ colors }: AppTheme): Record<ButtonTone | 'disabled', Sche
 });
 
 const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
-  focused: { outlineColor: colors.primaryDeep, outlineStyle: 'solid', outlineWidth: 3, outlineOffset: 4 },
   // Clips the highlight. React Native clamps a corner radius to half the
   // shorter side, so on a short button the gloss's own corners would be
   // rounder than the face can show and would bulge past the ink.

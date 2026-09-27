@@ -85,7 +85,11 @@ export function chunky(options: ChunkyOptions = {}, tokens: ThemeColors = colors
   const r = options.radius ?? chunkyRadius.card;
 
   return {
-    wrap: { position: 'relative', marginBottom: d },
+    // The wrapper takes the face's radius even though it draws nothing. It is
+    // the element that receives focus on the web, and a focus ring follows
+    // the focused element's corners: without this, every button and card
+    // showed a square ring around a rounded face.
+    wrap: { position: 'relative', marginBottom: d, borderRadius: r },
     lip: {
       position: 'absolute',
       left: 0,

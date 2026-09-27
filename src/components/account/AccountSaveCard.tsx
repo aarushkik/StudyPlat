@@ -53,7 +53,8 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   heading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   title: { flex: 1, fontFamily: fonts.displayBold, fontSize: 17, lineHeight: 22, color: colors.ink },
   body: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary, marginTop: 7 },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  // Sized to its text, not the card, so the focus ring hugs the link.
+  action: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8, minHeight: 44, borderRadius: 12, paddingRight: 4 },
   actionText: { fontFamily: fonts.bodyHeavy, fontSize: 13, color: colors.primaryDeep },
-  close: { width: 44, height: 44, marginRight: -10, marginTop: -9, marginBottom: -9, alignItems: 'center', justifyContent: 'center' },
+  close: { width: 44, height: 44, borderRadius: 22, marginRight: -10, marginTop: -9, marginBottom: -9, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
-import { colors } from '@/theme';
+import { useAppTheme } from '@/theme/ThemeProvider';
 
 /**
  * Custom StudyPlat icon set — original, cohesive line-art glyphs drawn in the
@@ -36,7 +36,11 @@ function Stroked({ color, children }: { color: string; children: React.ReactNode
 
 // --- Score-goal glyphs -------------------------------------------------------
 
-export function ScoreGoalIcon({ id, color = colors.primary, size = 28 }: IconProps & { id: string }) {
+export function ScoreGoalIcon({ id, color: colorProp, size = 28 }: IconProps & { id: string }) {
+  // Called unconditionally: a hook behind `??` would only run when no colour
+  // is passed, changing the hook count between renders.
+  const theme = useAppTheme();
+  const color = colorProp ?? theme.colors.primary;
   return (
     <Frame size={size}>
       {id === 'score5' ? (
@@ -93,7 +97,11 @@ function CalendarBase({ color }: { color: string }) {
   );
 }
 
-export function ExamIcon({ id, color = colors.primary, size = 28 }: IconProps & { id: string }) {
+export function ExamIcon({ id, color: colorProp, size = 28 }: IconProps & { id: string }) {
+  // Called unconditionally: a hook behind `??` would only run when no colour
+  // is passed, changing the hook count between renders.
+  const theme = useAppTheme();
+  const color = colorProp ?? theme.colors.primary;
   return (
     <Frame size={size}>
       {id === 'this_spring' ? (
@@ -130,7 +138,11 @@ export function ExamIcon({ id, color = colors.primary, size = 28 }: IconProps & 
 
 // --- Placement-level glyphs --------------------------------------------------
 
-export function PlacementIcon({ id, color = colors.primary, size = 28 }: IconProps & { id: string }) {
+export function PlacementIcon({ id, color: colorProp, size = 28 }: IconProps & { id: string }) {
+  // Called unconditionally: a hook behind `??` would only run when no colour
+  // is passed, changing the hook count between renders.
+  const theme = useAppTheme();
+  const color = colorProp ?? theme.colors.primary;
   return (
     <Frame size={size}>
       {id === 'beginner' ? (

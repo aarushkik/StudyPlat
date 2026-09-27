@@ -11,12 +11,19 @@ interface QuestionCardProps {
   children: React.ReactNode;
 }
 
-/** Human-readable difficulty, with a color that escalates alongside it. */
-const DIFFICULTY: Record<QuestionDifficulty, { label: string; color: string; tint: string }> = {
-  foundation: { label: 'Foundation', color: '#1F9A6E', tint: '#DFF6EC' },
-  developing: { label: 'Developing', color: '#1173C4', tint: '#DDEEFF' },
-  ap_ready: { label: 'AP level', color: '#C4740F', tint: '#FCEBD4' },
-  advanced: { label: 'Challenge', color: '#8E1E4F', tint: '#FFE1EC' },
+/**
+ * Human-readable difficulty for the kicker line.
+ *
+ * Labels only. Each level used to carry a colour and a tint for the pill it
+ * once rendered as; the pill became a plain kicker (see below) and the colours
+ * went unused — light-only values that would have been wrong in dark mode had
+ * anything picked them back up.
+ */
+const DIFFICULTY_LABEL: Record<QuestionDifficulty, string> = {
+  foundation: 'Foundation',
+  developing: 'Developing',
+  ap_ready: 'AP level',
+  advanced: 'Challenge',
 };
 
 /** Renders a question's skill kicker, prompt, optional stimulus, and answers. */
@@ -25,7 +32,7 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
   const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
 
-  const difficulty = DIFFICULTY[question.difficulty];
+  const difficulty = DIFFICULTY_LABEL[question.difficulty];
 
   return (
     <View>
@@ -33,7 +40,7 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
           question compete with the answers for the same attention, and the
           difficulty is not something a student can act on mid-question. */}
       <Text style={styles.kicker}>
-        {question.skillTag.toUpperCase()} · {difficulty.label.toUpperCase()}
+        {question.skillTag.toUpperCase()} · {difficulty.toUpperCase()}
       </Text>
 
       <Text style={styles.prompt}>{question.prompt}</Text>
