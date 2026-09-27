@@ -444,7 +444,7 @@ function TrailEnd({ cleared, total, tracks }: { cleared: number; total: number; 
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   root: { flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', backgroundColor: colors.background },
   mapArea: { flex: 1 },
   hidden: { display: 'none' },
@@ -472,8 +472,8 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     width: 58,
     height: 58,
     borderRadius: 20,
-    borderWidth: 3,
-    borderColor: 'rgba(18,48,60,0.16)',
+    borderWidth: stroke.surface,
+    borderColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

@@ -177,11 +177,11 @@ function Emblem({ node, state, size }: {node:QuestNode;state:QuestNodeState;trac
   return <View style={{opacity:state === 'locked' ? 0.6 : 1}}><Glyph name={state === 'complete' ? 'check' : icon[node.kind]} size={size * 0.4} color={state === 'complete' ? colors.white : state === 'current' ? colors.textOnPrimary : colors.textPrimary} strokeWidth={2.6}/></View>;
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   slot: { alignItems: 'center' },
   lip: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   face: {
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
@@ -192,7 +192,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     position: 'absolute',
     top: -16,
     left: '50%',
-    borderWidth: 4,
+    borderWidth: stroke.focus,
     borderColor: colors.current,
   },
   flag: {

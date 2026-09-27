@@ -143,6 +143,21 @@ export const colors = {
    */
   track: palette.sand,
 
+  /**
+   * Overlays: a quiet tint laid over whatever is underneath, for dividers,
+   * inactive rings, pressed states and empty wells.
+   *
+   * Eighteen places wrote these as ink in rgba — `rgba(18,48,60,0.16)` — which
+   * means "slightly darker than the page". That is right on cream and wrong on
+   * night, where darker-than-the-page is invisible. These flip direction with
+   * the theme instead: ink-tinted in light mode, pale-tinted in dark. Four
+   * steps, faint to strong.
+   */
+  overlayFaint: 'rgba(18,48,60,0.05)',
+  overlaySoft: 'rgba(18,48,60,0.10)',
+  overlay: 'rgba(18,48,60,0.16)',
+  overlayStrong: 'rgba(18,48,60,0.24)',
+
   // Disabled / sealed.
   disabledBg: palette.locked,
   disabledEdge: palette.sandDeep,
@@ -176,6 +191,10 @@ export const darkColors: ThemeColors = {
   surfaceSelected: '#143C46',
   surfaceSunken: '#0F222C',
   track: '#1E3540',
+  overlayFaint: 'rgba(237,245,243,0.05)',
+  overlaySoft: 'rgba(237,245,243,0.09)',
+  overlay: 'rgba(237,245,243,0.14)',
+  overlayStrong: 'rgba(237,245,243,0.22)',
   primary: '#42CADB',
   primaryDeep: '#7CE0EB',
   primaryTint: '#123741',

@@ -286,7 +286,7 @@ function Plaque({ unit, mode, cleared }: { unit: QuestUnit; mode: TrackMode; cle
         ? { text: `${cleared}/${unit.nodes.length}`, bg: colors.current, fg: palette.orangeDark, tilt: false }
         : mode === 'next'
           ? { text: 'NEXT UP', bg: colors.surface, fg: colors.textSecondary, tilt: false }
-          : { text: 'LOCKED', bg: 'rgba(18,48,60,0.08)', fg: colors.textSecondary, tilt: false };
+          : { text: 'LOCKED', bg: colors.overlayFaint, fg: colors.textSecondary, tilt: false };
 
   return (
     <View style={styles.plaqueWrap}>
@@ -444,7 +444,7 @@ function GateBossCard({
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   head: { paddingTop: PAD_TOP },
 
   reviewWrap: { position: 'relative', marginHorizontal: 16, marginTop: 16, marginBottom: 6 },
@@ -454,7 +454,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     alignItems: 'center',
     gap: 12,
     height: 78,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: 22,
     paddingHorizontal: 14,
@@ -464,7 +464,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     height: 44,
     borderRadius: 16,
     backgroundColor: colors.surface,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
@@ -496,13 +496,13 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     alignItems: 'center',
     gap: 11,
     backgroundColor: colors.surface,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     borderRadius: 24,
     paddingHorizontal: 12,
   },
   num: {
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     borderRadius: 15,
     paddingHorizontal: 9,
@@ -513,7 +513,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   place: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 18, color: colors.ink },
   topic: { fontFamily: fonts.bodyBold, fontSize: 11.5, lineHeight: 15, color: colors.textSecondary, marginTop: 1 },
   stamp: {
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     borderRadius: 13,
     paddingHorizontal: 9,
@@ -529,14 +529,14 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     paddingBottom: 16,
   },
   pipRowTight: { flexDirection: 'row', gap: PIP_GAP },
-  pip: { width: PIP, height: PIP, borderRadius: PIP / 2, borderWidth: 3, borderColor: colors.border },
+  pip: { width: PIP, height: PIP, borderRadius: PIP / 2, borderWidth: stroke.surface, borderColor: colors.border },
   pipEmpty: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: 'rgba(18,48,60,0.10)',
-    borderWidth: 3,
-    borderColor: 'rgba(18,48,60,0.22)',
+    backgroundColor: colors.overlaySoft,
+    borderWidth: stroke.surface,
+    borderColor: colors.overlayStrong,
     borderStyle: 'dashed',
   },
 
@@ -565,7 +565,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     alignItems: 'center',
     gap: 14,
     backgroundColor: '#3B2A57',
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: 30,
     paddingHorizontal: 16,
@@ -576,7 +576,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     height: 62,
     borderRadius: 24,
     backgroundColor: palette.violet,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',

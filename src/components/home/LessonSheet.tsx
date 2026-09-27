@@ -170,7 +170,7 @@ function Reward({ glyph, color, value }: { glyph: GlyphName; color: string; valu
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   scrim: { backgroundColor: 'rgba(36,27,34,0.42)' },
   dock: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   sheet: {
@@ -227,7 +227,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     gap: spacing.md,
     marginTop: spacing.lg,
     backgroundColor: '#3B2A57',
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     borderRadius: 18,
     paddingVertical: spacing.md,
