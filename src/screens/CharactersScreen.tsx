@@ -385,7 +385,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: palette.sand,
+    backgroundColor: colors.track,
     overflow: "hidden",
     marginBottom: 7,
   },

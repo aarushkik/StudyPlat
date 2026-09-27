@@ -9,9 +9,11 @@ import {
   Text,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { BossSprite } from "@/components/creatures/BossSprite";
 import { useMotionPreference } from "@/hooks/useMotionPreference";
 import { MASCOT_ART } from "@/components/Mascot";
+import { Glyph } from "@/components/icons";
 import { ChunkyCard, PropBadge } from "@/components/ui";
 import { chunky, colors, fonts, palette } from "@/theme";
 import { useNavigation } from "@react-navigation/native";
@@ -302,12 +304,14 @@ function Recommended({
 
   const press = useRef(new Animated.Value(0)).current;
   const { reduceMotion } = useMotionPreference();
+  // Built on the shared hero tokens rather than `ink`: this card has to stay
+  // dark in both modes, and `ink` is the token whose whole job is to flip.
   const c = chunky({
     depth: 6,
     radius: 26,
-    shadow: "#05707F",
-    background: colors.ink,
-    border: colors.ink,
+    shadow: palette.hero.lip,
+    background: palette.hero.to,
+    border: palette.hero.edge,
   });
   const to = (v: number) => {
     if (reduceMotion) {
@@ -348,6 +352,15 @@ function Recommended({
           },
         ]}
       >
+        {/* The same gradient as the Home hero, so the two cards that make a
+            recommendation look like the same kind of thing. */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={[palette.hero.from, palette.hero.to]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
         {/* A turquoise wash bleeding off the top-right corner. */}
         <View style={styles.heroGlow} pointerEvents="none" />
         <Text style={styles.heroKicker}>RECOMMENDED TODAY</Text>
@@ -357,7 +370,10 @@ function Recommended({
           {focus ? ` on ${focus}` : " across a few topics to find your focus"}.
         </Text>
         <View style={styles.heroCta}>
-          <Text style={styles.heroCtaText}>START · 4 MIN</Text>
+          <Text style={styles.heroCtaText}>Start · 4 min</Text>
+          <View style={styles.heroArrow}>
+            <Glyph name="arrow-right" size={16} color={palette.hero.to} strokeWidth={2.8} />
+          </View>
         </View>
         <Text style={styles.heroXp}>{xp} XP earned so far</Text>
       </Animated.View>
@@ -395,49 +411,58 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     width: 230,
     height: 230,
     borderRadius: 115,
-    backgroundColor: "rgba(5,177,201,0.18)",
+    backgroundColor: palette.hero.glow,
   },
   heroKicker: {
     fontFamily: fonts.bodyBlack,
     fontSize: 10,
     letterSpacing: 1.8,
-    color: "#7FE0EC",
+    color: palette.hero.kicker,
   },
   heroTitle: {
     fontFamily: fonts.displayHeavy,
-    fontSize: 24,
-    lineHeight: 26,
-    color: colors.white,
+    fontSize: 26,
+    lineHeight: 29,
+    color: palette.hero.title,
     marginTop: 4,
   },
   heroBody: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.bodySemibold,
     fontSize: 13.5,
     lineHeight: 19,
-    color: "#A9C3C9",
+    color: palette.hero.body,
     marginTop: 5,
     maxWidth: 250,
   },
   heroCta: {
+    flexDirection: "row",
+    alignItems: "center",
     alignSelf: "flex-start",
-    marginTop: 14,
-    backgroundColor: colors.primary,
-    borderWidth: 3,
-    borderColor: colors.background,
+    gap: 12,
+    marginTop: 16,
+    backgroundColor: palette.turquoiseLight,
     borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    minHeight: 46,
+    paddingLeft: 16,
+    paddingRight: 9,
+  },
+  heroArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroCtaText: {
-    fontFamily: fonts.bodyBlack,
-    fontSize: 13,
-    letterSpacing: 1,
-    color: "#052F37",
+    fontFamily: fonts.bodyHeavy,
+    fontSize: 14.5,
+    color: palette.hero.to,
   },
   heroXp: {
     fontFamily: fonts.bodySemibold,
     fontSize: 11.5,
-    color: "#7C9199",
+    color: palette.hero.faint,
     marginTop: 12,
   },
 
@@ -469,7 +494,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     marginTop: 8,
     height: 10,
     borderRadius: 7,
-    backgroundColor: palette.sand,
+    backgroundColor: colors.track,
     borderWidth: 2,
     borderColor: colors.border,
     overflow: "hidden",

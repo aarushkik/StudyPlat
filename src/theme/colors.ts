@@ -61,6 +61,32 @@ export const palette = {
   greenDeep: '#2A6E45',
 
   white: '#FFFFFF',
+
+  /**
+   * The hero surface: the one card per tab that makes a recommendation.
+   *
+   * Deliberately the same in light and dark. A hero is meant to be the
+   * darkest, most saturated thing on screen so it reads as the thing to do
+   * next, and that is true against a cream page and a night page alike.
+   *
+   * It exists as its own group because the alternative was the bug it
+   * replaces: the Practice hero borrowed `ink` — the *text* colour — as its
+   * fill to get an inverted card. In dark mode `ink` flips to near-white, so
+   * the card went pale while its white text stayed white, and "Weak-spot
+   * drill" all but disappeared. A surface that must stay dark cannot borrow
+   * a token whose job is to flip.
+   */
+  hero: {
+    from: '#164C59',
+    to: '#102D3A',
+    edge: '#437481',
+    lip: '#05707F',
+    title: '#FFFFFF',
+    body: '#C8DEE1',
+    kicker: '#7FE0EC',
+    faint: '#8FB3BA',
+    glow: 'rgba(5,177,201,0.18)',
+  },
 } as const;
 
 export const colors = {
@@ -109,6 +135,14 @@ export const colors = {
   // Sunken wells and inset tiles.
   surfaceSunken: palette.parchment,
 
+  /**
+   * The empty part of a progress bar. Its own token because every bar reached
+   * for a light palette tone directly — `palette.sand`, or a hard-coded
+   * `#E9DCC6` — and palette tones do not change with the theme, so in dark
+   * mode each bar became a bright stripe across a dark card.
+   */
+  track: palette.sand,
+
   // Disabled / sealed.
   disabledBg: palette.locked,
   disabledEdge: palette.sandDeep,
@@ -141,6 +175,7 @@ export const darkColors: ThemeColors = {
   surface: '#132832',
   surfaceSelected: '#143C46',
   surfaceSunken: '#0F222C',
+  track: '#1E3540',
   primary: '#42CADB',
   primaryDeep: '#7CE0EB',
   primaryTint: '#123741',

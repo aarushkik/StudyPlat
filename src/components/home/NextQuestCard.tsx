@@ -54,7 +54,7 @@ export function NextQuestCard({
         onPress={() => { haptic(); onContinue(); }}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
-        <LinearGradient pointerEvents="none" colors={['#164C59', '#102D3A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient pointerEvents="none" colors={[palette.hero.from, palette.hero.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <View style={styles.cardTop}>
         <View style={styles.cardBody}>
           <Text style={styles.kicker}>{node?.kind === 'boss' ? 'A GUARDIAN AWAITS' : node ? 'PICK UP HERE' : 'YOUR NEXT CHAPTER'}</Text>
@@ -99,16 +99,16 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   eyebrow: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.4, color: colors.textSecondary, textTransform: 'uppercase' },
   heading: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 29, color: colors.ink, marginTop: 3, maxWidth: 280 },
   compass: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-12deg' }] },
-  card: { backgroundColor: colors.nightRaised, borderRadius: 28, borderWidth: 1, borderColor: '#437481', padding: 18, overflow: 'hidden', boxShadow: '0 12px 24px rgba(9,45,57,0.16)' },
+  card: { backgroundColor: colors.nightRaised, borderRadius: 28, borderWidth: 1, borderColor: palette.hero.edge, padding: 18, overflow: 'hidden', boxShadow: '0 12px 24px rgba(9,45,57,0.16)' },
   pressed: { opacity: 0.94, transform: [{ translateY: 2 }] },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   cardBody: { flex: 1, minWidth: 0, paddingVertical: 4 },
   kicker: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.5, color: palette.turquoiseLight },
   title: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 28, color: colors.textOnInk, marginTop: 7 },
-  meta: { fontFamily: fonts.bodySemibold, fontSize: 12, lineHeight: 18, color: '#C8DEE1', marginTop: 10 },
+  meta: { fontFamily: fonts.bodySemibold, fontSize: 12, lineHeight: 18, color: palette.hero.body, marginTop: 10 },
   cta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: palette.turquoiseLight, borderRadius: 14, paddingVertical: 10, paddingLeft: 16, paddingRight: 10, marginTop: 17, minHeight: 48 },
   ctaText: { flexShrink: 1, fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.textOnPrimary },
-  arrow: { width: 28, height: 28, borderRadius: 9, backgroundColor: '#B9F0F5', alignItems: 'center', justifyContent: 'center' },
+  arrow: { width: 28, height: 28, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center' },
   mascot: { width: 102, alignItems: 'center' },
   goal: { marginTop: 14, padding: 13, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 18, gap: 12 },
   goalHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
