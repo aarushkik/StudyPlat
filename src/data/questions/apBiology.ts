@@ -198,7 +198,7 @@ out.push(
   q.mc('ap_ready', 'Macromolecules', 'A saturated fatty acid is solid at room temperature because its chains:',
     ['Contain double bonds that kink them', 'Are straight and pack tightly', 'Are charged and repel', 'Are shorter than unsaturated ones'], 1,
     `No double bonds means no kinks, so the chains stack closely and the substance stays solid.`),
-  q.sa('developing', 'Water and bonding', `Water molecules sticking to *other* substances is called ______. (one word)`,
+  q.sa('developing', 'Water and bonding', `Water molecules sticking to other substances is called ______. (one word)`,
     ['adhesion'], `Adhesion is water to another surface; cohesion is water to itself.`),
   q.sa('ap_ready', 'Protein structure', `The level of protein structure formed by alpha helices and beta sheets is called ______ structure. (one word)`,
     ['secondary'], `Secondary structure comes from hydrogen bonding along the backbone, independent of the side chains.`),
