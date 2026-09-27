@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossSprite } from '@/components/creatures/BossSprite';
 import { bossForNode } from '@/data/bosses';
 import React, { useEffect, useRef } from 'react';
@@ -34,6 +35,10 @@ const KIND: Record<QuestNodeKindId, { label: string; glyph: GlyphName; cta: stri
  * a student and a lesson, so it stays short — title, stakes, go.
  */
 export function LessonSheet({ node, state, unitTitle, onStart, onClose }: LessonSheetProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const insets = useSafeAreaInsets();
   const { motionEnabled } = useMotionPreference();
   const rise = useRef(new Animated.Value(0)).current;
@@ -153,6 +158,10 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
 }
 
 function Reward({ glyph, color, value }: { glyph: GlyphName; color: string; value: string }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.reward}>
       <Glyph name={glyph} size={19} color={color} strokeWidth={2.2} />
@@ -161,7 +170,7 @@ function Reward({ glyph, color, value }: { glyph: GlyphName; color: string; valu
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   scrim: { backgroundColor: 'rgba(36,27,34,0.42)' },
   dock: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   sheet: {
@@ -169,13 +178,14 @@ const styles = StyleSheet.create({
     maxWidth: 620,
     width: '100%',
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    borderCurve: 'continuous',
     // Ruled on three sides. The sheet is the one surface that meets the screen
     // edge, so without the rule it is the only thing in the app without one.
-    borderWidth: 3,
+    borderWidth: 1,
     borderBottomWidth: 0,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
   },
@@ -184,8 +194,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: radius.pill,
-    backgroundColor: colors.ink,
-    opacity: 0.22,
+    backgroundColor: colors.textMuted,
+    opacity: 0.4,
     marginBottom: spacing.lg,
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
@@ -193,8 +203,8 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 18,
-    borderWidth: 3,
-    borderBottomWidth: 6,
+    borderWidth: 1,
+    borderBottomWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -218,7 +228,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     backgroundColor: '#3B2A57',
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 18,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,

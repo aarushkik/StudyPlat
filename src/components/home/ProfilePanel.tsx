@@ -1,8 +1,10 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { CompanionSprite } from '@/components/creatures/CompanionSprite';
 import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
 import { AccountSaveCard } from '@/components/account/AccountSaveCard';
+import { AppearanceControls } from '@/components/account/AppearanceControls';
 import { links, openLink } from '@/lib/links';
 import { ChunkyCard } from '@/components/ui';
 import { colors, fonts, palette } from '@/theme';
@@ -29,6 +31,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  */
 
 export function ProfilePanel() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const quest = useQuest();
   const { xp, streakDays, completed, map } = quest;
   // Levels are 500 XP apart; the quest state stores raw XP only.
@@ -72,7 +78,7 @@ export function ProfilePanel() {
             </View>
           </View>
           <View style={styles.bannerBody}>
-            <Text style={styles.name} numberOfLines={1}>
+            <Text style={styles.name} numberOfLines={2}>
               {isGuest ? 'Your device quest' : displayName(user?.user_metadata, user?.email)}
             </Text>
             <Text style={styles.meta}>
@@ -87,6 +93,7 @@ export function ProfilePanel() {
       </View>
 
       <View style={styles.body}>
+        <AppearanceControls />
         <AccountSaveCard />
         {(offline || syncError) && <View style={styles.offline}><Text style={styles.offlineText}>{syncError ?? 'Your latest progress hasn’t reached your account yet. We’ll retry when you reconnect.'}</Text><Pressable accessibilityRole="button" onPress={retry} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={styles.offlineText}>Try again</Text></Pressable></View>}
         {notice && <View style={styles.offline}><Text style={styles.offlineText}>{notice}</Text></View>}
@@ -254,17 +261,17 @@ function displayName(meta: Record<string, unknown> | undefined, email: string | 
   return 'Your quest';
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
-  scroll: { paddingBottom: 26 },
+  scroll: { paddingBottom: 130 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 12 },
   legalLink: { minHeight: 44, justifyContent: 'center' },
   legalText: { fontFamily: fonts.bodySemibold, fontSize: 13, color: colors.primaryDeep, textDecorationLine: 'underline' },
 
   banner: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryTint,
     borderBottomWidth: 3,
-    borderBottomColor: colors.ink,
+    borderBottomColor: colors.border,
     paddingHorizontal: 18,
     paddingTop: 14,
     paddingBottom: 16,
@@ -288,7 +295,7 @@ const styles = StyleSheet.create({
     top: 4,
     height: 82,
     borderRadius: 30,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
   },
   avatar: {
     width: 82,
@@ -296,7 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: colors.background,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -311,7 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: 'rgba(0,0,0,0.18)',
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   levelFill: { height: '100%', backgroundColor: palette.orange },
@@ -327,7 +334,7 @@ const styles = StyleSheet.create({
     top: 6,
     bottom: -6,
     borderRadius: 24,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
   },
   streak: {
     flexDirection: 'row',
@@ -335,7 +342,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: palette.orange,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 24,
     paddingLeft: 8,
     paddingRight: 16,
@@ -344,7 +351,7 @@ const styles = StyleSheet.create({
   },
   streakArt: { width: 96, height: 96, marginVertical: -6 },
   streakBody: { flex: 1, minWidth: 0 },
-  streakTitle: { fontFamily: fonts.displayHeavy, fontSize: 22, lineHeight: 24, color: colors.ink },
+  streakTitle: { fontFamily: fonts.displayHeavy, fontSize: 22, lineHeight: 24, color: colors.textOnPrimary },
   streakNote: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: palette.orangeDark, marginTop: 2 },
   weekRow: { flexDirection: 'row', gap: 5, marginTop: 8 },
   day: {
@@ -352,7 +359,7 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     backgroundColor: 'rgba(18,48,60,0.14)',
   },
   dayOn: { backgroundColor: colors.surface },
@@ -433,7 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 11,
     alignItems: 'center',
@@ -443,7 +450,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.danger,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 11,
     alignItems: 'center',

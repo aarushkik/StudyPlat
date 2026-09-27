@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
@@ -22,14 +23,18 @@ export function ScreenContainer({
   children,
   scroll = false,
   padded = true,
-  background = colors.background,
+  background,
   contentStyle,
   edges = ['top', 'bottom'],
 }: ScreenContainerProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const pad = padded ? styles.padded : undefined;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: background }]} edges={edges}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: background ?? colors.background }]} edges={edges}>
       {scroll ? (
         <ScrollView
           style={styles.flex}
@@ -45,7 +50,7 @@ export function ScreenContainer({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingVertical: spacing.lg, width: '100%', maxWidth: 680, alignSelf: 'center' },

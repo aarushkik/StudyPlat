@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,6 +32,10 @@ interface QuizFeedbackPanelProps {
  * outright, and the explanation gets more room than the verdict does.
  */
 export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel, onContinue, retry }: QuizFeedbackPanelProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const insets = useSafeAreaInsets();
   const { reduceMotion } = useMotionPreference();
   const slide = useRef(new Animated.Value(90)).current;
@@ -58,23 +63,24 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
         },
       ]}
     >
-      <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}><View style={styles.headerRow}>
-        <Mascot size={70} pose={correct ? 'thumbsup' : 'wince'} shadow={false} />
+      <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}><View style={styles.headerRow}>
+        <Mascot size={48} pose={correct ? 'thumbsup' : 'wince'} shadow={false} />
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
             <View style={[styles.verdictDot, { backgroundColor: accent }]}>
-              <Glyph name={correct ? 'check' : 'close'} size={13} color={colors.white} strokeWidth={3.4} />
+              <Glyph name={correct ? 'check' : 'close'} size={13} color={appTheme.isDark ? colors.textOnPrimary : colors.white} strokeWidth={3.4} />
             </View>
             <Text accessibilityLiveRegion="polite" style={[styles.title, { color: accent }]}>{correct ? 'Nailed it' : 'Not quite'}</Text>
           </View>
-          {!correct && answer ? (
+          <Text style={styles.caption}>{correct ? 'One more idea, locked in.' : 'A useful one to remember.'}</Text>
+        </View>
+      </View>
+      {!correct && answer ? (
             <Text style={styles.answer}>
               Answer: <Text style={{ color: accent }}>{answer}</Text>
             </Text>
           ) : null}
-          <Text style={styles.explanation}>{explanation}</Text>
-        </View>
-      </View>
+      <Text style={styles.explanation}>{explanation}</Text>
 
       </ScrollView>
       {/* The retry sits above Continue and is the quieter of the two. Moving
@@ -101,7 +107,7 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   // Ruled in ink on three sides, like the stop sheet. A coloured hairline over
   // a soft tinted sheet was the last surface still drawn in the old language,
   // and next to the ink-bordered answer cards above it, it read as unfinished.
@@ -111,18 +117,19 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     borderWidth: 3,
     borderBottomWidth: 0,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     overflow: 'hidden',
   },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg, gap: spacing.sm },
-  titleWrap: { flex: 1, paddingTop: spacing.sm },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm },
+  titleWrap: { flex: 1 },
+  caption: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  verdictDot: { width: 24, height: 24, borderRadius: radius.pill, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  verdictDot: { width: 24, height: 24, borderRadius: radius.pill, borderWidth: 2.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   title: { ...typography.heading },
   answer: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.sm },
-  explanation: { ...typography.body, color: colors.textPrimary, marginTop: spacing.xs },
+  explanation: { ...typography.body, color: colors.textPrimary, marginTop: spacing.sm, lineHeight: 23 },
   retry: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -130,7 +137,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
     paddingVertical: spacing.md,

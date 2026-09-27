@@ -1,6 +1,8 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { useHaptics } from '@/hooks/useHaptics';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { colors, radius, spacing, spring, typography } from '@/theme';
 
@@ -28,7 +30,14 @@ const KEYS = ['A', 'B', 'C', 'D', 'E'];
  * quietly beside it instead of shouting.
  */
 export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerChoiceProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+  const STATE = makeSTATE(appTheme);
+
   const { motionEnabled } = useMotionPreference();
+  const haptic = useHaptics();
+  const inactive = disabled || state === 'struck';
   const shake = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const press = useRef(new Animated.Value(0)).current;
@@ -67,11 +76,12 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
       <Animated.View style={{ transform: [{ translateY: sink }] }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ selected: state === 'selected', disabled }}
-          disabled={disabled}
+          accessibilityLabel={`${KEYS[index] ?? index + 1}. ${label}${state === 'struck' ? '. Ruled out' : state === 'correct' || state === 'missed' ? '. Correct answer' : state === 'wrong' ? '. Your answer, incorrect' : ''}`}
+          accessibilityState={{ selected: state === 'selected', disabled: inactive }}
+          disabled={inactive}
           onPressIn={() => to(1)}
           onPressOut={() => to(0)}
-          onPress={onPress}
+          onPress={() => { if (state !== 'selected') haptic(); onPress?.(); }}
           style={[styles.choice, { backgroundColor: s.bg, borderColor: s.border }]}
         >
           <View style={[styles.key, { backgroundColor: s.keyBg, borderColor: s.border }]}>
@@ -97,38 +107,38 @@ type Style = {
   icon?: GlyphName;
 };
 
-const STATE: Record<ChoiceState, Style> = {
+const makeSTATE = ({ colors }: AppTheme): Record<ChoiceState, Style> => ({
   idle: {
     bg: colors.surface,
-    border: colors.ink,
-    edge: colors.ink,
+    border: colors.border,
+    edge: colors.border,
     text: colors.textPrimary,
     keyBg: colors.background,
     keyText: colors.textSecondary,
   },
   selected: {
     bg: colors.primaryTint,
-    border: colors.ink,
+    border: colors.primary,
     edge: colors.primary,
     text: colors.primaryDeep,
     keyBg: colors.primary,
-    keyText: colors.white,
+    keyText: colors.textOnPrimary,
   },
   correct: {
     bg: colors.successSoft,
-    border: colors.ink,
+    border: colors.success,
     edge: colors.success,
     text: colors.successDark,
-    keyBg: colors.success,
+    keyBg: '#2A6E45',
     keyText: colors.white,
     icon: 'check',
   },
   wrong: {
     bg: colors.dangerSoft,
-    border: colors.ink,
+    border: colors.danger,
     edge: colors.danger,
     text: colors.dangerDark,
-    keyBg: colors.danger,
+    keyBg: '#A93B1C',
     keyText: colors.white,
     icon: 'close',
   },
@@ -147,25 +157,25 @@ const STATE: Record<ChoiceState, Style> = {
   // The right answer, shown after a miss — present but not celebratory.
   missed: {
     bg: colors.surface,
-    border: colors.ink,
+    border: colors.success,
     edge: colors.success,
     text: colors.successDark,
     keyBg: colors.successSoft,
     keyText: colors.successDark,
     icon: 'check',
   },
-};
+});
 
-const LIP = 5;
+const LIP = 2;
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   holder: { marginBottom: spacing.md },
   lip: { position: 'absolute', left: 0, right: 0, top: LIP, bottom: -LIP, borderRadius: radius.lg },
   choice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: 3,
+    borderWidth: 1.5,
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
@@ -175,7 +185,7 @@ const styles = StyleSheet.create({
     height: 34,
     // A squircle, not a disc: the round shapes in this app are map stops.
     borderRadius: 13,
-    borderWidth: 3,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },

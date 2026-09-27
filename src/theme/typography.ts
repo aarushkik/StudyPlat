@@ -1,5 +1,5 @@
 import { TextStyle } from 'react-native';
-import { colors } from './colors';
+import { colors, type ThemeColors } from './colors';
 
 /**
  * Type scale.
@@ -60,7 +60,7 @@ type Variant =
   | 'button'
   | 'place';
 
-export const typography: Record<Variant, TextStyle> = {
+export const makeTypography = (colors: ThemeColors): Record<Variant, TextStyle> => ({
   hero: { fontFamily: fonts.displayHeavy, fontSize: 40, lineHeight: 46, letterSpacing: -0.4, color: colors.textPrimary },
   display: { fontFamily: fonts.displayHeavy, fontSize: 32, lineHeight: 38, letterSpacing: -0.3, color: colors.textPrimary },
   title: { fontFamily: fonts.displayBold, fontSize: 26, lineHeight: 32, letterSpacing: -0.2, color: colors.textPrimary },
@@ -91,4 +91,5 @@ export const typography: Record<Variant, TextStyle> = {
   button: { fontFamily: fonts.bodyBlack, fontSize: 15, lineHeight: 19, letterSpacing: 1.0, textTransform: 'uppercase' },
   /** A track's place name on the path header. */
   place: { fontFamily: fonts.displayHeavy, fontSize: 22, lineHeight: 27, letterSpacing: -0.2, color: colors.textPrimary },
-};
+});
+export const typography = makeTypography(colors);

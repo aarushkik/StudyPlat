@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors, duration, easing, radius } from '@/theme';
@@ -15,11 +16,15 @@ interface ProgressBarProps {
 /** Slim, rounded progress bar with a glossy fill. */
 export function ProgressBar({
   progress,
-  color = colors.primary,
-  trackColor = colors.disabledBg,
+  color,
+  trackColor,
   height = 14,
   style,
 }: ProgressBarProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { reduceMotion } = useMotionPreference();
   const target = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
   const anim = useRef(new Animated.Value(target)).current;
@@ -41,16 +46,16 @@ export function ProgressBar({
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: Math.round(target * 100) }}
-      style={[styles.track, { backgroundColor: trackColor, height, borderRadius: height }, style]}
+      style={[styles.track, { backgroundColor: trackColor ?? colors.disabledBg, height, borderRadius: height }, style]}
     >
-      <Animated.View style={[styles.fill, { backgroundColor: color, width, borderRadius: height }]}>
+      <Animated.View style={[styles.fill, { backgroundColor: color ?? colors.primary, width, borderRadius: height }]}>
         <View style={styles.sheen} />
       </Animated.View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   track: { flex: 1, overflow: 'hidden' },
   fill: { height: '100%', justifyContent: 'flex-start', overflow: 'hidden' },
   // Highlight along the top of the fill, so it reads as a rounded surface.

@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +15,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'SubjectExperience'>;
 
 /** Setup screen 1: how much of the chosen subject the student already knows. */
 export function SubjectExperienceScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { courseId, experienceLevelId, setExperienceLevelId } = useOnboarding();
   const [selected, setSelected] = useState<ExperienceLevelId | null>(experienceLevelId);
@@ -29,7 +34,7 @@ export function SubjectExperienceScreen() {
 
   return (
     <ScreenContainer>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
         step={2}
@@ -58,7 +63,7 @@ export function SubjectExperienceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   list: { flex: 1 },
   pad: { height: spacing.giant },
 });

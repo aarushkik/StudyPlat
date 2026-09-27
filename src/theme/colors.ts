@@ -131,6 +131,41 @@ export const colors = {
   white: palette.white,
 } as const;
 
+export type ThemeColors = { [K in keyof typeof colors]: string };
+
+export const darkColors: ThemeColors = {
+  ...colors,
+  ink: '#EDF5F3',
+  border: '#2B4650',
+  background: '#0A1922',
+  surface: '#132832',
+  surfaceSelected: '#143C46',
+  surfaceSunken: '#0F222C',
+  primary: '#42CADB',
+  primaryDeep: '#7CE0EB',
+  primaryTint: '#123741',
+  primaryLight: '#1D4B55',
+  primarySoft: '#143C46',
+  primaryDark: '#7CE0EB',
+  textPrimary: '#EDF5F3',
+  textSecondary: '#ABC1C6',
+  textMuted: '#ABC1C6',
+  textFaint: '#829DA5',
+  textOnPrimary: '#052F37',
+  success: '#6AD398',
+  successDeep: '#9CE8B9',
+  successDark: '#9CE8B9',
+  successSoft: '#173B31',
+  danger: '#F28F76',
+  dangerDark: '#FFB19B',
+  dangerSoft: '#452B2A',
+  locked: '#1B3039',
+  lockedText: '#8BA3AA',
+  disabledBg: '#1B3039',
+  disabledEdge: '#29424B',
+  disabledText: '#8BA3AA',
+};
+
 /**
  * Per-course accent pairs. Courses still colour-code their icon and selected
  * state; these are the old accent keys retuned to sit beside turquoise and ink

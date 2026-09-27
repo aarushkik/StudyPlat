@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Glyph } from '@/components/icons';
@@ -20,6 +21,10 @@ const DIFFICULTY: Record<QuestionDifficulty, { label: string; color: string; tin
 
 /** Renders a question's skill kicker, prompt, optional stimulus, and answers. */
 export function QuestionCard({ question, children }: QuestionCardProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const difficulty = DIFFICULTY[question.difficulty];
 
   return (
@@ -27,7 +32,7 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
       {/* One kicker line rather than two pills. Two coloured chips above every
           question compete with the answers for the same attention, and the
           difficulty is not something a student can act on mid-question. */}
-      <Text style={styles.kicker} numberOfLines={1}>
+      <Text style={styles.kicker}>
         {question.skillTag.toUpperCase()} · {difficulty.label.toUpperCase()}
       </Text>
 
@@ -44,6 +49,10 @@ export function QuestionCard({ question, children }: QuestionCardProps) {
  * a ruled parchment for a passage — so students orient before they read.
  */
 function StimulusBlock({ stimulus }: { stimulus: Stimulus }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   if (stimulus.kind === 'code') {
     return (
       <View style={styles.codeBox}>
@@ -81,7 +90,7 @@ function StimulusBlock({ stimulus }: { stimulus: Stimulus }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   tags: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   skillTag: {
     backgroundColor: colors.primaryTint,
@@ -95,9 +104,10 @@ const styles = StyleSheet.create({
   difficultyText: { ...typography.overline },
   kicker: {
     fontFamily: fonts.bodyBlack,
-    fontSize: 10,
+    fontSize: 11,
+    lineHeight: 17,
     letterSpacing: 1.6,
-    color: colors.primary,
+    color: colors.primaryDeep,
   },
 
   // Baloo at 700, not the heavy 800 the titles use: a question is read, not
@@ -140,7 +150,7 @@ const styles = StyleSheet.create({
   formulaText: { fontSize: 24, fontWeight: '700', color: '#FFF3E6', letterSpacing: 0.5 },
 
   paragraphBox: {
-    backgroundColor: palette.parchment,
+    backgroundColor: colors.background,
     borderRadius: radius.lg,
     borderLeftWidth: 5,
     borderLeftColor: colors.primary,
@@ -154,7 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSunken,
     borderRadius: radius.lg,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',

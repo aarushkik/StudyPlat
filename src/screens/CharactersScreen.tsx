@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossFieldGuide } from "@/components/creatures/BossFieldGuide";
 import { CompanionSprite } from "@/components/creatures/CompanionSprite";
 import React, { useMemo, useState } from "react";
@@ -25,6 +26,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Characters">;
 
 /** The illustrated field guide for companions and guardians. */
 export function CharactersScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { companions, equippedId, equip, map, earned } = useQuest();
   const { width, fontScale } = useWindowDimensions();
@@ -108,7 +113,7 @@ export function CharactersScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <View style={styles.head}>
         <TopBackButton onPress={() => navigation.goBack()} color={colors.ink} />
         <View style={styles.headText}>
@@ -133,6 +138,7 @@ export function CharactersScreen() {
             key={item}
             accessibilityRole="tab"
             accessibilityState={{ selected: page === item }}
+            aria-selected={page === item}
             onPress={() => setPage(item)}
             style={{
               flex: 1,
@@ -141,7 +147,7 @@ export function CharactersScreen() {
               borderRadius: 15,
               borderWidth: 2,
               borderBottomWidth: 4,
-              borderColor: colors.ink,
+              borderColor: colors.border,
               backgroundColor: page === item ? colors.ink : colors.surface,
             }}
           >
@@ -222,7 +228,7 @@ export function CharactersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   safe: {
     flex: 1,
     width: "100%",
@@ -259,16 +265,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingRight: 2,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 24,
-    backgroundColor: palette.turquoiseSky,
+    backgroundColor: colors.primaryTint,
   },
   heroText: { flex: 1, minWidth: 0 },
   eyebrow: {
     fontFamily: fonts.bodyBlack,
     fontSize: 9,
     letterSpacing: 1.3,
-    color: palette.inkSoft,
+    color: colors.textSecondary,
   },
   heroTitle: {
     fontFamily: fonts.displayHeavy,
@@ -281,14 +287,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemibold,
     fontSize: 12,
     lineHeight: 18,
-    color: palette.inkSoft,
+    color: colors.textSecondary,
     marginTop: 5,
   },
   note: {
     marginTop: 14,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 16,
     paddingLeft: 13,
     flexDirection: "row",
@@ -336,7 +342,7 @@ const styles = StyleSheet.create({
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   card: { padding: 15, minHeight: 204, flex: 1 },
-  cardLocked: { backgroundColor: "#F4ECDD" },
+  cardLocked: { backgroundColor: colors.surfaceSunken },
   cardTop: {
     flexDirection: "row",
     alignItems: "flex-start",

@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView, Platform, Pressable, ScrollView,
@@ -20,6 +21,10 @@ type Mode = 'welcome' | 'signIn' | 'signUp' | 'reset';
 
 /** A real offline entry point, with account sync available when wanted. */
 export function SignInScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const {
     signIn, isGuest, signInWithEmail, signUpWithEmail, emailPending, pending, error, clearError,
     continueAsGuest, resetPassword, updatePassword, recovering, cancelRecovery,
@@ -149,12 +154,24 @@ export function SignInScreen() {
 }
 
 function Feature({ icon, label }: { icon: React.ComponentProps<typeof Glyph>['name']; label: string }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return <View style={styles.feature}><Glyph name={icon} size={15} color={palette.turquoiseLight} /><Text style={styles.featureText}>{label}</Text></View>;
 }
 function Message({ text, error = false }: { text: string; error?: boolean }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return <View accessibilityRole={error ? 'alert' : undefined} accessibilityLiveRegion="polite" style={[styles.message, error && styles.error]}><Text style={[styles.messageText, error && styles.errorText]}>{text}</Text></View>;
 }
 function Field({ label, inputRef, ...input }: { label: string; inputRef?: React.RefObject<TextInput | null> } & React.ComponentProps<typeof TextInput>) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const [focused, setFocused] = useState(false);
   return <View style={styles.field}>
     <Text style={styles.fieldLabel}>{label}</Text>
@@ -162,7 +179,7 @@ function Field({ label, inputRef, ...input }: { label: string; inputRef?: React.
   </View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.night }, flex: { flex: 1 },
   scroll: { flexGrow: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
   welcomeScroll: { justifyContent: 'space-between' },

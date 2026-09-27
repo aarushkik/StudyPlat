@@ -26,6 +26,7 @@ import { QuestProvider } from "@/state/QuestContext";
 import { RootNavigator } from "@/navigation/RootNavigator";
 import { ErrorBoundary } from "@/components/ui";
 import { colors } from "@/theme";
+import { ThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
 
 /**
  * App entry point. Loads the brand fonts, then wires up providers, the
@@ -36,20 +37,13 @@ import { colors } from "@/theme";
  * map progress in <QuestProvider>, which reads from it.
  */
 
-// Match the navigation background to our themed cream to avoid white flashes.
-const navTheme: Theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: colors.background,
-    card: colors.surface,
-    primary: colors.primary,
-    text: colors.textPrimary,
-    border: colors.border,
-  },
-};
-
 export default function App() {
+  return <ThemeProvider><ThemedApp /></ThemeProvider>;
+}
+
+function ThemedApp() {
+  const { colors, isDark } = useAppTheme();
+  const navTheme: Theme = { ...DefaultTheme, dark: isDark, colors: { ...DefaultTheme.colors, background: colors.background, card: colors.surface, primary: colors.primary, text: colors.textPrimary, border: colors.border } };
   const [fontsLoaded, fontError] = useFonts({
     // Baloo 2 carries headings, buttons and labels; Figtree carries body copy.
     Baloo2_600SemiBold,

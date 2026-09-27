@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { SelectRow } from '@/components/ui/SelectRow';
 import { colors } from '@/theme';
@@ -15,6 +16,9 @@ interface LevelOptionCardProps {
 
 /** Experience-level option: rising signal bars beside the label. */
 export function LevelOptionCard({ label, bars, hint, selected, onPress }: LevelOptionCardProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+
   return (
     <SelectRow
       leading={<LevelBars filled={bars} color={selected ? colors.primary : colors.ink} />}

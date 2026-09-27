@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +14,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'AchievementPreview'>;
 
 /** Setup screen 3: preview the quest ahead as a milestone timeline. */
 export function AchievementPreviewScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { courseId } = useOnboarding();
 
@@ -22,7 +27,7 @@ export function AchievementPreviewScreen() {
 
   return (
     <ScreenContainer>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
         step={5}
@@ -53,7 +58,7 @@ export function AchievementPreviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   timeline: { flex: 1 },
   pad: { height: spacing.giant },
 });

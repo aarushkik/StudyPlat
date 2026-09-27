@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { accents, colors, fonts } from '@/theme';
@@ -26,6 +27,10 @@ export function CourseCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const accent = accents[course.accent];
 
   return (
@@ -41,6 +46,6 @@ export function CourseCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   abbr: { fontFamily: fonts.displayHeavy, fontSize: 16, letterSpacing: 0.4, color: colors.ink },
 });

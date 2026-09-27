@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -20,6 +21,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'PlacementResult'>;
  * "your map opens at stop 10" makes the result concrete before they ever see it.
  */
 export function PlacementResultScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { courseId, goalScoreId, placementLevelId, markOnboarded } = useOnboarding();
 
@@ -46,7 +51,7 @@ export function PlacementResultScreen() {
 
   return (
     <ScreenContainer padded={false}>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ alignItems: 'center', transform: [{ scale }] }}>
           <Mascot size={182} pose="celebrate" />
@@ -101,6 +106,10 @@ export function PlacementResultScreen() {
 }
 
 function Row({ leading, text }: { leading: React.ReactNode; text: string }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.summaryRow}>
       <View style={styles.rowIcon}>{leading}</View>
@@ -109,7 +118,7 @@ function Row({ leading, text }: { leading: React.ReactNode; text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxl },
   title: { textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
 
@@ -120,7 +129,7 @@ const styles = StyleSheet.create({
   levelCard: {
     borderRadius: 20,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
     padding: spacing.xl,
     alignItems: 'center',
@@ -140,7 +149,7 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: radius.pill,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     backgroundColor: colors.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
@@ -159,13 +168,13 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: -4,
     borderRadius: radius.xl,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
   },
   summary: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
   },

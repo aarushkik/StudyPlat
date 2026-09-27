@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { CompanionSprite } from '@/components/creatures/CompanionSprite';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -38,6 +39,10 @@ interface QuestHudProps {
  * back to swap it.
  */
 export function QuestHud({ streakDays, gems, xp, equippedId, onOpenCharacters }: QuestHudProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const insets = useSafeAreaInsets();
   const companion = companionById(equippedId ?? null);
 
@@ -96,6 +101,10 @@ function Chip({
   unit: string;
   label: string;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.chip} accessible accessibilityLabel={label}>
       <View style={styles.chipTop}>
@@ -107,7 +116,7 @@ function Chip({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -123,14 +132,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 0,
     backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
     paddingHorizontal: 8,
     paddingVertical: 4,
     // The chips are small enough that a real lip would crowd them, so the
     // depth is a bottom border — same colour, same read, no extra layer.
-    borderBottomWidth: 4,
+    borderBottomWidth: 1,
   },
   chipTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   value: { fontFamily: fonts.displayHeavy, fontSize: 18, lineHeight: 22, flexShrink: 1, color: colors.ink },
@@ -145,8 +154,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.ink,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.border,
   },
   avatarPressed: { borderBottomWidth: 0, transform: [{ translateY: 3 }] },
   avatarArt: { width: 38, height: 38, borderRadius: 14 },

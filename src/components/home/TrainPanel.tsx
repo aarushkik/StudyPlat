@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useMemo, useRef } from "react";
 import {
   Animated,
@@ -69,6 +70,10 @@ const MODES: {
 ];
 
 export function TrainPanel() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { xp, skills, map, earned } = useQuest();
   const { courseId } = useOnboarding();
   const navigation = useNavigation<Nav>();
@@ -291,6 +296,10 @@ function Recommended({
   focus: string;
   onStart: () => void;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const press = useRef(new Animated.Value(0)).current;
   const { reduceMotion } = useMotionPreference();
   const c = chunky({
@@ -356,9 +365,9 @@ function Recommended({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
-  scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 26 },
+  scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 130 },
 
   head: { flexDirection: "row", alignItems: "flex-end", gap: 4, marginTop: 6 },
   headText: { flex: 1 },
@@ -372,7 +381,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fonts.bodySemibold,
     fontSize: 13.5,
-    color: palette.mutedDeep,
+    color: colors.textSecondary,
     marginTop: 3,
   },
   headArt: { width: 104, height: 104, marginBottom: -8 },
@@ -462,7 +471,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: palette.sand,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     overflow: "hidden",
   },
   barFill: { height: "100%", backgroundColor: palette.ember },
@@ -476,7 +485,7 @@ const styles = StyleSheet.create({
   // Two per row: half the 375-wide gutter box, less half the 10pt gap.
   gridItem: { width: "48%" },
   modeCard: { padding: 14 },
-  modeCardOff: { backgroundColor: "#F5EEE0" },
+  modeCardOff: { backgroundColor: colors.surfaceSunken },
   modeDim: { opacity: 0.55 },
   modeName: {
     fontFamily: fonts.bodyHeavy,

@@ -1,8 +1,10 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossEncounter } from '@/components/creatures/BossEncounter';
 import { CompanionSprite } from '@/components/creatures/CompanionSprite';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Keyboard,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -13,7 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useRoute, usePreventRemove, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,9 +35,11 @@ import { getPlacementQuiz, questionsForStop, questionsForSkills, placementQuesti
 import { companionById } from '@/data/companions';
 import { scorePlacement, type AnsweredQuestion } from '@/utils/placementScoring';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { useHaptics } from '@/hooks/useHaptics';
 import { sessionClearsStop } from '@/utils/questProgress';
 import { findNode, getQuestMap, questionCountFor } from '@/data/questMap';
 import { isStreakMilestone } from '@/utils/streaks';
+import { choiceCanBeSubmitted, eliminatedChoiceFor } from '@/utils/quizChoices';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { useQuest } from '@/state/QuestContext';
 import type { PlacementQuestion } from '@/types';
@@ -56,9 +60,16 @@ const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
  * back to the map instead of to placement.
  */
 export function QuizScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { params, key: routeKey } = useRoute<Route>();
   const { reduceMotion } = useMotionPreference();
+  const haptic = useHaptics();
+  const insets = useSafeAreaInsets();
+  const questionScroll = useRef<ScrollView>(null);
   const { courseId, setPlacementLevelId, setStartChoice } = useOnboarding();
   const { recordSession, ability, equippedId } = useQuest();
   const companion = companionById(equippedId);
@@ -133,6 +144,7 @@ export function QuizScreen() {
 
   const [phase, setPhase] = useState<'intro' | 'study' | 'quiz'>(stop?.kind === 'lesson' ? 'study' : session ? 'quiz' : 'intro');
   const [index, setIndex] = useState(0);
+  useEffect(() => { questionScroll.current?.scrollTo({ y: 0, animated: false }); }, [index]);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
   const [checked, setChecked] = useState(false);
@@ -185,7 +197,7 @@ export function QuizScreen() {
   const isChoiceBased = !!question?.choices;
   const isLast = !endless && index + 1 >= total;
   const progress = total ? (index + (checked ? 1 : 0)) / total : 0;
-  const canCheck = isChoiceBased ? selectedChoiceId !== null : textAnswer.trim().length > 0;
+  const canCheck = isChoiceBased ? choiceCanBeSubmitted(question, selectedChoiceId, struckId) : textAnswer.trim().length > 0;
 
   const evaluate = (): boolean => {
     if (isChoiceBased) return selectedChoiceId === question.correctAnswerId;
@@ -207,11 +219,11 @@ export function QuizScreen() {
    * option each time and narrow it down for free.
    */
   const strikeOne = () => {
-    if (strikeUsed || !question.choices) return;
-    const wrong = question.choices.filter((c) => c.id !== question.correctAnswerId);
-    if (wrong.length === 0) return;
-    const seed = [...question.id].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-    setStruckId(wrong[seed % wrong.length].id);
+    if (strikeUsed || checked || !question) return;
+    const eliminated = eliminatedChoiceFor(question);
+    if (!eliminated) return;
+    setStruckId(eliminated);
+    if (selectedChoiceId === eliminated) setSelectedChoiceId(null);
     setStrikeUsed(true);
   };
 
@@ -236,7 +248,9 @@ export function QuizScreen() {
   const onCheck = () => {
     if (!question || !canCheck || checked || checking.current || finished.current) return;
     checking.current = true;
+    Keyboard.dismiss();
     const correct = evaluate();
+    haptic(correct ? 'success' : 'retry');
     setIsCorrect(correct);
     setChecked(true);
 
@@ -314,7 +328,7 @@ export function QuizScreen() {
   const companionAction = (() => {
     if (!session || !companion) return null;
     if (ability === 'hint') return { label: 'Hint', spent: hintUsed, onPress: takeHint };
-    if (ability === 'eliminate' && question.choices) {
+    if (ability === 'eliminate' && question?.choices) {
       return { label: 'Rule one out', spent: strikeUsed, onPress: strikeOne };
     }
     return null;
@@ -395,7 +409,7 @@ export function QuizScreen() {
 
   if (phase === 'study') {
     const notes = questions.filter((item, i, all) => all.findIndex((other) => other.skillTag === item.skillTag) === i).slice(0, 4);
-    return <SafeAreaView style={styles.root} edges={['top', 'bottom']}><StatusBar style="dark" />
+    return <SafeAreaView style={styles.root} edges={['top', 'bottom']}><StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={styles.studyContent}>
         <View style={styles.studyHeading}><Mascot size={82} pose="reading" /><View style={{ flex: 1 }}><Text style={typography.overline}>FIELD NOTES</Text><Text style={typography.title}>{session?.title}</Text></View></View>
         <Text style={[typography.body, { marginBottom: 18 }]}>A few ideas to take with you. Read them, then try the practice questions.</Text>
@@ -410,14 +424,14 @@ export function QuizScreen() {
   if (phase === 'intro') {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-        <StatusBar style="dark" />
+        <StatusBar style={appTheme.isDark ? "light" : "dark"} />
         <View style={styles.introTop}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityLabel="Close">
             <Glyph name="close" size={24} color={colors.textMuted} strokeWidth={2.6} />
           </Pressable>
         </View>
 
-        <View style={styles.introBody}>
+        <ScrollView contentContainerStyle={styles.introBody}>
           <Mascot size={200} pose="excited" />
           <View style={styles.introBadge}>
             <Glyph name="compass" size={16} color={colors.primary} strokeWidth={2.4} />
@@ -426,7 +440,7 @@ export function QuizScreen() {
           <Text style={[typography.title, styles.introTitle]}>Let's see where you already are</Text>
           <Text style={[typography.body, styles.introText]}>{quiz.intro}</Text>
           <Text style={styles.introMeta}>{total} questions · about 4 minutes</Text>
-        </View>
+        </ScrollView>
 
         <View style={styles.footer}>
           <AppButton label="Start the quest" icon="play" emphasis onPress={() => { setStartChoice('find_level'); setPhase('quiz'); }} />
@@ -450,7 +464,7 @@ export function QuizScreen() {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.flex} edges={['top']}>
-        <StatusBar style="dark" />
+        <StatusBar style={appTheme.isDark ? "light" : "dark"} />
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.headerWrap}>
             {session ? (
@@ -471,6 +485,7 @@ export function QuizScreen() {
           </View>
 
           <ScrollView
+            ref={questionScroll}
             style={styles.flex}
             contentContainerStyle={styles.scroll}
             showsVerticalScrollIndicator={false}
@@ -490,8 +505,8 @@ export function QuizScreen() {
                       index={i}
                       label={choice.text}
                       state={choiceState(choice.id)}
-                      disabled={checked}
-                      onPress={() => setSelectedChoiceId(choice.id)}
+                      disabled={checked || choice.id === struckId}
+                      onPress={() => { if (choice.id !== struckId) setSelectedChoiceId(choice.id); }}
                     />
                   ))
                 ) : (
@@ -501,6 +516,7 @@ export function QuizScreen() {
                       checked && { borderColor: isCorrect ? colors.success : colors.danger },
                     ]}
                     accessibilityLabel="Your answer"
+                    keyboardAppearance={appTheme.mode}
                     placeholder="Type your answer"
                     placeholderTextColor={colors.textMuted}
                     value={textAnswer}
@@ -528,7 +544,7 @@ export function QuizScreen() {
               }
             />
           ) : (
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.sm }]}>
               {/* What the equipped companion can do on this question, if
                   anything. Absent entirely when there is nothing to offer, so
                   nobody sees a control that does not apply to them. */}
@@ -567,7 +583,7 @@ export function QuizScreen() {
                 </View>
               ) : null}
 
-              <AppButton label="Check" disabled={!canCheck} onPress={onCheck} />
+              <AppButton label="Check answer" disabled={!canCheck} hapticFeedback={false} onPress={onCheck} />
             </View>
           )}
         </KeyboardAvoidingView>
@@ -607,13 +623,13 @@ const REVIEW_BATCH = 5;
 /** What one right answer is worth in an endless review. */
 const REVIEW_XP_EACH = 4;
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   studyContent: { padding: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
   studyHeading: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  studyCard: { padding: 18, borderWidth: 3, borderColor: colors.ink, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
+  studyCard: { padding: 18, borderWidth: 3, borderColor: colors.border, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
   exitBackdrop: { flex: 1, backgroundColor: '#0B2029AA', padding: 24, alignItems: 'center', justifyContent: 'center' },
-  exitCard: { width: '100%', maxWidth: 400, borderWidth: 3, borderColor: colors.ink, borderRadius: 26, backgroundColor: colors.surface, padding: 24 },
+  exitCard: { width: '100%', maxWidth: 400, borderWidth: 3, borderColor: colors.border, borderRadius: 26, backgroundColor: colors.surface, padding: 24 },
 
   companionBar: {
     flexDirection: 'row',
@@ -622,7 +638,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     backgroundColor: colors.surface,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: radius.lg,
     paddingVertical: spacing.sm,
     paddingLeft: spacing.sm,
@@ -634,14 +650,14 @@ const styles = StyleSheet.create({
   companionBtn: {
     backgroundColor: colors.primary,
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   companionBtnPressed: { transform: [{ translateY: 2 }] },
   companionBtnSpent: { backgroundColor: 'transparent', borderColor: 'rgba(18,48,60,0.28)' },
-  companionBtnText: { ...typography.label, fontSize: 11, color: colors.white },
+  companionBtnText: { ...typography.label, fontSize: 11, color: colors.textOnPrimary },
   companionBtnTextSpent: { color: colors.textMuted },
 
   hint: {
@@ -658,7 +674,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
 
   introTop: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
-  introBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  introBody: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, width: '100%', maxWidth: 620, alignSelf: 'center' },
   introBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -676,9 +692,9 @@ const styles = StyleSheet.create({
   skip: { alignSelf: 'center', paddingVertical: spacing.md, marginTop: spacing.xs },
   skipText: { ...typography.bodyStrong, color: colors.textSecondary },
 
-  headerWrap: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
+  headerWrap: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm, width: '100%', maxWidth: 620, alignSelf: 'center' },
   sessionTitle: { ...typography.overline, color: colors.textMuted, marginBottom: spacing.xs, paddingLeft: spacing.xxxl },
-  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.huge },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.huge, width: '100%', maxWidth: 620, alignSelf: 'center' },
 
   input: {
     backgroundColor: colors.surface,
@@ -692,5 +708,5 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 
-  footer: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, paddingBottom: spacing.xxl },
+  footer: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, paddingBottom: spacing.xxl, width: '100%', maxWidth: 620, alignSelf: 'center' },
 });

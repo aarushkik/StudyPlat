@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +14,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'CourseSelection'>;
 
 /** Setup step 1: pick the AP course to study. */
 export function CourseSelectionScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { courseId, setCourseId } = useOnboarding();
   const [selected, setSelected] = useState<string | null>(courseId);
@@ -25,7 +30,7 @@ export function CourseSelectionScreen() {
 
   return (
     <ScreenContainer>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
         step={1}
@@ -52,7 +57,7 @@ export function CourseSelectionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   // A gap under the list so the footer button never sits flush against a
   // card cut off by the scroll edge.
   list: { flex: 1, marginBottom: spacing.md },

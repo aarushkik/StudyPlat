@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -21,6 +22,10 @@ const TAIL = 16;
  * unbroken around the tail instead of stopping at a seam.
  */
 export function SpeechBubble({ text, children, tail = 'bottom', style, textStyle }: SpeechBubbleProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.wrapper}>
       <View style={[styles.bubble, style]}>
@@ -43,13 +48,13 @@ const TAIL_POSITION: Record<Exclude<Tail, 'none'>, ViewStyle> = {
   left: { ...POINT_LEFT, left: -TAIL / 2, top: '50%', marginTop: -TAIL / 2 },
 };
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   wrapper: { alignSelf: 'stretch' },
   bubble: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     zIndex: 2,
@@ -60,7 +65,7 @@ const styles = StyleSheet.create({
     width: TAIL,
     height: TAIL,
     backgroundColor: colors.surface,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     transform: [{ rotate: '45deg' }],
     zIndex: 1,
   },

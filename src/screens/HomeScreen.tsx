@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -15,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Glyph } from '@/components/icons';
 import { AccountSaveCard } from '@/components/account/AccountSaveCard';
+import { SaveStatusNotice } from '@/components/account/SaveStatusNotice';
 import { NextQuestCard } from '@/components/home/NextQuestCard';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { useOnboarding } from '@/state/OnboardingContext';
@@ -56,6 +58,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  * itself as you cross into the next landscape.
  */
 export function HomeScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { width: windowWidth } = useWindowDimensions();
   const width = Math.min(windowWidth, 620);
@@ -67,7 +73,6 @@ export function HomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   /** A track to scroll to once the map tab is visible. See the effect below. */
   const [pendingJump, setPendingJump] = useState<number | null>(null);
-  const [bannerHeight, setBannerHeight] = useState(96);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [awayFromStart, setAwayFromStart] = useState(false);
 
@@ -197,10 +202,10 @@ export function HomeScreen() {
   const getItemLayout = useCallback(
     (_: ArrayLike<QuestUnit> | null | undefined, index: number) => ({
       length: metrics.heights[index] ?? 0,
-      offset: bannerHeight + headerHeight + (metrics.offsets[index] ?? 0),
+      offset: headerHeight + (metrics.offsets[index] ?? 0),
       index,
     }),
-    [metrics, bannerHeight, headerHeight],
+    [metrics, headerHeight],
   );
 
   /**
@@ -239,7 +244,7 @@ export function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <QuestHud
         streakDays={quest.streakDays}
         gems={quest.gems}
@@ -262,7 +267,7 @@ export function HomeScreen() {
             onScroll={onScroll}
             scrollEventThrottle={32}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingTop: bannerHeight, paddingBottom: spacing.xl }}
+            contentContainerStyle={{ paddingBottom: 130 }}
             ListHeaderComponent={
               <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
                 <NextQuestCard
@@ -274,6 +279,7 @@ export function HomeScreen() {
                   active={tab === 'map'}
                 />
                 <AccountSaveCard compact />
+                <SaveStatusNotice />
               </View>
             }
             ListFooterComponent={
@@ -295,9 +301,8 @@ export function HomeScreen() {
           <View
             style={styles.bannerDock}
             pointerEvents="box-none"
-            onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}
           >
-            {activeUnit ? (
+            {awayFromStart && activeUnit ? (
               <UnitBanner
                 unit={activeUnit}
                 cleared={activeUnit.nodes.filter((n) => completedSet.has(n.id)).length}
@@ -311,7 +316,7 @@ export function HomeScreen() {
               onPress={() => setSelected(currentNode)}
               style={({ pressed }) => [styles.continueDock, pressed && { opacity: 0.88 }]}
             >
-              <Glyph name="play" size={17} color={colors.ink} />
+              <Glyph name="play" size={17} color={colors.textOnPrimary} />
               <Text style={styles.continueText}>Next quest</Text>
             </Pressable>
           ) : null}
@@ -401,6 +406,10 @@ function TabFade({ children, style }: { children: React.ReactNode; style?: objec
  * when it has actually been earned.
  */
 function TrailEnd({ cleared, total, tracks }: { cleared: number; total: number; tracks: number }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const done = total > 0 && cleared >= total;
 
   if (done) {
@@ -435,7 +444,7 @@ function TrailEnd({ cleared, total, tracks }: { cleared: number; total: number; 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   root: { flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', backgroundColor: colors.background },
   mapArea: { flex: 1 },
   hidden: { display: 'none' },
@@ -446,10 +455,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingTop: 0,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
-  continueDock: { position: 'absolute', bottom: 16, right: 18, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.current, borderWidth: 3, borderBottomWidth: 6, borderColor: colors.ink, borderRadius: 18, minHeight: 48, paddingHorizontal: 16 },
-  continueText: { fontFamily: fonts.bodyHeavy, fontSize: 13, color: colors.ink },
+  continueDock: { position: 'absolute', bottom: 116, right: 18, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.current, borderWidth: 1, borderColor: colors.border, borderRadius: 24, minHeight: 48, paddingHorizontal: 16, boxShadow: '0 5px 18px rgba(0,0,0,0.16)' },
+  continueText: { fontFamily: fonts.bodyHeavy, fontSize: 13, color: colors.textOnPrimary },
 
   end: {
     alignItems: 'center',

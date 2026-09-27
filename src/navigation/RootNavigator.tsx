@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
@@ -36,6 +37,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * hidden; every screen supplies its own back or close control.
  */
 export function RootNavigator() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { session, isGuest, restoring, recovering, signOut } = useAuth();
   const { reduceMotion } = useMotionPreference();
   const identity = session?.user.id ?? (isGuest ? 'guest' : 'signed-out');
@@ -96,7 +101,7 @@ export function RootNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   holding: { flex: 1, backgroundColor: palette.night, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16 },
   title: { fontFamily: fonts.displayHeavy, fontSize: 24, color: palette.cream, textAlign: 'center' },
   message: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: '#BDD2D6', maxWidth: 380, textAlign: 'center' },

@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { colors, typography } from '@/theme';
@@ -14,6 +15,10 @@ interface StreakBadgeProps {
  * The parent reserves vertical space so the bar never jumps.
  */
 export function StreakBadge({ streakCount, visible }: StreakBadgeProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
 
   return (
     <Animated.Text
@@ -25,7 +30,7 @@ export function StreakBadge({ streakCount, visible }: StreakBadgeProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   label: {
     ...typography.label,
     color: colors.primary,

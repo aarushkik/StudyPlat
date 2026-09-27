@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
@@ -38,6 +39,10 @@ export function ChunkyCard({
   contentStyle,
   accessibilityLabel,
 }: ChunkyCardProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { motionEnabled } = useMotionPreference();
   const press = useRef(new Animated.Value(0)).current;
   const c = chunky({
@@ -103,13 +108,17 @@ interface StatChipProps {
 }
 
 /** A small boxed number with a caption. Used in rows of three or four. */
-export function StatChip({ value, label, color = colors.ink, style }: StatChipProps) {
+export function StatChip({ value, label, color, style }: StatChipProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const c = chunky({ depth: depth.chip, radius: chunkyRadius.chip });
   return (
     <View style={[c.wrap, styles.flex, style]}>
       <View style={c.lip} />
       <View style={[c.face, styles.chipFace]}>
-        <Text style={[typography.stat, styles.chipValue, { color }]} numberOfLines={1}>
+        <Text style={[typography.stat, styles.chipValue, { color: color ?? colors.ink }]} numberOfLines={1}>
           {value}
         </Text>
         <Text style={styles.chipLabel} numberOfLines={1}>
@@ -130,6 +139,10 @@ interface PrizeChipProps {
 
 /** What a session paid out. Sits on both grounds, so it flips its own fill. */
 export function PrizeChip({ title, subtitle, onNight = false, style }: PrizeChipProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const c = chunky({
     depth: depth.prize,
     radius: chunkyRadius.prize,
@@ -138,7 +151,7 @@ export function PrizeChip({ title, subtitle, onNight = false, style }: PrizeChip
   return (
     <View style={[c.wrap, styles.flex, style]}>
       <View style={c.lip} />
-      <View style={[c.face, styles.prizeFace, onNight && { backgroundColor: colors.ink }]}>
+      <View style={[c.face, styles.prizeFace, onNight && { backgroundColor: colors.nightRaised }]}>
         <Text style={[styles.prizeTitle, onNight && { color: colors.gold }]} numberOfLines={1}>
           {title}
         </Text>
@@ -163,6 +176,10 @@ interface SegmentedProgressProps {
 
 /** A bordered progress track. Ink outline so it matches everything else. */
 export function SegmentedProgress({ value, color = colors.primary, height = 14, style }: SegmentedProgressProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const pct = `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%` as const;
   return (
     <View style={[styles.track, { height, borderRadius: height }, style]}>
@@ -171,7 +188,7 @@ export function SegmentedProgress({ value, color = colors.primary, height = 14, 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
 
   chipFace: { paddingVertical: 10, paddingHorizontal: spacing.sm, alignItems: 'center' },
@@ -186,7 +203,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: colors.disabledBg,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   fill: { height: '100%' },

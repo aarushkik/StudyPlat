@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossSprite } from '@/components/creatures/BossSprite';
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -149,6 +150,10 @@ export function trackHeight(
 export const TrailSegment = React.memo(TrailSegmentImpl);
 
 function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onReview, animated = true }: TrailSegmentProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { track } = unit;
   const { stops, boss, bossTop, height } = useMemo(
     () => layout(unit, mode, stateOf, width),
@@ -169,9 +174,9 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onR
       style={{
         width,
         height,
-        backgroundColor: track.sky,
+        backgroundColor: appTheme.isDark ? colors.surfaceSunken : track.sky,
         borderTopWidth: 3,
-        borderTopColor: colors.ink,
+        borderTopColor: colors.border,
         overflow: 'hidden',
       }}
     >
@@ -267,6 +272,10 @@ function TrailSegmentImpl({ unit, width, mode, nextPlace, stateOf, onSelect, onR
  * as a stamp pressed onto the card rather than another label.
  */
 function Plaque({ unit, mode, cleared }: { unit: QuestUnit; mode: TrackMode; cleared: number }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { track } = unit;
   const n = track.n < 10 ? `0${track.n}` : `${track.n}`;
 
@@ -310,6 +319,10 @@ function Plaque({ unit, mode, cleared }: { unit: QuestUnit; mode: TrackMode; cle
 
 /** A cleared track's stops, compressed to one filled pip each. */
 function Pips({ track, count }: { track: QuestUnit['track']; count: number }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.pipRow}>
       {Array.from({ length: count }, (_, i) => (
@@ -321,6 +334,10 @@ function Pips({ track, count }: { track: QuestUnit['track']; count: number }) {
 
 /** A locked track: four dashed pips and when it opens. */
 function LockedStub({ unit }: { unit: QuestUnit }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.lockWrap}>
       <View style={styles.pipRowTight}>
@@ -357,6 +374,10 @@ function LockedStub({ unit }: { unit: QuestUnit }) {
  * card that looks tappable-and-progressing would promise otherwise.
  */
 function ReviewDock({ unit, onPress }: { unit: QuestUnit; onPress: () => void }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.reviewWrap}>
       <View style={[styles.reviewLip, { backgroundColor: unit.track.dark }]} />
@@ -395,6 +416,10 @@ function GateBossCard({
   nextPlace?: string;
   onPress: () => void;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -419,7 +444,7 @@ function GateBossCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   head: { paddingTop: PAD_TOP },
 
   reviewWrap: { position: 'relative', marginHorizontal: 16, marginTop: 16, marginBottom: 6 },
@@ -430,7 +455,7 @@ const styles = StyleSheet.create({
     gap: 12,
     height: 78,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 22,
     paddingHorizontal: 14,
   },
@@ -440,7 +465,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -463,7 +488,7 @@ const styles = StyleSheet.create({
     top: PLAQUE_LIP,
     height: PLAQUE_FACE,
     borderRadius: 24,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
   },
   plaque: {
     height: PLAQUE_FACE,
@@ -472,13 +497,13 @@ const styles = StyleSheet.create({
     gap: 11,
     backgroundColor: colors.surface,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 24,
     paddingHorizontal: 12,
   },
   num: {
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 15,
     paddingHorizontal: 9,
     paddingVertical: 2,
@@ -489,7 +514,7 @@ const styles = StyleSheet.create({
   topic: { fontFamily: fonts.bodyBold, fontSize: 11.5, lineHeight: 15, color: colors.textSecondary, marginTop: 1 },
   stamp: {
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 13,
     paddingHorizontal: 9,
     paddingVertical: 5,
@@ -504,7 +529,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   pipRowTight: { flexDirection: 'row', gap: PIP_GAP },
-  pip: { width: PIP, height: PIP, borderRadius: PIP / 2, borderWidth: 3, borderColor: colors.ink },
+  pip: { width: PIP, height: PIP, borderRadius: PIP / 2, borderWidth: 3, borderColor: colors.border },
   pipEmpty: {
     width: 18,
     height: 18,
@@ -532,7 +557,7 @@ const styles = StyleSheet.create({
     top: 7,
     height: 94,
     borderRadius: 30,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
   },
   bossFace: {
     height: 94,
@@ -541,7 +566,7 @@ const styles = StyleSheet.create({
     gap: 14,
     backgroundColor: '#3B2A57',
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 30,
     paddingHorizontal: 16,
     overflow: 'hidden',
@@ -552,7 +577,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: palette.violet,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },

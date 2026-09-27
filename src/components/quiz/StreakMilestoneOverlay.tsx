@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
 import { Glyph } from '@/components/icons';
@@ -14,6 +15,10 @@ interface StreakMilestoneOverlayProps {
 
 /** A compact celebration triggered by an answer streak; never covers the quiz. */
 export function StreakMilestoneOverlay({ visible, streakCount, onAnimationComplete }: StreakMilestoneOverlayProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { motionEnabled } = useMotionPreference();
   const opacity = useRef(new Animated.Value(0)).current;
   const complete = useRef(onAnimationComplete);
@@ -37,7 +42,7 @@ export function StreakMilestoneOverlay({ visible, streakCount, onAnimationComple
     </Animated.View>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   badge: { position: 'absolute', top: 62, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 16, borderWidth: 2, borderBottomWidth: 4, borderColor: colors.textPrimary, backgroundColor: colors.surface, borderRadius: 24 },
   label: { fontFamily: fonts.displayBold, fontSize: 16, color: colors.textPrimary },
 });

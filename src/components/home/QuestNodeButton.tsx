@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { BossSprite } from '@/components/creatures/BossSprite';
 import React, { useEffect, useRef } from 'react';
@@ -43,6 +44,10 @@ interface QuestNodeButtonProps {
 }
 
 export function QuestNodeButton({ node, state, track, onPress, animated = true }: QuestNodeButtonProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { motionEnabled } = useMotionPreference();
   const current = state === 'current';
   const done = state === 'complete';
@@ -52,7 +57,7 @@ export function QuestNodeButton({ node, state, track, onPress, animated = true }
   const lip = current ? CURRENT_LIP : LIP;
 
   const fill = done ? track.deep : current ? colors.current : locked ? colors.locked : colors.surface;
-  const shadow = done ? track.dark : current ? colors.currentDeep : colors.ink;
+  const shadow = done ? track.dark : current ? colors.currentDeep : colors.border;
 
   const press = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -163,17 +168,21 @@ const STATE_LABEL: Record<QuestNodeState, string> = {
 
 /** Kind remains visible on locked stops so the path reads as a varied itinerary. */
 function Emblem({ node, state, size }: {node:QuestNode;state:QuestNodeState;track:TrackTheme;size:number}) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   if (node.kind === 'boss') return <BossSprite nodeId={node.id} size={size * 0.96} dim={state === 'locked'} />;
   const icon: Record<string,GlyphName> = {lesson:'book',drill:'bolt',study:'target',bonus:'sparkle'};
-  return <View style={{opacity:state === 'locked' ? 0.42 : 1}}><Glyph name={state === 'complete' ? 'check' : icon[node.kind]} size={size * 0.4} color={state === 'complete' ? colors.white : colors.ink} strokeWidth={2.6}/></View>;
+  return <View style={{opacity:state === 'locked' ? 0.6 : 1}}><Glyph name={state === 'complete' ? 'check' : icon[node.kind]} size={size * 0.4} color={state === 'complete' ? colors.white : state === 'current' ? colors.textOnPrimary : colors.textPrimary} strokeWidth={2.6}/></View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   slot: { alignItems: 'center' },
   lip: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   face: {
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     // Clips the highlight into a crescent. See `glossRound`.
@@ -189,7 +198,7 @@ const styles = StyleSheet.create({
   flag: {
     position: 'absolute',
     top: -34,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 5,

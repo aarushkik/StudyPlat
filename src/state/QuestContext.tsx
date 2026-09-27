@@ -40,6 +40,8 @@ interface QuestContextValue {
   /** Raw counter at the last session, retained for streak shield decisions. */
   storedStreakDays: number;
   todayCount: number;
+  /** Count associated with lastSessionOn; display-only midnight resets are not persisted. */
+  storedTodayCount: number;
   dailyGoal: number;
   /** Bank once per quiz route. Empty attempts and locked stops are rejected. */
   recordSession: (earnedXp: number, nodeId?: string, answers?: AnswerOutcome[], sessionId?: string) => boolean;
@@ -142,7 +144,6 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
     if (next.streakShieldUsed !== undefined) restored.streakShieldUsed = Boolean(next.streakShieldUsed);
     restored.perfectSessions = Math.min(restored.sessions, restored.perfectSessions);
     restored.bestStreak = Math.max(restored.bestStreak, restored.streakDays);
-    if (restored.lastSessionOn !== todayKey()) restored.todayCount = 0;
     if (next.equippedId !== undefined) setEquippedRaw(next.equippedId ?? STARTER_COMPANION_ID);
     commit(restored);
   }, [commit]);
@@ -155,7 +156,7 @@ export function QuestProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<QuestContextValue>(() => ({
     map, completed, currentNodeId, stateOf,
-    ...progress, streakDays, storedStreakDays: progress.streakDays, todayCount, dailyGoal: 3,
+    ...progress, streakDays, storedStreakDays: progress.streakDays, storedTodayCount: progress.todayCount, todayCount, dailyGoal: 3,
     companions, equippedId, equip, ability, recordSession, hydrate, reset,
   }), [map, completed, progress, currentNodeId, stateOf, streakDays, todayCount, companions, equippedId, equip, ability, recordSession, hydrate, reset]);
   return <QuestContext.Provider value={value}>{children}</QuestContext.Provider>;

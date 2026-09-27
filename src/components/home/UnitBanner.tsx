@@ -1,8 +1,10 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '@/theme';
 import { isLightTrack } from '@/data/tracks';
 import type { QuestUnit } from '@/types/quest';
+import { GlassSurface } from '@/components/ui/GlassSurface';
 
 interface UnitBannerProps {
   unit: QuestUnit;
@@ -22,14 +24,18 @@ interface UnitBannerProps {
  * slate is unreadable.
  */
 export function UnitBanner({ unit, cleared }: UnitBannerProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { track } = unit;
   const light = isLightTrack(track.deep);
-  const ink = light ? colors.ink : colors.surface;
-  const sub = light ? 'rgba(18,48,60,0.70)' : 'rgba(255,255,255,0.82)';
+  const ink = colors.textPrimary;
+  const sub = colors.textSecondary;
   const n = track.n < 10 ? `0${track.n}` : `${track.n}`;
 
   return (
-    <View style={[styles.bar, { backgroundColor: track.deep }]}>
+    <GlassSurface style={styles.bar}>
       <View style={styles.body}>
         <Text style={[styles.kicker, { color: sub }]} numberOfLines={1}>
           TRACK {n} · {track.place.toUpperCase()}
@@ -43,28 +49,28 @@ export function UnitBanner({ unit, cleared }: UnitBannerProps) {
           {cleared}/{unit.nodes.length}
         </Text>
       </View>
-    </View>
+    </GlassSurface>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    borderTopWidth: 3,
-    borderBottomWidth: 3,
-    borderColor: colors.ink,
+    marginHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 22,
   },
   body: { flex: 1, minWidth: 0 },
   kicker: { fontFamily: fonts.bodyBlack, fontSize: 10, lineHeight: 13, letterSpacing: 1.6 },
   title: { fontFamily: fonts.displayHeavy, fontSize: 19, lineHeight: 21, marginTop: 1 },
   counter: {
     backgroundColor: colors.background,
-    borderWidth: 3,
-    borderColor: colors.ink,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 11,
     paddingHorizontal: 10,
     paddingVertical: 3,

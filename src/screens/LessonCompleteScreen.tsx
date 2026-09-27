@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossSprite } from "@/components/creatures/BossSprite";
 import { bossForNode } from "@/data/bosses";
 import React, { useEffect, useRef } from "react";
@@ -15,6 +16,7 @@ import { Glyph, type GlyphName } from "@/components/icons";
 import { Mascot } from "@/components/Mascot";
 import { colors, radius, spacing, typography } from "@/theme";
 import { AccountSaveCard } from "@/components/account/AccountSaveCard";
+import { SaveStatusNotice } from "@/components/account/SaveStatusNotice";
 import { useMotionPreference } from "@/hooks/useMotionPreference";
 import { useQuest } from "@/state/QuestContext";
 import type { RootStackParamList } from "@/navigation/types";
@@ -28,6 +30,10 @@ type Route = RouteProp<RootStackParamList, "LessonComplete">;
  * screen should feel like a reward, not a report card.
  */
 export function LessonCompleteScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Route>();
   const { streakDays } = useQuest();
@@ -53,7 +59,7 @@ export function LessonCompleteScreen() {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <StatusBar style="dark" />
+        <StatusBar style={appTheme.isDark ? "light" : "dark"} />
 
         <ScrollView
           contentContainerStyle={styles.body}
@@ -67,7 +73,7 @@ export function LessonCompleteScreen() {
                   <View
                     style={[
                       styles.clearedStamp,
-                      { backgroundColor: boss.light },
+                      { backgroundColor: appTheme.isDark ? colors.primaryTint : boss.light },
                     ]}
                   >
                     <Glyph name="check" size={17} color={colors.successDeep} />
@@ -129,6 +135,7 @@ export function LessonCompleteScreen() {
                   : verdict.note}
             </Text>
             <AccountSaveCard reminder />
+            <SaveStatusNotice />
           </Animated.View>
         </ScrollView>
 
@@ -182,6 +189,10 @@ function Stat({
   value: string;
   label: string;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.stat}>
       <Glyph name={glyph} size={22} color={color} strokeWidth={2.2} />
@@ -191,7 +202,7 @@ function Stat({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   safe: { flex: 1 },
   body: {
@@ -213,7 +224,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
   },
   copy: { alignItems: "center", alignSelf: "stretch" },
   headline: { textAlign: "center", marginTop: spacing.md },
@@ -231,17 +242,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    top: 6,
-    bottom: -6,
+    top: 3,
+    bottom: -3,
     borderRadius: radius.xxl,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.border,
   },
   stats: {
     flexDirection: "row",
     backgroundColor: colors.surface,
     borderRadius: radius.xxl,
-    borderWidth: 3,
-    borderColor: colors.ink,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     paddingVertical: spacing.lg,
   },
   stat: { flex: 1, alignItems: "center", gap: 2 },

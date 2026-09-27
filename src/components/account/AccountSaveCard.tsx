@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +12,10 @@ const REMINDER_KEY = 'studyplat.account-reminder';
 /** Permanent in Profile; a dismissible reminder after the first study session
  * and then after five more sessions, at most once per day. No modal interrupts. */
 export function AccountSaveCard({ reminder = false, compact = false }: { reminder?: boolean; compact?: boolean }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { isGuest } = useAuth();
   const { sessions } = useQuest();
   const navigation = useNavigation();
@@ -42,8 +47,8 @@ export function AccountSaveCard({ reminder = false, compact = false }: { reminde
     </Pressable>
   </View>;
 }
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.primaryTint, borderWidth: 2, borderColor: colors.ink, borderRadius: 20, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, marginVertical: 12 },
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+  card: { backgroundColor: colors.primaryTint, borderWidth: 2, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, marginVertical: 12 },
   compact: { marginHorizontal: 18, marginTop: 0 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   title: { flex: 1, fontFamily: fonts.displayBold, fontSize: 17, lineHeight: 22, color: colors.ink },

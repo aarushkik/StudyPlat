@@ -4,6 +4,7 @@ import { EMPTY_PROFILE, fetchProfile, saveProfile, type Profile } from '@/lib/pr
 import { GUEST_MODE_KEY, GUEST_PROFILE_ID, clearProfileCache, readProfileCache, registerProfileWriter, writeProfileCache, type CachedProfile } from '@/lib/profileCache';
 import { mergeGuestProfile, mergeProfile } from '@/lib/profileMerge';
 import { deviceStorage } from '@/lib/storage';
+import { createSaveQueue } from '@/lib/saveQueue';
 import * as Crypto from 'expo-crypto';
 import { useAuth } from './AuthContext';
 import { useOnboarding } from './OnboardingContext';
@@ -32,10 +33,14 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const retry = useCallback(() => setAttempt((n) => n + 1), []);
   const controls = useRef({ onboarding, quest });
   controls.current = { onboarding, quest };
   const writer = useRef<{ id: string; update: (profile: Profile) => void; flush: () => Promise<void> } | null>(null);
+  const retry = useCallback(() => {
+    // Never replace a live, unsaved snapshot with an older copy from disk.
+    if (writer.current) void writer.current.flush().catch(() => undefined);
+    else setAttempt((n) => n + 1);
+  }, []);
 
   const snapshot = useMemo<Profile>(() => ({
     courseId: onboarding.courseId,
@@ -50,19 +55,32 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
     lastSessionOn: quest.lastSessionOn,
     completedStops: quest.earned,
     skills: quest.skills,
-    todayCount: quest.todayCount,
+    todayCount: quest.storedTodayCount,
     sessions: quest.sessions,
     perfectSessions: quest.perfectSessions,
     bestStreak: quest.bestStreak,
     equippedId: quest.equippedId,
     streakShieldUsed: quest.streakShieldUsed,
-  }), [onboarding.courseId, onboarding.experienceLevelId, onboarding.goalScoreId, onboarding.examTimeframeId, onboarding.placementLevelId, onboarding.onboarded, quest.xp, quest.gems, quest.storedStreakDays, quest.lastSessionOn, quest.earned, quest.skills, quest.todayCount, quest.sessions, quest.perfectSessions, quest.bestStreak, quest.equippedId, quest.streakShieldUsed]);
+  }), [onboarding.courseId, onboarding.experienceLevelId, onboarding.goalScoreId, onboarding.examTimeframeId, onboarding.placementLevelId, onboarding.onboarded, quest.xp, quest.gems, quest.storedStreakDays, quest.lastSessionOn, quest.earned, quest.skills, quest.storedTodayCount, quest.sessions, quest.perfectSessions, quest.bestStreak, quest.equippedId, quest.streakShieldUsed]);
 
   useEffect(() => {
     let alive = true;
     let cache: CachedProfile | null = null;
     let remoteKnown = id === GUEST_PROFILE_ID;
-    let localWrites: Promise<void> = Promise.resolve();
+    let networkOffline = false;
+    let localFailure = false;
+    const markNetwork = (ok: boolean) => { networkOffline = !ok; if (alive) setOffline(networkOffline || localFailure); };
+    const localWrites = createSaveQueue<CachedProfile>(async (value) => {
+      try {
+        await writeProfileCache(id!, value);
+        localFailure = false;
+        if (alive) { setError(null); setOffline(networkOffline); }
+      } catch (reason) {
+        localFailure = true;
+        if (alive) { setOffline(true); setError('Your device could not save your latest progress. Keep the app open, free some storage, and retry.'); }
+        throw reason;
+      }
+    });
     let remoteWrite: Promise<void> | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let unregister: (() => void) | undefined;
@@ -89,11 +107,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
     };
     const persist = () => {
       if (!alive || !cache) return;
-      const value = { ...cache };
-      localWrites = localWrites.catch(() => undefined).then(() => writeProfileCache(id, value));
-      void localWrites.catch(() => {
-        if (alive) { setOffline(true); setError('Your device could not save your latest progress. Free some storage and try again.'); }
-      });
+      void localWrites.save({ ...cache }).catch(() => undefined);
     };
     const stop = () => {
       alive = false;
@@ -103,7 +117,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
     const flush = async () => {
       if (!alive) return;
       if (timer) clearTimeout(timer);
-      await localWrites;
+      await localWrites.flush();
       if (remoteWrite) { await remoteWrite; return flush(); }
       if (!cache?.dirty || id === GUEST_PROFILE_ID) return;
       remoteWrite = (async () => {
@@ -112,7 +126,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         if (!remoteKnown && !cache?.pendingMutation) {
           const result = await fetchProfile(id);
           if (!alive) return;
-          if (!result.ok) { setOffline(true); return; }
+          if (!result.ok) { markNetwork(false); return; }
           const remote = result.profile ?? EMPTY_PROFILE;
           cache = { ...cache!, version: 1, profile: mergeProfile(cache!.profile, cache!.baseline, remote), baseline: remote, dirty: true };
           remoteKnown = true;
@@ -124,18 +138,17 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
           cache = { ...cache, pendingMutation: { id: Crypto.randomUUID(), profile: cache.profile, baseline: cache.baseline ?? EMPTY_PROFILE } };
           persist();
           // Never send a new mutation until its retry ID is durable locally.
-          await localWrites;
+          await localWrites.flush();
         }
         const pending = cache.pendingMutation!;
         const result = await saveProfile(id, pending.profile, pending.baseline, pending.id);
         if (!alive) return;
-        setOffline(!result.ok);
+        markNetwork(result.ok);
         if (result.ok && result.profile && cache) {
           const merged = mergeProfile(cache.profile, pending.profile, result.profile);
           cache = { ...cache, profile: merged, baseline: result.profile, pendingMutation: undefined, dirty: JSON.stringify(merged) !== JSON.stringify(result.profile) };
           hydrate(merged);
           persist();
-          setError(null);
           if (cache.dirty) timer = setTimeout(() => { void flush().catch(() => undefined); }, 900);
         }
 
@@ -154,7 +167,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
           const result = await fetchProfile(id);
           if (!alive) return;
           remoteKnown = result.ok;
-          setOffline(!result.ok);
+          markNetwork(result.ok);
           if (result.ok) {
             const remote = result.profile ?? EMPTY_PROFILE;
             cache = { ...cache, version: 1, profile: cache?.pendingMutation ? cache.profile : cache?.dirty ? mergeProfile(cache.profile, cache.baseline, remote) : remote, baseline: cache?.pendingMutation ? cache.baseline : remote, dirty: cache?.dirty ?? !result.profile };
@@ -199,7 +212,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
           },
           flush,
         };
-        unregister = registerProfileWriter({ id, flush, stop, drain: () => localWrites });
+        unregister = registerProfileWriter({ id, flush, stop, drain: localWrites.flush });
         setLoading(false);
         setLoadedId(id);
         if (cache?.dirty) void flush().catch(() => undefined);
@@ -220,7 +233,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
         const baselineAtFetch = cache.baseline;
         const result = await fetchProfile(id);
         if (!alive || !cache) return;
-        setOffline(!result.ok);
+        markNetwork(result.ok);
         if (result.ok && result.profile && !cache.pendingMutation && cache.baseline === baselineAtFetch) {
           const merged = mergeProfile(cache.profile, cache.baseline, result.profile);
           cache = { ...cache, profile: merged, baseline: result.profile };

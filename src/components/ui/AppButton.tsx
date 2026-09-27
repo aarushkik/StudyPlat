@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { chunky, chunkyRadius, colors, depth, gloss, spacing, spring, typography } from '@/theme';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { useHaptics } from '@/hooks/useHaptics';
 
 export type ButtonTone = 'primary' | 'secondary' | 'ghost' | 'gold' | 'success' | 'danger';
 type Size = 'md' | 'lg';
@@ -14,6 +16,7 @@ interface AppButtonProps {
   size?: Size;
   disabled?: boolean;
   loading?: boolean;
+  hapticFeedback?: boolean;
   /** Optional glyph shown before the label. */
   icon?: GlyphName;
   /**
@@ -42,13 +45,22 @@ export function AppButton({
   size = 'lg',
   disabled = false,
   loading = false,
+  hapticFeedback = true,
   icon,
   style,
 }: AppButtonProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+  const SCHEMES = makeSCHEMES(appTheme);
+
   const press = useRef(new Animated.Value(0)).current;
+  const [focused, setFocused] = useState(false);
+  const haptic = useHaptics();
   const { reduceMotion } = useMotionPreference();
   const inactive = disabled || loading;
   const scheme = inactive ? SCHEMES.disabled : SCHEMES[tone];
+  useEffect(() => () => press.stopAnimation(), [press]);
 
   const c = chunky({ depth: depth.button, radius: chunkyRadius.button, shadow: scheme.lip });
 
@@ -72,8 +84,10 @@ export function AppButton({
       disabled={inactive}
       onPressIn={() => to(1)}
       onPressOut={() => to(0)}
-      onPress={onPress}
-      style={[c.wrap, style]}
+      onPress={() => { if (hapticFeedback) haptic(); onPress?.(); }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[c.wrap, style, focused && styles.focused]}
     >
       <View style={[c.lip, tone === 'ghost' && styles.hidden]} />
       <Animated.View
@@ -82,7 +96,7 @@ export function AppButton({
           styles.face,
           {
             backgroundColor: scheme.fill,
-            borderColor: tone === 'ghost' ? 'transparent' : colors.ink,
+            borderColor: tone === 'ghost' ? 'transparent' : colors.border,
             paddingVertical: pad,
             transform: [{ translateY }],
           },
@@ -90,7 +104,7 @@ export function AppButton({
       >
         {/* Only the coloured tones get the highlight. On the cream secondary
             button white-on-white is invisible, and on ghost there is no face. */}
-        {tone === 'primary' || tone === 'gold' || tone === 'danger' ? (
+        {!inactive && (tone === 'primary' || tone === 'gold' || tone === 'danger') ? (
           <View pointerEvents="none" style={gloss(chunkyRadius.button)} />
         ) : null}
 
@@ -99,7 +113,7 @@ export function AppButton({
         ) : (
           <View style={styles.row}>
             {icon ? <Glyph name={icon} size={18} color={scheme.text} strokeWidth={2.6} /> : null}
-            <Text style={[typography.button, { color: scheme.text, textAlign: 'center', flexShrink: 1 }]}>
+            <Text style={[typography.button, { color: scheme.text, textAlign: 'center', flexShrink: 1, textTransform: 'none', letterSpacing: 0.2 }]}>
               {label}
             </Text>
           </View>
@@ -111,21 +125,23 @@ export function AppButton({
 
 type Scheme = { fill: string; lip: string; text: string };
 
-const SCHEMES: Record<ButtonTone | 'disabled', Scheme> = {
+const makeSCHEMES = ({ colors }: AppTheme): Record<ButtonTone | 'disabled', Scheme> => ({
   primary: { fill: colors.primary, lip: colors.ink, text: colors.textOnPrimary },
   secondary: { fill: colors.surface, lip: colors.ink, text: colors.ink },
-  gold: { fill: colors.gold, lip: colors.currentDeep, text: colors.ink },
-  success: { fill: colors.success, lip: colors.successDeep, text: colors.white },
-  danger: { fill: colors.danger, lip: colors.dangerDark, text: colors.white },
+  gold: { fill: colors.gold, lip: colors.currentDeep, text: colors.textOnPrimary },
+  success: { fill: '#2A6E45', lip: colors.border, text: colors.white },
+  danger: { fill: '#A93B1C', lip: colors.border, text: colors.white },
   ghost: { fill: 'transparent', lip: 'transparent', text: colors.textSecondary },
   disabled: { fill: colors.disabledBg, lip: colors.disabledEdge, text: colors.disabledText },
-};
+});
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+  focused: { outlineColor: colors.primaryDeep, outlineStyle: 'solid', outlineWidth: 3, outlineOffset: 4 },
   // Clips the highlight. React Native clamps a corner radius to half the
   // shorter side, so on a short button the gloss's own corners would be
   // rounder than the face can show and would bulge past the ink.
   face: {
+    minHeight: 48,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',

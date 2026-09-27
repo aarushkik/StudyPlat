@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useAppTheme } from '@/theme/ThemeProvider';
 import { StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { SkylineKind } from '@/data/tracks';
@@ -222,6 +223,7 @@ interface TrackSceneryProps {
 export const TrackScenery = React.memo(TrackSceneryImpl);
 
 function TrackSceneryImpl({ kind, color, width, height, seed }: TrackSceneryProps) {
+  const { isDark } = useAppTheme();
   const scale = width / DESIGN_WIDTH;
 
   const { motifs, landmarks, drifts } = useMemo(() => {
@@ -279,7 +281,7 @@ function TrackSceneryImpl({ kind, color, width, height, seed }: TrackSceneryProp
     <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={width} height={height}>
       <Defs>
         <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.5} />
+          <Stop offset="0" stopColor={isDark ? '#42CADB' : '#FFFFFF'} stopOpacity={isDark ? 0.08 : 0.5} />
           <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
         </LinearGradient>
       </Defs>

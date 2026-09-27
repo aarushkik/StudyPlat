@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -5,6 +6,10 @@ import { colors, fonts } from '@/theme';
 import type { AuthProvider } from '@/state/AuthContext';
 
 export function ProviderButton({ provider, busy, disabled, onPress }: { provider: AuthProvider; busy: boolean; disabled: boolean; onPress: () => void }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const label = `Continue with ${provider === 'azure' ? 'Microsoft' : provider === 'apple' ? 'Apple' : 'Google'}`;
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, busy }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed, disabled && !busy && styles.disabled]}>
     {busy ? <ActivityIndicator color={colors.ink} /> : <View style={styles.row}>
@@ -37,8 +42,8 @@ function MicrosoftMark() {
   );
 }
 
-const styles = StyleSheet.create({
-  button: { backgroundColor: colors.surface, borderWidth: 3, borderBottomWidth: 6, borderColor: colors.ink, borderRadius: 23, paddingHorizontal: 16, paddingVertical: 14, minHeight: 56, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+  button: { backgroundColor: colors.surface, borderWidth: 3, borderBottomWidth: 6, borderColor: colors.border, borderRadius: 23, paddingHorizontal: 16, paddingVertical: 14, minHeight: 56, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   pressed: { borderBottomWidth: 3, marginTop: 3 },
   disabled: { opacity: 0.5 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },

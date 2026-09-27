@@ -1,8 +1,12 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossSprite } from '@/components/creatures/BossSprite';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Mascot } from '@/components/Mascot';
 import { Glyph } from '@/components/icons';
+import { ProgressBar } from '@/components/ui';
+import { useHaptics } from '@/hooks/useHaptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, palette } from '@/theme';
 import type { QuestNode } from '@/types/quest';
 
@@ -22,14 +26,22 @@ export function NextQuestCard({
   onContinue: () => void;
   active: boolean;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const goalMet = todayCount >= dailyGoal;
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 360 || fontScale > 1.25;
+  const haptic = useHaptics();
+  const left = Math.max(0, dailyGoal - todayCount);
 
   return (
     <View style={styles.wrap}>
       <View style={styles.headingRow}>
         <View style={styles.headingBody}>
           <Text style={styles.eyebrow}>{course}</Text>
-          <Text style={styles.heading}>A little further, every day.</Text>
+          <Text style={styles.heading}>{todayCount > 0 ? 'Look at you go.' : 'Make a little progress.'}</Text>
         </View>
         <View style={styles.compass} aria-hidden>
           <Glyph name="compass" size={26} color={colors.ink} strokeWidth={2.2} />
@@ -39,53 +51,70 @@ export function NextQuestCard({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={node ? `Continue quest: ${node.title}, about ${node.minutes} minutes` : 'Explore practice after completing your path'}
-        onPress={onContinue}
+        onPress={() => { haptic(); onContinue(); }}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
-        <View style={styles.orbit} pointerEvents="none" />
+        <LinearGradient pointerEvents="none" colors={['#164C59', '#102D3A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <View style={styles.cardTop}>
         <View style={styles.cardBody}>
-          <Text style={styles.kicker}>{node?.kind === 'boss' ? 'A GUARDIAN AWAITS' : node ? 'YOUR NEXT QUEST' : 'EVERY TRACK EXPLORED'}</Text>
+          <Text style={styles.kicker}>{node?.kind === 'boss' ? 'A GUARDIAN AWAITS' : node ? 'PICK UP HERE' : 'YOUR NEXT CHAPTER'}</Text>
           <Text style={styles.title}>{node?.title ?? 'Keep your knowledge growing'}</Text>
           <Text style={styles.meta}>
             {node ? `About ${node.minutes} min · up to ${node.xp} base XP` : 'Revisit a topic or try a practice set.'}
           </Text>
-          <View style={styles.cta}>
-            <Text style={styles.ctaText}>{node ? 'Continue quest' : 'Open practice'}</Text>
-            <Glyph name="arrow-right" size={17} color={colors.ink} strokeWidth={2.8} />
-          </View>
         </View>
-        <View style={styles.mascot} pointerEvents="none" aria-hidden>
-          {node?.kind === 'boss' ? <BossSprite nodeId={node.id} size={130}/> : <Mascot pose={node?.kind === 'drill' ? 'reading' : node ? 'map' : 'trophy'} size={122} animated={active} shadow={false} />}
+        {!compact ? <View style={styles.mascot} pointerEvents="none" aria-hidden>
+          {node?.kind === 'boss' ? <BossSprite nodeId={node.id} size={106}/> : <Mascot pose={node?.kind === 'drill' ? 'reading' : node ? 'map' : 'trophy'} size={106} animated={active} shadow={false} />}
+        </View> : null}
+        </View>
+        <View style={styles.cta}>
+          <Text style={styles.ctaText}>{node ? 'Let’s do this' : 'Open practice'}</Text>
+          <View style={styles.arrow}><Glyph name="arrow-right" size={18} color={colors.textOnPrimary} strokeWidth={2.8} /></View>
         </View>
       </Pressable>
 
-      <View style={styles.goal} accessible accessibilityLabel={`${todayCount} of ${dailyGoal} daily sessions completed${goalMet ? '. Daily goal reached.' : ''}`}>
-        <Glyph name={goalMet ? 'check' : 'flame'} size={16} color={goalMet ? colors.successDeep : palette.ember} strokeWidth={3} />
-        <Text style={styles.goalText}>{goalMet ? 'Daily goal reached' : 'Today’s small win'}</Text>
-        <Text style={styles.goalCount}>{todayCount}/{dailyGoal} sessions</Text>
+      <View style={[styles.goal, goalMet && { borderColor: colors.successDeep }]} accessible accessibilityLabel={`${todayCount} of ${dailyGoal} daily sessions completed. ${goalMet ? 'Daily goal reached.' : `${left} more to reach your daily goal.`}`}>
+        <View style={styles.goalHeading}>
+          <View style={[styles.goalIcon, goalMet && { backgroundColor: colors.successSoft }]}>
+            <Glyph name={goalMet ? 'check' : 'flame'} size={18} color={goalMet ? colors.successDeep : colors.dangerDark} strokeWidth={2.6} />
+          </View>
+          <View style={styles.headingBody}>
+            <Text style={styles.goalText}>{goalMet ? 'You kept your promise.' : 'Your daily little win'}</Text>
+            <Text style={styles.goalDetail}>{goalMet ? 'Goal reached. The rest is a bonus.' : `${left} short ${left === 1 ? 'session' : 'sessions'} to keep moving.`}</Text>
+          </View>
+          <Text style={styles.goalCount}>{todayCount}<Text style={styles.goalTotal}>/{dailyGoal}</Text></Text>
+        </View>
+        <View importantForAccessibility="no-hide-descendants" aria-hidden style={{ height: 8 }}>
+          <ProgressBar progress={dailyGoal > 0 ? Math.min(todayCount / dailyGoal, 1) : 0} height={8} color={goalMet ? colors.successDeep : colors.primary} />
+        </View>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   wrap: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 20 },
   headingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   headingBody: { flex: 1 },
   eyebrow: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.4, color: colors.textSecondary, textTransform: 'uppercase' },
   heading: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 29, color: colors.ink, marginTop: 3, maxWidth: 280 },
-  compass: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-12deg' }] },
-  card: { backgroundColor: colors.ink, borderRadius: 25, borderWidth: 3, borderBottomWidth: 7, borderColor: colors.ink, padding: 17, overflow: 'hidden', minHeight: 178 },
-  pressed: { opacity: 0.94 },
-  orbit: { position: 'absolute', width: 186, height: 186, borderRadius: 93, borderWidth: 1, borderColor: '#34616A', right: -60, top: 13 },
-  cardBody: { paddingRight: 90 },
-  kicker: { fontFamily: fonts.bodyBlack, fontSize: 9.5, letterSpacing: 1.4, color: palette.turquoiseLight },
-  title: { fontFamily: fonts.displayHeavy, fontSize: 22, lineHeight: 25, color: colors.surface, marginTop: 6 },
-  meta: { fontFamily: fonts.bodySemibold, fontSize: 11.5, lineHeight: 17, color: '#BDD5D8', marginTop: 6 },
-  cta: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', backgroundColor: palette.turquoiseLight, borderRadius: 11, paddingVertical: 10, paddingHorizontal: 12, marginTop: 13 },
-  ctaText: { fontFamily: fonts.bodyHeavy, fontSize: 12, color: colors.ink },
-  mascot: { position: 'absolute', right: -2, bottom: 12 },
-  goal: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingTop: 15 },
-  goalText: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 12, color: colors.ink },
-  goalCount: { fontFamily: fonts.bodySemibold, fontSize: 11, color: colors.textSecondary },
+  compass: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-12deg' }] },
+  card: { backgroundColor: colors.nightRaised, borderRadius: 28, borderWidth: 1, borderColor: '#437481', padding: 18, overflow: 'hidden', boxShadow: '0 12px 24px rgba(9,45,57,0.16)' },
+  pressed: { opacity: 0.94, transform: [{ translateY: 2 }] },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  cardBody: { flex: 1, minWidth: 0, paddingVertical: 4 },
+  kicker: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.5, color: palette.turquoiseLight },
+  title: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 28, color: colors.textOnInk, marginTop: 7 },
+  meta: { fontFamily: fonts.bodySemibold, fontSize: 12, lineHeight: 18, color: '#C8DEE1', marginTop: 10 },
+  cta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: palette.turquoiseLight, borderRadius: 14, paddingVertical: 10, paddingLeft: 16, paddingRight: 10, marginTop: 17, minHeight: 48 },
+  ctaText: { flexShrink: 1, fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.textOnPrimary },
+  arrow: { width: 28, height: 28, borderRadius: 9, backgroundColor: '#B9F0F5', alignItems: 'center', justifyContent: 'center' },
+  mascot: { width: 102, alignItems: 'center' },
+  goal: { marginTop: 14, padding: 13, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 18, gap: 12 },
+  goalHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  goalIcon: { width: 32, height: 36, borderRadius: 11, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
+  goalText: { fontFamily: fonts.bodyHeavy, fontSize: 12.5, color: colors.ink },
+  goalDetail: { fontFamily: fonts.body, fontSize: 10.5, lineHeight: 15, color: colors.textSecondary, marginTop: 2 },
+  goalCount: { fontFamily: fonts.displayHeavy, fontSize: 24, color: colors.ink },
+  goalTotal: { fontSize: 15, color: colors.textSecondary },
 });

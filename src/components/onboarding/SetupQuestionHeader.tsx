@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ProgressBar, TopBackButton } from '@/components/ui';
@@ -31,6 +32,10 @@ export function SetupQuestionHeader({
   subtitle,
   mascotPose = 'neutral',
 }: SetupQuestionHeaderProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View>
       <View style={styles.topRow}>
@@ -54,7 +59,7 @@ export function SetupQuestionHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   back: { marginLeft: -spacing.md, marginRight: spacing.xs },
   headlineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg },

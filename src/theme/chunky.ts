@@ -1,5 +1,5 @@
 import type { ViewStyle } from 'react-native';
-import { colors } from './colors';
+import { colors, type ThemeColors } from './colors';
 
 /**
  * The chunky sticker treatment — a 3px ink border over a hard offset shadow.
@@ -22,14 +22,14 @@ import { colors } from './colors';
  * `marginBottom: depth` or the next element will sit on top of it.
  */
 
-export const BORDER = 3;
+export const BORDER = 1.5;
 
 /** Depths used across the design, smallest surface to largest. */
 export const depth = {
-  chip: 5,
-  card: 5,
-  button: 6,
-  prize: 6,
+  chip: 2,
+  card: 2,
+  button: 3,
+  prize: 3,
   stop: 7,
   current: 8,
 } as const;
@@ -54,7 +54,7 @@ export interface ChunkyStyles {
   press: number;
 }
 
-interface ChunkyOptions {
+export interface ChunkyOptions {
   /** How far the lip peeks out. Defaults to the button depth. */
   depth?: number;
   /** Corner radius. Defaults to the card radius. */
@@ -78,7 +78,7 @@ interface ChunkyOptions {
  * </View>
  * ```
  */
-export function chunky(options: ChunkyOptions = {}): ChunkyStyles {
+export function chunky(options: ChunkyOptions = {}, tokens: ThemeColors = colors): ChunkyStyles {
   const d = options.depth ?? depth.button;
   const r = options.radius ?? chunkyRadius.card;
 
@@ -92,13 +92,16 @@ export function chunky(options: ChunkyOptions = {}): ChunkyStyles {
       top: d,
       bottom: -d,
       borderRadius: r,
-      backgroundColor: options.shadow ?? colors.ink,
+      backgroundColor: options.shadow ?? tokens.border,
+      opacity: 0.35,
     },
     face: {
       borderWidth: BORDER,
-      borderColor: options.border ?? colors.ink,
+      borderColor: options.border ?? tokens.border,
       borderRadius: r,
-      backgroundColor: options.background ?? colors.surface,
+      backgroundColor: options.background ?? tokens.surface,
+      borderCurve: 'continuous',
+      boxShadow: '0 6px 18px rgba(4, 28, 36, 0.06)',
     },
     // Pressing sinks the face onto its lip, leaving 2px so it never looks flat.
     press: Math.max(0, d - 2),

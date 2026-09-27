@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useState, useRef, useEffect } from "react";
 import {
   Pressable,
@@ -13,6 +14,10 @@ import { BossSprite } from "./BossSprite";
 import { colors, fonts } from "@/theme";
 
 export function BossFieldGuide() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { fontScale, width } = useWindowDimensions();
   const { map, earned, stateOf } = useQuest();
   const [area, setArea] = useState(0);
@@ -54,7 +59,7 @@ export function BossFieldGuide() {
           </Pressable>
         ))}
       </ScrollView>
-      <View style={[styles.chapter, { backgroundColor: unit.track.sky }]}>
+      <View style={[styles.chapter, { backgroundColor: appTheme.isDark ? colors.primaryTint : unit.track.sky }]}>
         <View style={styles.chapterCopy}>
           <Text style={styles.eyebrow}>FIELD GUIDE · AREA {area + 1}</Text>
           <Text style={styles.title}>{unit.areaName}</Text>
@@ -102,7 +107,7 @@ export function BossFieldGuide() {
     </View>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   root: { gap: 16 },
   intro: {
     fontFamily: fonts.body,
@@ -116,18 +121,18 @@ const styles = StyleSheet.create({
     height: 44,
     borderWidth: 2,
     borderBottomWidth: 4,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
   },
-  activeArea: { backgroundColor: colors.ink },
+  activeArea: { backgroundColor: colors.nightRaised },
   areaText: { fontFamily: fonts.displayBold, fontSize: 18, color: colors.ink },
-  activeText: { color: colors.surface },
+  activeText: { color: colors.textOnInk },
   chapter: {
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 24,
     padding: 16,
     flexDirection: "row",
@@ -163,7 +168,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 2,
     borderBottomWidth: 5,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 23,
     backgroundColor: colors.surface,
   },
@@ -171,7 +176,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: "#F2E8D2",
+    backgroundColor: colors.surfaceSunken,
   },
   rankText: {
     fontFamily: fonts.bodyBold,

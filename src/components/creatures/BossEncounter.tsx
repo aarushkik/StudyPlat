@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import { BossSprite } from "./BossSprite";
@@ -15,6 +16,10 @@ export function BossEncounter({
   correct: number;
   total: number;
 }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const boss = bossForNode(nodeId)!;
   const target = Math.ceil(total * 0.6);
   const opened = Math.min(correct, target);
@@ -35,7 +40,7 @@ export function BossEncounter({
     return () => animation.stop();
   }, [correct, motionEnabled, flash]);
   return (
-    <View style={[styles.card, { backgroundColor: boss.light }]}>
+    <View style={[styles.card, { backgroundColor: appTheme.isDark ? colors.primaryTint : boss.light }]}>
       <View style={styles.art}>
         <BossSprite nodeId={nodeId} size={84} />
         <Animated.View
@@ -72,12 +77,12 @@ export function BossEncounter({
     </View>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 21,
     padding: 10,
     gap: 8,
@@ -113,12 +118,12 @@ const styles = StyleSheet.create({
     height: 19,
     borderWidth: 1.5,
     borderRadius: 6,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  mark: { fontSize: 12, color: colors.ink, fontWeight: "800" },
+  mark: { fontSize: 12, color: colors.textOnPrimary, fontWeight: "800" },
   note: {
     fontFamily: fonts.body,
     fontSize: 11,

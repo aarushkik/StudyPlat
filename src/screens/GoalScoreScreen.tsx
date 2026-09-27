@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +15,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'GoalScore'>;
 
 /** Setup step: what AP score is the student chasing? */
 export function GoalScoreScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { goalScoreId, setGoalScoreId } = useOnboarding();
   const [selected, setSelected] = useState<ScoreGoalId | null>(goalScoreId);
@@ -26,7 +31,7 @@ export function GoalScoreScreen() {
 
   return (
     <ScreenContainer>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
         step={3}
@@ -55,7 +60,7 @@ export function GoalScoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   list: { flex: 1 },
   pad: { height: spacing.giant },
 });

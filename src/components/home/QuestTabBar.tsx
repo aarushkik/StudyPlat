@@ -1,9 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, palette, spring } from '@/theme';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
+import { useHaptics } from '@/hooks/useHaptics';
+import { GlassSurface } from '@/components/ui/GlassSurface';
 
 export type QuestTab = 'map' | 'practice' | 'progress' | 'you';
 
@@ -31,10 +34,28 @@ const TILE = '#7FE0EC';
  * are on is legible from the shape of the bar, not only from colour.
  */
 export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: (t: QuestTab) => void }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const insets = useSafeAreaInsets();
+  const haptic = useHaptics();
+  const { motionEnabled } = useMotionPreference();
+  const [barWidth, setBarWidth] = useState(0);
+  const slide = useRef(new Animated.Value(0)).current;
+  const step = Math.max(0, (barWidth - 10) / TABS.length);
+  const target = TABS.findIndex(tab => tab.id === active) * step;
+  useEffect(() => {
+    if (!motionEnabled) { slide.setValue(target); return; }
+    const movement = Animated.spring(slide, { toValue: target, useNativeDriver: true, damping: 24, stiffness: 250, mass: 0.8 });
+    movement.start();
+    return () => movement.stop();
+  }, [target, slide, motionEnabled]);
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 18) }]}>
+    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 12) }]} pointerEvents="box-none">
+    <GlassSurface style={styles.bar} onLayout={event => setBarWidth(event.nativeEvent.layout.width)}>
+      {barWidth > 0 ? <Animated.View pointerEvents="none" style={[styles.activePill, { width: step - 6, transform: [{ translateX: slide }] }]} /> : null}
       {TABS.map((tab) => {
         const on = tab.id === active;
         return (
@@ -42,18 +63,19 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
             key={tab.id}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
+            aria-selected={on}
             accessibilityLabel={tab.label}
-            onPress={() => onChange(tab.id)}
+            onPress={() => { if (!on) { haptic(); onChange(tab.id); } }}
             style={styles.tab}
           >
-            {on ? <View style={styles.tileLip} /> : null}
             <Tile on={on}>
-              <Glyph name={tab.glyph} size={23} color={on ? ON : OFF} strokeWidth={2.6} />
-              <Text style={[styles.label, { color: on ? ON : OFF }]}>{tab.label}</Text>
+              <Glyph name={tab.glyph} size={22} color={on ? colors.textOnPrimary : colors.textSecondary} strokeWidth={2.2} />
+              <Text style={[styles.label, { color: on ? colors.textOnPrimary : colors.textSecondary }]}>{tab.label}</Text>
             </Tile>
           </Pressable>
         );
       })}
+    </GlassSurface>
     </View>
   );
 }
@@ -65,6 +87,10 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
  * buttons.
  */
 function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { motionEnabled } = useMotionPreference();
   const pop = useRef(new Animated.Value(on ? 1 : 0)).current;
 
@@ -79,7 +105,6 @@ function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
     <Animated.View
       style={[
         styles.tile,
-        on && styles.tileOn,
         // Only the *inactive* state is scaled down, so the active tile rests at
         // exactly 1 and the spring's overshoot never pushes it wider than the
         // slot it sits in.
@@ -91,16 +116,16 @@ function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+  activePill: { position: 'absolute', left: 8, top: 7, bottom: 7, borderRadius: 23, backgroundColor: TILE, borderWidth: 1, borderColor: 'rgba(255,255,255,0.65)', boxShadow: '0 2px 6px rgba(6,54,62,0.12)' },
+  dock: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 14, paddingTop: 8 },
   bar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderTopWidth: 3,
-    borderTopColor: colors.ink,
-    paddingTop: 9,
-    paddingHorizontal: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 5,
+    borderRadius: 30,
   },
   tab: { position: 'relative', flex: 1, minWidth: 0, marginHorizontal: 3 },
   tile: {
@@ -109,11 +134,11 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 3,
     minHeight: 58,
-    borderRadius: 19,
-    borderWidth: 3,
+    borderRadius: 23,
+    borderWidth: 1,
     borderColor: 'transparent',
   },
-  tileOn: { backgroundColor: TILE, borderColor: colors.ink },
+  tileOn: { backgroundColor: TILE, borderColor: 'rgba(255,255,255,0.6)' },
   // The active tile's 3pt drop, behind the face.
   tileLip: {
     position: 'absolute',
@@ -122,7 +147,7 @@ const styles = StyleSheet.create({
     top: 3,
     bottom: -3,
     borderRadius: 19,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.nightRaised,
   },
   label: { fontFamily: fonts.bodyBlack, fontSize: 11, letterSpacing: 0 },
 

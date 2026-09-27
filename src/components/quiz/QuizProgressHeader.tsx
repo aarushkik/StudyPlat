@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProgressBar } from '@/components/ui';
@@ -22,6 +23,10 @@ interface QuizProgressHeaderProps {
  * in the feedback panel, where it has something to react to.
  */
 export function QuizProgressHeader({ progress, counter, currentCorrectStreak, onClose }: QuizProgressHeaderProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View>
       <View style={styles.row}>
@@ -43,7 +48,7 @@ export function QuizProgressHeader({ progress, counter, currentCorrectStreak, on
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   bar: { flex: 1 },
   counter: {

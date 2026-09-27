@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Glyph, type GlyphName } from '@/components/icons';
@@ -20,6 +21,10 @@ interface QuestStepProps {
  * bulleted feature list — the same visual language as the quest map itself.
  */
 export function QuestStep({ index, total, icon, title, description, color, tint }: QuestStepProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const isLast = index === total - 1;
   return (
     <View style={[styles.row, !isLast && styles.rowGap]}>
@@ -41,7 +46,7 @@ export function QuestStep({ index, total, icon, title, description, color, tint 
 
 const NODE = 46;
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   row: { flexDirection: 'row' },
   rowGap: { paddingBottom: spacing.lg },
   rail: { width: NODE, alignItems: 'center' },
@@ -51,7 +56,7 @@ const styles = StyleSheet.create({
     height: NODE,
     borderRadius: radius.pill,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -61,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     padding: spacing.lg,
   },
   step: { ...typography.overline, marginBottom: 2 },

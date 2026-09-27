@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { PROP_ART, type PropName } from '@/data/props';
@@ -38,6 +39,10 @@ interface PropBadgeProps {
  * partial sprite set degrades to what was there before rather than a gap.
  */
 export function PropBadge({ name, size = 44, tint, radius, dim = false, style }: PropBadgeProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const art = PROP_ART[name];
   const r = radius ?? Math.round(size * 0.34);
 
@@ -65,10 +70,10 @@ export function PropBadge({ name, size = 44, tint, radius, dim = false, style }:
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   tile: {
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'flex-end',
     overflow: 'hidden',

@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +15,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'ExamTimeline'>;
 
 /** Setup step: when is the AP exam? Drives pacing/urgency. */
 export function ExamTimelineScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { examTimeframeId, setExamTimeframeId } = useOnboarding();
   const [selected, setSelected] = useState<ExamTimeframeId | null>(examTimeframeId);
@@ -26,7 +31,7 @@ export function ExamTimelineScreen() {
 
   return (
     <ScreenContainer>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <SetupQuestionHeader
         onBack={() => navigation.goBack()}
         step={4}
@@ -55,7 +60,7 @@ export function ExamTimelineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   list: { flex: 1 },
   pad: { height: spacing.giant },
 });

@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossSprite } from '@/components/creatures/BossSprite';
 import React, { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -34,6 +35,10 @@ interface ProgressPanelProps {
  * is a menu, and it has nowhere better to be.
  */
 export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const { map, stateOf, completed, earned, sessions, perfectSessions, bestStreak } = useQuest();
   const navigation = useNavigation<Nav>();
   const { courseId } = useOnboarding();
@@ -167,14 +172,14 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
-  scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 26 },
+  scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 130 },
 
   head: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, marginTop: 6 },
   headText: { flex: 1 },
   title: { fontFamily: fonts.displayHeavy, fontSize: 30, lineHeight: 32, letterSpacing: -0.6, color: colors.ink },
-  subtitle: { fontFamily: fonts.bodySemibold, fontSize: 13.5, color: palette.mutedDeep, marginTop: 3 },
+  subtitle: { fontFamily: fonts.bodySemibold, fontSize: 13.5, color: colors.textSecondary, marginTop: 3 },
   headArt: { width: 132, height: 132, marginBottom: -10, marginRight: -10 },
 
   masteryWrap: { marginTop: 10 },
@@ -187,7 +192,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     backgroundColor: '#D6F2F6',
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -207,8 +212,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(18,48,60,0.18)',
     backgroundColor: 'rgba(18,48,60,0.05)',
   },
-  dayHit: { backgroundColor: colors.primary, borderColor: colors.ink },
-  dayToday: { borderColor: colors.ink },
+  dayHit: { backgroundColor: colors.primary, borderColor: colors.border },
+  dayToday: { borderColor: colors.border },
   barLabel: { fontFamily: fonts.bodyHeavy, fontSize: 10, color: '#A8B6BA' },
   barLabelToday: { color: colors.ink },
   weekNote: { fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.textMuted, marginTop: 12 },
@@ -227,7 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#E9DCC6',
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   miniFill: { height: '100%' },
@@ -249,7 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: palette.sand,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   barFill: { height: '100%', backgroundColor: palette.ember },
@@ -257,7 +262,7 @@ const styles = StyleSheet.create({
     marginTop: 11,
     backgroundColor: palette.ember,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     borderRadius: 17,
     paddingVertical: 10,
     alignItems: 'center',

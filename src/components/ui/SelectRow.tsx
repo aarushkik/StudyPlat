@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Glyph } from '@/components/icons';
@@ -44,6 +45,10 @@ export function SelectRow({
   tint = colors.primaryTint,
   bareLeading = false,
 }: SelectRowProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const press = useRef(new Animated.Value(0)).current;
   const { reduceMotion } = useMotionPreference();
   const c = chunky({
@@ -83,7 +88,7 @@ export function SelectRow({
         <View
           style={[
             styles.tile,
-            !bareLeading && { backgroundColor: tint, borderWidth: 3, borderColor: colors.ink },
+            !bareLeading && { backgroundColor: tint, borderWidth: 3, borderColor: colors.border },
           ]}
         >
           {leading}
@@ -108,7 +113,7 @@ export function SelectRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   wrap: { marginBottom: spacing.sm },
   card: {
     flexDirection: 'row',
@@ -134,7 +139,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 3,
-    borderColor: colors.ink,
+    borderColor: colors.border,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { chunky, chunkyRadius, colors, fonts } from '@/theme';
@@ -18,6 +19,10 @@ interface WordmarkProps {
  * it's the platypus, and it's what makes the name stick.
  */
 export function Wordmark({ size = 34, variant = 'brand' }: WordmarkProps) {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const onNight = variant === 'light';
   const wordColor = onNight ? colors.white : colors.ink;
   const badgeBg = onNight ? colors.primary : colors.primary;
@@ -49,7 +54,7 @@ export function Wordmark({ size = 34, variant = 'brand' }: WordmarkProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   word: { fontFamily: fonts.displayHeavy, letterSpacing: -0.5 },
   badgeText: { fontFamily: fonts.displayHeavy, letterSpacing: -0.2 },

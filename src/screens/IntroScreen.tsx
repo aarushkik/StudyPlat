@@ -1,3 +1,4 @@
+import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -14,11 +15,15 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Intro'>;
  * speech bubble, then a single CONTINUE moves into the questions.
  */
 export function IntroScreen() {
+  const appTheme = useAppTheme();
+  const { colors, palette, typography, chunky } = appTheme;
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
 
   return (
     <ScreenContainer>
-      <StatusBar style="dark" />
+      <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <TopBackButton onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('SignIn')} />
 
       <View style={styles.center}>
@@ -36,7 +41,7 @@ export function IntroScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   bubble: { marginHorizontal: spacing.sm },
   gap: { height: spacing.xxl },
