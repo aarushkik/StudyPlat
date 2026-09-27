@@ -48,7 +48,7 @@ export function ChunkyCard({
   const c = chunky({
     depth: selected ? depth.button : depth.card,
     radius: chunkyRadius.card,
-    shadow: selected ? accent : colors.ink,
+    shadow: selected ? accent : colors.lip,
   });
 
   const to = (v: number) => {
@@ -65,6 +65,12 @@ export function ChunkyCard({
     <Animated.View
       style={[
         c.face,
+        // Fill the wrapper. In a grid row the wrapper stretches to the tallest
+        // card, but the face kept its own content height, so every shorter
+        // card showed its lip as a slab beneath it — up to 15pt on the
+        // Practice grid, where a card with a one-line description sat beside
+        // one with two.
+        styles.faceFill,
         { backgroundColor: selected ? colors.surfaceSelected : colors.surface },
         onPress ? { transform: [{ translateY }] } : null,
         contentStyle,
@@ -146,7 +152,7 @@ export function PrizeChip({ title, subtitle, onNight = false, style }: PrizeChip
   const c = chunky({
     depth: depth.prize,
     radius: chunkyRadius.prize,
-    shadow: onNight ? colors.goldDeep : colors.ink,
+    shadow: onNight ? colors.goldDeep : colors.lip,
   });
   return (
     <View style={[c.wrap, styles.flex, style]}>
@@ -190,6 +196,7 @@ export function SegmentedProgress({ value, color = colors.primary, height = 14, 
 
 const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
+  faceFill: { flexGrow: 1 },
 
   chipFace: { paddingVertical: 10, paddingHorizontal: spacing.sm, alignItems: 'center' },
   chipValue: { fontSize: 22, lineHeight: 26 },

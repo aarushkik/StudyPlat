@@ -403,7 +403,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   unlockCount: {
     fontFamily: fonts.bodyHeavy,
     fontSize: 10,
-    color: palette.violet,
+    color: colors.violet,
     marginTop: 3,
   },
 });

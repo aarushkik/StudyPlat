@@ -261,7 +261,7 @@ function displayName(meta: Record<string, unknown> | undefined, email: string | 
   return 'Your quest';
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingBottom: 130 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 12 },
@@ -302,7 +302,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     height: 82,
     borderRadius: 30,
     backgroundColor: colors.background,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     overflow: 'hidden',
     alignItems: 'center',
@@ -341,7 +341,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     alignItems: 'center',
     gap: 8,
     backgroundColor: palette.orange,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     borderRadius: 24,
     paddingLeft: 8,
@@ -360,7 +360,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     borderRadius: 5,
     borderWidth: 2,
     borderColor: colors.border,
-    backgroundColor: 'rgba(18,48,60,0.14)',
+    backgroundColor: colors.overlay,
   },
   dayOn: { backgroundColor: colors.surface },
 
@@ -385,7 +385,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   offline: {
     marginBottom: 14,
     backgroundColor: 'rgba(245,160,43,0.16)',
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: palette.orange,
     borderRadius: 18,
     paddingHorizontal: 14,
@@ -401,13 +401,13 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   signOut: {
     marginTop: 26,
     alignSelf: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(18,48,60,0.22)',
+    borderWidth: stroke.control,
+    borderColor: colors.overlayStrong,
     borderRadius: 22,
     paddingHorizontal: 26,
     paddingVertical: 12,
   },
-  signOutPressed: { backgroundColor: 'rgba(18,48,60,0.06)' },
+  signOutPressed: { backgroundColor: colors.overlayFaint },
   signOutText: {
     fontFamily: fonts.bodyHeavy,
     fontSize: 14,
@@ -421,7 +421,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   dangerBox: {
     marginTop: 18,
     backgroundColor: colors.dangerSoft,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.danger,
     borderRadius: 20,
     padding: 15,
@@ -439,7 +439,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   keepBtn: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 11,
@@ -449,7 +449,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   deleteBtn: {
     flex: 1,
     backgroundColor: colors.danger,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 11,
@@ -462,12 +462,12 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     marginTop: 6,
     height: 8,
     borderRadius: 5,
-    backgroundColor: 'rgba(18,48,60,0.10)',
+    backgroundColor: colors.track,
     borderWidth: 2,
-    borderColor: 'rgba(18,48,60,0.18)',
+    borderColor: colors.overlay,
     overflow: 'hidden',
   },
   achieveFill: { height: '100%', backgroundColor: palette.violet },
   achieveTallyDone: { color: colors.success },
-  achieveTally: { fontFamily: fonts.displayHeavy, fontSize: 14, color: palette.violet },
+  achieveTally: { fontFamily: fonts.displayHeavy, fontSize: 14, color: colors.violet },
 });

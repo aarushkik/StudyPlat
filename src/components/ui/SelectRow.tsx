@@ -54,7 +54,7 @@ export function SelectRow({
   const c = chunky({
     depth: selected ? depth.button : depth.card,
     radius: chunkyRadius.card,
-    shadow: selected ? accent : colors.ink,
+    shadow: selected ? accent : colors.lip,
   });
 
   const to = (v: number) => {

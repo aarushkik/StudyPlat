@@ -172,7 +172,7 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 130 },
 
@@ -208,9 +208,9 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     aspectRatio: 1,
     maxHeight: 34,
     borderRadius: 12,
-    borderWidth: 3,
-    borderColor: 'rgba(18,48,60,0.18)',
-    backgroundColor: 'rgba(18,48,60,0.05)',
+    borderWidth: stroke.surface,
+    borderColor: colors.overlay,
+    backgroundColor: colors.overlayFaint,
   },
   dayHit: { backgroundColor: colors.primary, borderColor: colors.border },
   dayToday: { borderColor: colors.border },
@@ -261,7 +261,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   drill: {
     marginTop: 11,
     backgroundColor: palette.ember,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: 17,
     paddingVertical: 10,

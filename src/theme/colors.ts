@@ -128,6 +128,13 @@ export const colors = {
   dangerDark: '#A93B1C',
   dangerSoft: '#FBE1DA',
 
+  /**
+   * Violet as *text* — achievement tallies, prize labels. Fills can keep
+   * `palette.violet`, but the same violet as text on a dark card is about
+   * 2.3:1, so dark mode lifts it to the light tint.
+   */
+  violet: palette.violet,
+
   gold: palette.orange,
   goldDeep: palette.orangeDeep,
   goldDark: palette.orangeDeep,
@@ -153,6 +160,16 @@ export const colors = {
    * the theme instead: ink-tinted in light mode, pale-tinted in dark. Four
    * steps, faint to strong.
    */
+  /**
+   * The lip under a chunky surface — its visible thickness.
+   *
+   * Cards used `ink` for this, which is right in light mode and wrong in dark:
+   * `ink` flips to near-white, so every card grew a pale strip along its base
+   * where there should be shadow. A lip is depth, and depth is darker than the
+   * face in both modes.
+   */
+  lip: palette.ink,
+
   overlayFaint: 'rgba(18,48,60,0.05)',
   overlaySoft: 'rgba(18,48,60,0.10)',
   overlay: 'rgba(18,48,60,0.16)',
@@ -191,6 +208,8 @@ export const darkColors: ThemeColors = {
   surfaceSelected: '#143C46',
   surfaceSunken: '#0F222C',
   track: '#1E3540',
+  lip: '#02090D',
+  violet: '#C9A6F2',
   overlayFaint: 'rgba(237,245,243,0.05)',
   overlaySoft: 'rgba(237,245,243,0.09)',
   overlay: 'rgba(237,245,243,0.14)',
