@@ -1,5 +1,6 @@
 import type { ViewStyle } from 'react-native';
 import { colors, type ThemeColors } from './colors';
+import { stroke } from './stroke';
 
 /**
  * The chunky sticker treatment — a 3px ink border over a hard offset shadow.
@@ -22,7 +23,8 @@ import { colors, type ThemeColors } from './colors';
  * `marginBottom: depth` or the next element will sit on top of it.
  */
 
-export const BORDER = 1.5;
+/** The edge of every chunky surface. See `stroke.surface`. */
+export const BORDER = stroke.surface;
 
 /** Depths used across the design, smallest surface to largest. */
 export const depth = {

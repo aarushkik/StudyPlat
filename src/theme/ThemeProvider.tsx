@@ -5,13 +5,14 @@ import { createSaveQueue } from '@/lib/saveQueue';
 import { colors as lightColors, darkColors, palette, type ThemeColors } from './colors';
 import { makeTypography } from './typography';
 import { chunky as makeChunky, type ChunkyOptions } from './chunky';
+import { stroke } from './stroke';
 import { resolveAppearance, type AppearancePreference } from './appearance';
 export type { AppearancePreference } from './appearance';
 
 function makeTheme(mode: 'light' | 'dark') {
   const colors: ThemeColors = mode === 'dark' ? darkColors : { ...lightColors, border: '#CBDBDA', background: '#F5F6F0' };
   return {
-    mode, isDark: mode === 'dark', colors, palette,
+    mode, isDark: mode === 'dark', colors, palette, stroke,
     typography: makeTypography(colors),
     chunky: (options?: ChunkyOptions) => makeChunky(options, colors),
     glass: mode === 'dark' ? 'rgba(19,40,50,0.82)' : 'rgba(255,253,247,0.82)',
