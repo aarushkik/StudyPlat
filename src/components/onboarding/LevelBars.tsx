@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useAppTheme } from '@/theme/ThemeProvider';
 
 interface LevelBarsProps {
   /** How many of the 5 bars are filled (1–5). */
@@ -18,6 +19,9 @@ interface LevelBarsProps {
  * levels were indistinguishable without stopping to count.
  */
 export function LevelBars({ filled, color }: LevelBarsProps) {
+  // Clearly present, clearly not filled — in either mode. This was ink in
+  // rgba, which is invisible on a dark card.
+  const { colors } = useAppTheme();
   return (
     <View style={styles.row}>
       {[0, 1, 2, 3, 4].map((i) => (
@@ -27,7 +31,7 @@ export function LevelBars({ filled, color }: LevelBarsProps) {
             styles.bar,
             {
               height: 9 + i * 5,
-              backgroundColor: i < filled ? color : EMPTY,
+              backgroundColor: i < filled ? color : colors.overlay,
             },
           ]}
         />
@@ -35,9 +39,6 @@ export function LevelBars({ filled, color }: LevelBarsProps) {
     </View>
   );
 }
-
-/** Clearly present, clearly not filled. */
-const EMPTY = 'rgba(18,48,60,0.15)';
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', height: 30, gap: 3 },

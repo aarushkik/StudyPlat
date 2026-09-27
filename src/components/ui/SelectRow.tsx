@@ -41,12 +41,19 @@ export function SelectRow({
   subtitle,
   selected,
   onPress,
-  accent = colors.primary,
-  tint = colors.primaryTint,
+  accent: accentProp,
+  tint: tintProp,
   bareLeading = false,
 }: SelectRowProps) {
   const appTheme = useAppTheme();
-  const { colors, palette, typography, chunky } = appTheme;
+  const { colors, palette, typography, chunky, stroke } = appTheme;
+  // Defaults resolved here, not in the signature. A default parameter is
+  // evaluated before the theme is read, so `tint = colors.primaryTint` there
+  // meant the *static* light palette: every leading tile stayed pale cream in
+  // dark mode, and the experience-level bars — drawn in the theme's near-white
+  // ink — disappeared into it.
+  const accent = accentProp ?? colors.primary;
+  const tint = tintProp ?? colors.primaryTint;
   const styles = useThemedStyles(createStyles);
 
   const press = useRef(new Animated.Value(0)).current;
@@ -88,7 +95,7 @@ export function SelectRow({
         <View
           style={[
             styles.tile,
-            !bareLeading && { backgroundColor: tint, borderWidth: 3, borderColor: colors.border },
+            !bareLeading && { backgroundColor: tint, borderWidth: stroke.surface, borderColor: colors.border },
           ]}
         >
           {leading}
@@ -113,7 +120,7 @@ export function SelectRow({
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   wrap: { marginBottom: spacing.sm },
   card: {
     flexDirection: 'row',
@@ -138,7 +145,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     width: 28,
     height: 28,
     borderRadius: 14,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     backgroundColor: 'transparent',
     alignItems: 'center',

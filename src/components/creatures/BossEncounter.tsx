@@ -77,7 +77,7 @@ export function BossEncounter({
     </View>
   );
 }
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -95,7 +95,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     top: 5,
     width: 74,
     height: 74,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderRadius: 37,
     borderColor: colors.surface,
   },

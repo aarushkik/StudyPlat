@@ -70,9 +70,9 @@ export function PropBadge({ name, size = 44, tint, radius, dim = false, style }:
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   tile: {
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'flex-end',

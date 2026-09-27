@@ -46,7 +46,7 @@ export function QuestStep({ index, total, icon, title, description, color, tint 
 
 const NODE = 46;
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   row: { flexDirection: 'row' },
   rowGap: { paddingBottom: spacing.lg },
   rail: { width: NODE, alignItems: 'center' },
@@ -55,7 +55,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     width: NODE,
     height: NODE,
     borderRadius: radius.pill,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
@@ -65,7 +65,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     marginLeft: spacing.lg,
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     padding: spacing.lg,
   },

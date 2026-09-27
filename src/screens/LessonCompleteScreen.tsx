@@ -202,7 +202,7 @@ function Stat({
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   safe: { flex: 1 },
   body: {
@@ -266,7 +266,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   // three heavy numbers just looks like a rendering seam.
   divider: {
     width: 2,
-    backgroundColor: "rgba(18,48,60,0.16)",
+    backgroundColor: colors.overlay,
     marginVertical: spacing.sm,
     borderRadius: 1,
   },

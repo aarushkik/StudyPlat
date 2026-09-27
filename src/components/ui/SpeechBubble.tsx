@@ -48,12 +48,12 @@ const TAIL_POSITION: Record<Exclude<Tail, 'none'>, ViewStyle> = {
   left: { ...POINT_LEFT, left: -TAIL / 2, top: '50%', marginTop: -TAIL / 2 },
 };
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   wrapper: { alignSelf: 'stretch' },
   bubble: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,

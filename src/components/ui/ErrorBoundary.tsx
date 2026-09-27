@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, palette } from '@/theme';
+import { colors, fonts, palette, stroke } from '@/theme';
 
 interface Props {
   children: React.ReactNode;
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   body: { fontFamily: fonts.bodySemibold, fontSize: 14, lineHeight: 20, color: '#A9C3C9' },
   box: {
     backgroundColor: 'rgba(0,0,0,0.28)',
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: palette.ember,
     borderRadius: 18,
     padding: 14,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 6,
     backgroundColor: colors.primary,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.ink,
     borderRadius: 22,
     paddingHorizontal: 22,

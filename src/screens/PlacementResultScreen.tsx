@@ -118,7 +118,7 @@ function Row({ leading, text }: { leading: React.ReactNode; text: string }) {
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxl },
   title: { textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
 
@@ -128,7 +128,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   levelWrap: { position: 'relative', marginBottom: 5 },
   levelCard: {
     borderRadius: 20,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     padding: spacing.xl,
@@ -148,7 +148,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     width: 68,
     height: 68,
     borderRadius: radius.pill,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     backgroundColor: colors.primaryTint,
     alignItems: 'center',
@@ -173,7 +173,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   summary: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -181,7 +181,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   rowIcon: { width: 24, alignItems: 'center' },
   summaryText: { ...typography.bodyStrong, flexShrink: 1 },
-  divider: { height: 2, borderRadius: 1, backgroundColor: 'rgba(18,48,60,0.14)' },
+  divider: { height: 2, borderRadius: 1, backgroundColor: colors.overlay },
 
   footer: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
 });

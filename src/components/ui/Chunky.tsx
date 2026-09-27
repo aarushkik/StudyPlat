@@ -33,7 +33,7 @@ interface ChunkyCardProps {
 export function ChunkyCard({
   children,
   selected = false,
-  accent = colors.primary,
+  accent: accentProp,
   onPress,
   style,
   contentStyle,
@@ -41,6 +41,9 @@ export function ChunkyCard({
 }: ChunkyCardProps) {
   const appTheme = useAppTheme();
   const { colors, palette, typography, chunky } = appTheme;
+  // Resolved from the theme rather than as a default parameter, which would
+  // read the static light palette. See SelectRow.
+  const accent = accentProp ?? colors.primary;
   const styles = useThemedStyles(createStyles);
 
   const { motionEnabled } = useMotionPreference();

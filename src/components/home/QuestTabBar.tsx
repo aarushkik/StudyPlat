@@ -152,7 +152,6 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   label: { fontFamily: fonts.bodyBlack, fontSize: 11, letterSpacing: 0 },
 
   diamond: { width: 15.6, height: 15.6, borderRadius: 4, margin: 3.2, transform: [{ rotate: '45deg' }] },
-  ring: { width: 22, height: 22, borderRadius: 11, borderWidth: 4 },
   stairs: { flexDirection: 'row', alignItems: 'flex-end', height: 22 },
   disc: { width: 22, height: 22, borderRadius: 11 },
 });

@@ -42,9 +42,9 @@ function MicrosoftMark() {
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
-  button: { backgroundColor: colors.surface, borderWidth: 3, borderBottomWidth: 6, borderColor: colors.border, borderRadius: 23, paddingHorizontal: 16, paddingVertical: 14, minHeight: 56, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  pressed: { borderBottomWidth: 3, marginTop: 3 },
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+  button: { backgroundColor: colors.surface, borderWidth: stroke.control, borderBottomWidth: 5, borderColor: colors.border, borderRadius: 23, paddingHorizontal: 16, paddingVertical: 14, minHeight: 56, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  pressed: { borderBottomWidth: stroke.control, marginTop: 3 },
   disabled: { opacity: 0.5 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
   label: { fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.ink, textAlign: 'center', flexShrink: 1 },
