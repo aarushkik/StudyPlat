@@ -90,7 +90,7 @@ function StimulusBlock({ stimulus }: { stimulus: Stimulus }) {
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   tags: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   skillTag: {
     backgroundColor: colors.primaryTint,
@@ -163,7 +163,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   mediaBox: {
     backgroundColor: colors.surfaceSunken,
     borderRadius: radius.lg,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,

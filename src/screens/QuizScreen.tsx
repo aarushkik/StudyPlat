@@ -623,13 +623,13 @@ const REVIEW_BATCH = 5;
 /** What one right answer is worth in an endless review. */
 const REVIEW_XP_EACH = 4;
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   studyContent: { padding: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
   studyHeading: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  studyCard: { padding: 18, borderWidth: 3, borderColor: colors.border, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
+  studyCard: { padding: 18, borderWidth: stroke.surface, borderColor: colors.border, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
   exitBackdrop: { flex: 1, backgroundColor: '#0B2029AA', padding: 24, alignItems: 'center', justifyContent: 'center' },
-  exitCard: { width: '100%', maxWidth: 400, borderWidth: 3, borderColor: colors.border, borderRadius: 26, backgroundColor: colors.surface, padding: 24 },
+  exitCard: { width: '100%', maxWidth: 400, borderWidth: stroke.surface, borderColor: colors.border, borderRadius: 26, backgroundColor: colors.surface, padding: 24 },
 
   companionBar: {
     flexDirection: 'row',
@@ -637,7 +637,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     gap: spacing.sm,
     marginBottom: spacing.md,
     backgroundColor: colors.surface,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.border,
     borderRadius: radius.lg,
     paddingVertical: spacing.sm,
@@ -649,21 +649,21 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   companionNote: { ...typography.caption, color: colors.textMuted },
   companionBtn: {
     backgroundColor: colors.primary,
-    borderWidth: 2.5,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   companionBtnPressed: { transform: [{ translateY: 2 }] },
-  companionBtnSpent: { backgroundColor: 'transparent', borderColor: 'rgba(18,48,60,0.28)' },
+  companionBtnSpent: { backgroundColor: 'transparent', borderColor: colors.overlayStrong },
   companionBtnText: { ...typography.label, fontSize: 11, color: colors.textOnPrimary },
   companionBtnTextSpent: { color: colors.textMuted },
 
   hint: {
     marginBottom: spacing.md,
     backgroundColor: colors.primaryTint,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderColor: colors.primary,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,

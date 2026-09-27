@@ -107,7 +107,7 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
   // Ruled in ink on three sides, like the stop sheet. A coloured hairline over
   // a soft tinted sheet was the last surface still drawn in the old language,
   // and next to the ink-bordered answer cards above it, it read as unfinished.
@@ -115,7 +115,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     maxHeight: '60%', width: '100%', maxWidth: 620, alignSelf: 'center',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    borderWidth: 3,
+    borderWidth: stroke.surface,
     borderBottomWidth: 0,
     borderColor: colors.border,
     paddingHorizontal: spacing.xl,
@@ -126,7 +126,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   titleWrap: { flex: 1 },
   caption: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  verdictDot: { width: 24, height: 24, borderRadius: radius.pill, borderWidth: 2.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  verdictDot: { width: 24, height: 24, borderRadius: radius.pill, borderWidth: stroke.surface, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   title: { ...typography.heading },
   answer: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.sm },
   explanation: { ...typography.body, color: colors.textPrimary, marginTop: spacing.sm, lineHeight: 23 },
@@ -136,7 +136,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     justifyContent: 'center',
     gap: spacing.sm,
     marginBottom: spacing.md,
-    borderWidth: 3,
+    borderWidth: stroke.control,
     borderColor: colors.border,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,

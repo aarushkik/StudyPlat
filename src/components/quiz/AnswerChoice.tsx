@@ -147,8 +147,8 @@ const makeSTATE = ({ colors }: AppTheme): Record<ChoiceState, Style> => ({
   // it is an option that has been taken off the table for them.
   struck: {
     bg: colors.locked,
-    border: 'rgba(18,48,60,0.30)',
-    edge: 'rgba(18,48,60,0.30)',
+    border: colors.overlayStrong,
+    edge: colors.overlayStrong,
     text: colors.lockedText,
     keyBg: 'transparent',
     keyText: colors.lockedText,
