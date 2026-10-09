@@ -1,4 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import { Backdrop } from '@/components/ui/Backdrop';
 import { BossFieldGuide } from "@/components/creatures/BossFieldGuide";
 import { CompanionSprite } from "@/components/creatures/CompanionSprite";
 import React, { useMemo, useState } from "react";
@@ -19,7 +20,8 @@ import { Glyph } from "@/components/icons";
 import { ChunkyCard, TopBackButton } from "@/components/ui";
 import { unlockLabel, type CompanionStatus } from "@/data/companions";
 import { useQuest } from "@/state/QuestContext";
-import { colors, fonts, palette } from "@/theme";
+import { colors, fonts, palette, tintedCard, withAlpha } from "@/theme";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { RootStackParamList } from "@/navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Characters">;
@@ -113,6 +115,7 @@ export function CharactersScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <Backdrop />
       <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <View style={styles.head}>
         <TopBackButton onPress={() => navigation.goBack()} color={colors.ink} />
@@ -125,43 +128,15 @@ export function CharactersScreen() {
           </Text>
         </View>
       </View>
-      <View
-        style={{
-          flexDirection: "row",
-          gap: 8,
-          paddingHorizontal: 18,
-          paddingBottom: 12,
-        }}
-      >
-        {(["companions", "bosses"] as const).map((item) => (
-          <Pressable
-            key={item}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: page === item }}
-            aria-selected={page === item}
-            onPress={() => setPage(item)}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              padding: 12,
-              borderRadius: 15,
-              borderWidth: 2,
-              borderBottomWidth: 4,
-              borderColor: colors.border,
-              backgroundColor: page === item ? colors.ink : colors.surface,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: fonts.displayBold,
-                color: page === item ? colors.surface : colors.ink,
-                fontSize: 16,
-              }}
-            >
-              {item === "companions" ? "Companions" : "Bosses"}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.segment}>
+        <SegmentedControl
+          items={[
+            { id: "companions", label: "Companions" },
+            { id: "bosses", label: "Bosses" },
+          ] as const}
+          value={page}
+          onChange={setPage}
+        />
       </View>
       <ScrollView
         key={page}
@@ -228,7 +203,7 @@ export function CharactersScreen() {
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, card, glass, solid }: AppTheme) => StyleSheet.create({
   safe: {
     flex: 1,
     width: "100%",
@@ -257,6 +232,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     color: colors.textSecondary,
     marginTop: 1,
   },
+  segment: { paddingHorizontal: 18, paddingBottom: 12 },
   scroll: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 30 },
   hero: {
     flexDirection: "row",
@@ -264,10 +240,8 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     paddingLeft: 16,
     paddingVertical: 16,
     paddingRight: 2,
-    borderWidth: 2,
-    borderColor: colors.border,
+    ...tintedCard(glass, colors.primaryTint, colors.primary, solid),
     borderRadius: 24,
-    backgroundColor: colors.primaryTint,
   },
   heroText: { flex: 1, minWidth: 0 },
   eyebrow: {
@@ -291,10 +265,8 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     marginTop: 5,
   },
   note: {
+    ...card,
     marginTop: 14,
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
     borderRadius: 16,
     paddingLeft: 13,
     flexDirection: "row",
@@ -342,7 +314,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   card: { padding: 15, minHeight: 204, flex: 1 },
-  cardLocked: { backgroundColor: colors.surfaceSunken },
+  cardLocked: { backgroundColor: solid ? colors.surfaceSunken : withAlpha(colors.surfaceSunken, 0.45) },
   cardTop: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -375,7 +347,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     alignSelf: "flex-start",
     marginTop: "auto",
     borderRadius: 10,
-    backgroundColor: colors.surfaceSunken,
+    backgroundColor: colors.overlaySoft,
     paddingHorizontal: 9,
     paddingVertical: 7,
   },

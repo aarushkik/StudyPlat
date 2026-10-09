@@ -290,7 +290,6 @@ function Plaque({ unit, mode, cleared }: { unit: QuestUnit; mode: TrackMode; cle
 
   return (
     <View style={styles.plaqueWrap}>
-      <View style={styles.plaqueLip} />
       <View style={styles.plaque}>
         <View style={[styles.num, { backgroundColor: track.deep }]}>
           <Text style={styles.numText}>TRACK {n}</Text>
@@ -444,7 +443,7 @@ function GateBossCard({
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, card }: AppTheme) => StyleSheet.create({
   head: { paddingTop: PAD_TOP },
 
   reviewWrap: { position: 'relative', marginHorizontal: 16, marginTop: 16, marginBottom: 6 },
@@ -460,12 +459,10 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
     paddingHorizontal: 14,
   },
   reviewIcon: {
+    ...card,
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -480,24 +477,12 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   mascotArt: { width: 132, height: 132 },
 
   plaqueWrap: { position: 'relative', paddingHorizontal: 16, paddingBottom: 12 },
-  // The hard 4pt drop under the plaque, drawn as a second card behind it.
-  plaqueLip: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    top: PLAQUE_LIP,
-    height: PLAQUE_FACE,
-    borderRadius: 24,
-    backgroundColor: colors.nightRaised,
-  },
   plaque: {
+    ...card,
     height: PLAQUE_FACE,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
-    backgroundColor: colors.surface,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
     borderRadius: 24,
     paddingHorizontal: 12,
   },

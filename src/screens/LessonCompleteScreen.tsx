@@ -1,4 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import { Backdrop } from '@/components/ui/Backdrop';
 import { BossSprite } from "@/components/creatures/BossSprite";
 import { bossForNode } from "@/data/bosses";
 import React, { useEffect, useRef } from "react";
@@ -58,6 +59,7 @@ export function LessonCompleteScreen() {
 
   return (
     <View style={styles.root}>
+      <Backdrop />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <StatusBar style={appTheme.isDark ? "light" : "dark"} />
 
@@ -102,7 +104,6 @@ export function LessonCompleteScreen() {
             </Text>
 
             <View style={styles.statsWrap}>
-              <View style={styles.statsLip} />
               <View style={styles.stats}>
                 <Stat
                   glyph="star"
@@ -202,7 +203,7 @@ function Stat({
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, card }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   safe: { flex: 1 },
   body: {
@@ -238,21 +239,10 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
     marginTop: spacing.xxl,
     marginBottom: 6,
   },
-  statsLip: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 3,
-    bottom: -3,
-    borderRadius: radius.xxl,
-    backgroundColor: colors.border,
-  },
   stats: {
+    ...card,
     flexDirection: "row",
-    backgroundColor: colors.surface,
     borderRadius: radius.xxl,
-    borderWidth: 1.5,
-    borderColor: colors.border,
     paddingVertical: spacing.lg,
   },
   stat: { flex: 1, alignItems: "center", gap: 2 },

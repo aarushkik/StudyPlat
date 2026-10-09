@@ -61,7 +61,6 @@ export function PlacementResultScreen() {
           <Text style={[typography.title, styles.title]}>Your map is drawn</Text>
 
           <View style={styles.levelWrap}>
-            <View style={styles.levelCardLip} />
             <View style={styles.levelCard}>
               <View style={styles.levelTile}>
                 <PlacementIcon id={level.id} color={colors.primary} size={38} />
@@ -74,7 +73,6 @@ export function PlacementResultScreen() {
           </View>
 
           <View style={styles.summaryWrap}>
-            <View style={styles.summaryLip} />
             <View style={styles.summary}>
             <Row
               leading={
@@ -118,7 +116,7 @@ function Row({ leading, text }: { leading: React.ReactNode; text: string }) {
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, card }: AppTheme) => StyleSheet.create({
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxl },
   title: { textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
 
@@ -127,22 +125,10 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   // every line of text sitting on turquoise.
   levelWrap: { position: 'relative', marginBottom: 5 },
   levelCard: {
+    ...card,
     borderRadius: 20,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
     padding: spacing.xl,
     alignItems: 'center',
-  },
-  /** The card's hard 5pt drop, in the brand colour. */
-  levelCardLip: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 5,
-    bottom: -5,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
   },
   levelTile: {
     width: 68,
@@ -161,20 +147,9 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   desc: { textAlign: 'center', marginTop: spacing.sm },
 
   summaryWrap: { alignSelf: 'stretch', position: 'relative', marginTop: spacing.xl, marginBottom: 4 },
-  summaryLip: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 4,
-    bottom: -4,
-    borderRadius: radius.xl,
-    backgroundColor: colors.nightRaised,
-  },
   summary: {
-    backgroundColor: colors.surface,
+    ...card,
     borderRadius: radius.xl,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
   },

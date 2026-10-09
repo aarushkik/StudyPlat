@@ -7,7 +7,8 @@ import { AccountSaveCard } from '@/components/account/AccountSaveCard';
 import { AppearanceControls } from '@/components/account/AppearanceControls';
 import { links, openLink } from '@/lib/links';
 import { ChunkyCard } from '@/components/ui';
-import { colors, fonts, palette } from '@/theme';
+import { colors, fonts, palette, litRim, withAlpha } from '@/theme';
+import { Sheen } from '@/components/ui/Sheen';
 import { useQuest } from '@/state/QuestContext';
 import { getCourse } from '@/data';
 import { useOnboarding } from '@/state/OnboardingContext';
@@ -77,7 +78,6 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
         <View style={styles.bannerGlow} pointerEvents="none" />
         <View style={styles.bannerRow}>
           <View style={styles.avatarWrap}>
-            <View style={styles.avatarLip} />
             <View style={styles.avatar}>
               <Image source={MASCOT_ART.proud} style={styles.avatarArt} resizeMode="contain" />
             </View>
@@ -108,8 +108,8 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
             instead of a chevron that goes nowhere the card shows the last
             seven days directly. */}
         <View style={styles.streakWrap}>
-          <View style={styles.streakLip} />
           <View style={styles.streak}>
+            <Sheen strength={0.35} />
             <Image source={MASCOT_ART.streakOn} style={styles.streakArt} resizeMode="contain" />
             <View style={styles.streakBody}>
               <Text style={styles.streakTitle}>{streakDays}-day streak</Text>
@@ -266,17 +266,19 @@ function displayName(meta: Record<string, unknown> | undefined, email: string | 
   return 'Your quest';
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, card, solid }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingBottom: 130 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 12 },
   legalLink: { minHeight: 44, justifyContent: 'center' },
   legalText: { fontFamily: fonts.bodySemibold, fontSize: 13, color: colors.primaryDeep, textDecorationLine: 'underline' },
 
+  // A translucent wash of the brand tint, so the aurora runs on under it and
+  // the floating HUD has colour to sit on.
   banner: {
-    backgroundColor: colors.primaryTint,
-    borderBottomWidth: 3,
-    borderBottomColor: colors.border,
+    backgroundColor: solid ? colors.primaryTint : withAlpha(colors.primaryTint, 0.6),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.overlay,
     paddingHorizontal: 18,
     paddingTop: 14,
     paddingBottom: 16,
@@ -293,22 +295,11 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   },
   bannerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatarWrap: { position: 'relative', width: 82, marginBottom: 4 },
-  avatarLip: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 4,
-    height: 82,
-    borderRadius: 30,
-    backgroundColor: colors.nightRaised,
-  },
   avatar: {
+    ...card,
     width: 82,
     height: 82,
     borderRadius: 30,
-    backgroundColor: colors.background,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -321,9 +312,7 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
     marginTop: 8,
     height: 11,
     borderRadius: 7,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderWidth: 2,
-    borderColor: colors.border,
+    backgroundColor: colors.overlaySoft,
     overflow: 'hidden',
   },
   levelFill: { height: '100%', backgroundColor: palette.orange },
@@ -332,22 +321,13 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   body: { paddingHorizontal: 18, paddingTop: 14 },
 
   streakWrap: { position: 'relative', marginBottom: 6 },
-  streakLip: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 6,
-    bottom: -6,
-    borderRadius: 24,
-    backgroundColor: colors.nightRaised,
-  },
   streak: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: palette.orange,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
+    ...litRim(0.6),
+    boxShadow: solid ? 'none' : '0 10px 26px rgba(245,160,43,0.30)',
     borderRadius: 24,
     paddingLeft: 8,
     paddingRight: 16,
@@ -442,10 +422,8 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   dangerRow: { flexDirection: 'row', gap: 9, marginTop: 14 },
   pressedShift: { transform: [{ translateY: 2 }], opacity: 0.92 },
   keepBtn: {
+    ...card,
     flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: stroke.control,
-    borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 11,
     alignItems: 'center',

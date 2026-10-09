@@ -116,7 +116,7 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, card }: AppTheme) => StyleSheet.create({
   wrap: { maxHeight: '60%', width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 10 },
   panel: {
     flexShrink: 1,
@@ -134,15 +134,13 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   answer: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.sm },
   explanation: { ...typography.body, color: colors.textPrimary, marginTop: spacing.sm, lineHeight: 23 },
   retry: {
+    ...card,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     marginBottom: spacing.md,
-    borderWidth: stroke.control,
-    borderColor: colors.border,
     borderRadius: radius.lg,
-    backgroundColor: colors.surface,
     paddingVertical: spacing.md,
   },
   retryPressed: { transform: [{ translateY: 2 }], opacity: 0.92 },

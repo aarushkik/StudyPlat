@@ -1,4 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import { Backdrop } from '@/components/ui/Backdrop';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -257,6 +258,7 @@ export function HomeScreen() {
 
   return (
     <View style={styles.root}>
+      <Backdrop />
       <StatusBar style={appTheme.isDark ? "light" : "dark"} />
       {/* The map stays mounted and is hidden rather than unmounted. Rebuilding
           2,400 points of SVG on every tab switch is wasteful, it threw away

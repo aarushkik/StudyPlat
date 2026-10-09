@@ -11,7 +11,7 @@ import {
 import { useQuest } from "@/state/QuestContext";
 import { bossForNode } from "@/data/bosses";
 import { BossSprite } from "./BossSprite";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, selectedCard } from "@/theme";
 
 export function BossFieldGuide() {
   const appTheme = useAppTheme();
@@ -107,7 +107,7 @@ export function BossFieldGuide() {
     </View>
   );
 }
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, card, glass }: AppTheme) => StyleSheet.create({
   root: { gap: 16 },
   intro: {
     fontFamily: fonts.body,
@@ -117,22 +117,19 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   },
   areas: { gap: 8, paddingVertical: 3 },
   area: {
+    ...card,
     width: 44,
     height: 44,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: colors.border,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
   },
-  activeArea: { backgroundColor: colors.nightRaised },
+  // The chosen area is lit the way a selected card is: tinted and ringed.
+  activeArea: selectedCard(glass, colors.primary),
   areaText: { fontFamily: fonts.displayBold, fontSize: 18, color: colors.ink },
-  activeText: { color: colors.textOnInk },
+  activeText: { color: colors.primaryDeep },
   chapter: {
-    borderWidth: 2,
-    borderColor: colors.border,
+    ...card,
     borderRadius: 24,
     padding: 16,
     flexDirection: "row",
@@ -161,16 +158,13 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   card: {
+    ...card,
     flexGrow: 1,
     flexBasis: "45%",
     minWidth: 128,
     alignItems: "center",
     padding: 12,
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    borderColor: colors.border,
     borderRadius: 23,
-    backgroundColor: colors.surface,
   },
   rank: {
     paddingVertical: 4,

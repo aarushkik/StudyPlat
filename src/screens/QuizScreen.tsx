@@ -1,4 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import { Backdrop } from '@/components/ui/Backdrop';
 import { BossEncounter } from '@/components/creatures/BossEncounter';
 import { CompanionSprite } from '@/components/creatures/CompanionSprite';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -406,11 +407,11 @@ export function QuizScreen() {
     ? question.choices?.find((c) => c.id === question.correctAnswerId)?.text
     : question?.acceptedAnswers?.[0];
 
-  if (!question) return <SafeAreaView style={styles.root}><View style={styles.introBody}><Mascot pose="reading" size={130} /><Text style={typography.title}>You’re all caught up.</Text><Text style={[typography.body, styles.introText]}>There are no questions in this practice set. Pick another topic to keep exploring.</Text><AppButton label="Back to practice" onPress={() => navigation.goBack()} /></View></SafeAreaView>;
+  if (!question) return <SafeAreaView style={styles.root}><Backdrop /><View style={styles.introBody}><Mascot pose="reading" size={130} /><Text style={typography.title}>You’re all caught up.</Text><Text style={[typography.body, styles.introText]}>There are no questions in this practice set. Pick another topic to keep exploring.</Text><AppButton label="Back to practice" onPress={() => navigation.goBack()} /></View></SafeAreaView>;
 
   if (phase === 'study') {
     const notes = questions.filter((item, i, all) => all.findIndex((other) => other.skillTag === item.skillTag) === i).slice(0, 4);
-    return <SafeAreaView style={styles.root} edges={['top', 'bottom']}><StatusBar style={appTheme.isDark ? "light" : "dark"} />
+    return <SafeAreaView style={styles.root} edges={['top', 'bottom']}><Backdrop /><StatusBar style={appTheme.isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={styles.studyContent}>
         <View style={styles.studyHeading}><Mascot size={82} pose="reading" /><View style={{ flex: 1 }}><Text style={typography.overline}>FIELD NOTES</Text><Text style={typography.title}>{session?.title}</Text></View></View>
         <Text style={[typography.body, { marginBottom: 18 }]}>A few ideas to take with you. Read them, then try the practice questions.</Text>
@@ -425,6 +426,7 @@ export function QuizScreen() {
   if (phase === 'intro') {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <Backdrop />
         <StatusBar style={appTheme.isDark ? "light" : "dark"} />
         <View style={styles.introTop}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityLabel="Close">
@@ -464,6 +466,7 @@ export function QuizScreen() {
   // --- Questions ---
   return (
     <View style={styles.root}>
+      <Backdrop />
       <SafeAreaView style={styles.flex} edges={['top']}>
         <StatusBar style={appTheme.isDark ? "light" : "dark"} />
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -624,22 +627,20 @@ const REVIEW_BATCH = 5;
 /** What one right answer is worth in an endless review. */
 const REVIEW_XP_EACH = 4;
 
-const createStyles = ({ colors, palette, typography, stroke, glass }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, glass, card }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   studyContent: { padding: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
   studyHeading: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  studyCard: { padding: 18, borderWidth: stroke.surface, borderColor: colors.border, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
+  studyCard: { ...card, padding: 18, borderRadius: 22, marginBottom: 16 },
   exitBackdrop: { flex: 1, backgroundColor: glass.scrim, padding: 24, alignItems: 'center', justifyContent: 'center' },
   exitCard: { width: '100%', maxWidth: 400, borderRadius: 34, padding: 24 },
 
   companionBar: {
+    ...card,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: stroke.surface,
-    borderColor: colors.border,
     borderRadius: radius.lg,
     paddingVertical: spacing.sm,
     paddingLeft: spacing.sm,

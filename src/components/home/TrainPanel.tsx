@@ -15,7 +15,8 @@ import { useMotionPreference } from "@/hooks/useMotionPreference";
 import { MASCOT_ART } from "@/components/Mascot";
 import { Glyph } from "@/components/icons";
 import { ChunkyCard, PropBadge } from "@/components/ui";
-import { chunky, colors, fonts, palette } from "@/theme";
+import { chunky, colors, fonts, litRim, palette, spring } from "@/theme";
+import { Sheen } from "@/components/ui/Sheen";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuest } from "@/state/QuestContext";
@@ -326,8 +327,7 @@ function Recommended({
     Animated.spring(press, {
       toValue: v,
       useNativeDriver: true,
-      speed: 50,
-      bounciness: 0,
+      ...(v === 1 ? spring.press : spring.release),
     }).start();
   };
 
@@ -348,9 +348,10 @@ function Recommended({
           {
             transform: [
               {
-                translateY: press.interpolate({
+                scale: press.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, c.press],
+                  outputRange: [1, 0.98],
+                  extrapolate: "clamp",
                 }),
               },
             ],
@@ -368,6 +369,8 @@ function Recommended({
         />
         {/* A turquoise wash bleeding off the top-right corner. */}
         <View style={styles.heroGlow} pointerEvents="none" />
+        {/* Tinted glass: light pooling along the top, a rim lit from above. */}
+        <Sheen strength={0.14} />
         <Text style={styles.heroKicker}>RECOMMENDED TODAY</Text>
         <Text style={styles.heroTitle}>Weak-spot drill</Text>
         <Text style={styles.heroBody}>
@@ -375,6 +378,7 @@ function Recommended({
           {focus ? ` on ${focus}` : " across a few topics to find your focus"}.
         </Text>
         <View style={styles.heroCta}>
+          <Sheen strength={0.45} reach={0.6} />
           <Text style={styles.heroCtaText}>Start · 4 min</Text>
           <View style={styles.heroArrow}>
             <Glyph name="arrow-right" size={16} color={palette.hero.to} strokeWidth={2.8} />
@@ -408,7 +412,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
   headArt: { width: 104, height: 104, marginBottom: -8 },
 
   heroWrap: { marginTop: 12 },
-  hero: { padding: 18, overflow: "hidden" },
+  hero: { padding: 18, overflow: "hidden", ...litRim(0.3), boxShadow: "0 14px 32px rgba(9,45,57,0.22)" },
   heroGlow: {
     position: "absolute",
     right: -78,
@@ -446,15 +450,18 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     gap: 12,
     marginTop: 16,
     backgroundColor: palette.turquoiseLight,
-    borderRadius: 14,
+    borderRadius: 23,
     minHeight: 46,
-    paddingLeft: 16,
+    paddingLeft: 18,
     paddingRight: 9,
+    overflow: "hidden",
+    ...litRim(0.7),
+    boxShadow: "0 6px 18px rgba(127,224,236,0.28)",
   },
   heroArrow: {
     width: 28,
     height: 28,
-    borderRadius: 9,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.55)",
     alignItems: "center",
     justifyContent: "center",
@@ -500,8 +507,6 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     height: 10,
     borderRadius: 7,
     backgroundColor: colors.track,
-    borderWidth: 2,
-    borderColor: colors.border,
     overflow: "hidden",
   },
   barFill: { height: "100%", backgroundColor: palette.ember },

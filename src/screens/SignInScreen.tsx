@@ -1,4 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import { Backdrop } from '@/components/ui/Backdrop';
 import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView, Platform, Pressable, ScrollView,
@@ -81,6 +82,7 @@ export function SignInScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <LinearGradient colors={[palette.night, '#153F4A', palette.night]} style={StyleSheet.absoluteFill} />
+      <Backdrop base="transparent" />
       <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={[styles.scroll, welcome && styles.welcomeScroll]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>

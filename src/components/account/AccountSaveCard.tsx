@@ -6,7 +6,7 @@ import { Glyph } from '@/components/icons';
 import { useAuth } from '@/state/AuthContext';
 import { useQuest } from '@/state/QuestContext';
 import { deviceStorage } from '@/lib/storage';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, tintedCard } from '@/theme';
 
 const REMINDER_KEY = 'studyplat.account-reminder';
 /** Permanent in Profile; a dismissible reminder after the first study session
@@ -47,8 +47,8 @@ export function AccountSaveCard({ reminder = false, compact = false }: { reminde
     </Pressable>
   </View>;
 }
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
-  card: { backgroundColor: colors.primaryTint, borderWidth: 2, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, marginVertical: 12 },
+const createStyles = ({ colors, palette, typography, solid, glass }: AppTheme) => StyleSheet.create({
+  card: { ...tintedCard(glass, colors.primaryTint, colors.primary, solid), borderRadius: 22, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, marginVertical: 12 },
   compact: { marginHorizontal: 18, marginTop: 0 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   title: { flex: 1, fontFamily: fonts.displayBold, fontSize: 17, lineHeight: 22, color: colors.ink },

@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
 import { ChunkyCard, PropBadge } from '@/components/ui';
-import { colors, fonts, palette } from '@/theme';
+import { colors, fonts, palette, litRim, tintedCard } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuest } from '@/state/QuestContext';
@@ -174,7 +174,7 @@ export function BattlesPanel({ onSelect, onJumpToTrack, topInset = 0 }: Progress
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, glass, solid }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 130 },
 
@@ -192,10 +192,8 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   bigUnit: { fontSize: 22, color: colors.textMuted },
   delta: {
     marginBottom: 6,
-    backgroundColor: colors.primaryTint,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 12,
+    ...tintedCard(glass, colors.primaryTint, colors.primary, solid),
+    borderRadius: 14,
     paddingHorizontal: 9,
     paddingVertical: 4,
   },
@@ -233,8 +231,6 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
     height: 9,
     borderRadius: 6,
     backgroundColor: colors.track,
-    borderWidth: 2,
-    borderColor: colors.border,
     overflow: 'hidden',
   },
   miniFill: { height: '100%' },
@@ -255,17 +251,15 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
     height: 10,
     borderRadius: 7,
     backgroundColor: colors.track,
-    borderWidth: 2,
-    borderColor: colors.border,
     overflow: 'hidden',
   },
   barFill: { height: '100%', backgroundColor: palette.ember },
   drill: {
     marginTop: 11,
     backgroundColor: palette.ember,
-    borderWidth: stroke.control,
-    borderColor: colors.border,
-    borderRadius: 17,
+    ...litRim(0.55),
+    boxShadow: solid ? 'none' : '0 6px 16px rgba(217,85,47,0.30)',
+    borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',
   },
