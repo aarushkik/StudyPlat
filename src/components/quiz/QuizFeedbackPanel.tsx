@@ -4,9 +4,10 @@ import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { AppButton } from '@/components/ui';
+import { GlassSurface } from '@/components/ui/GlassSurface';
 import { Glyph } from '@/components/icons';
 import { Mascot } from '@/components/Mascot';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { radius, spacing } from '@/theme';
 
 interface QuizFeedbackPanelProps {
   correct: boolean;
@@ -30,6 +31,9 @@ interface QuizFeedbackPanelProps {
  * Supportive by design: a miss is framed as information, never a scolding —
  * Stu looks concerned rather than disappointed, the correct answer is stated
  * outright, and the explanation gets more room than the verdict does.
+ *
+ * A floating card of tinted glass — green for right, red for wrong — that
+ * rises on a soft spring, inset from the edges like the stop sheet on the map.
  */
 export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel, onContinue, retry }: QuizFeedbackPanelProps) {
   const appTheme = useAppTheme();
@@ -38,12 +42,17 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
 
   const insets = useSafeAreaInsets();
   const { reduceMotion } = useMotionPreference();
-  const slide = useRef(new Animated.Value(90)).current;
+  const slide = useRef(new Animated.Value(reduceMotion ? 0 : 28)).current;
   const fade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    slide.setValue(0);
-    const animation = Animated.timing(fade, { toValue: 1, duration: reduceMotion ? 0 : 180, useNativeDriver: true });
+    if (reduceMotion) { slide.setValue(0); fade.setValue(1); return; }
+    // A short rise, not the full height: the panel replaces the Check button
+    // in place, so it only needs to arrive, not travel.
+    const animation = Animated.parallel([
+      Animated.spring(slide, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 240, mass: 0.9 }),
+      Animated.timing(fade, { toValue: 1, duration: 160, useNativeDriver: true }),
+    ]);
     animation.start();
     return () => animation.stop();
   }, [slide, fade, reduceMotion]);
@@ -53,16 +62,15 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
   return (
     <Animated.View
       style={[
-        styles.panel,
-        shadows.xl,
+        styles.wrap,
         {
-          backgroundColor: correct ? colors.successSoft : colors.dangerSoft,
-          paddingBottom: insets.bottom + spacing.lg,
+          paddingBottom: Math.max(insets.bottom, 10),
           opacity: fade,
           transform: [{ translateY: slide }],
         },
       ]}
     >
+      <GlassSurface variant="thick" tint={correct ? colors.successSoft : colors.dangerSoft} style={styles.panel}>
       <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}><View style={styles.headerRow}>
         <Mascot size={48} pose={correct ? 'thumbsup' : 'wince'} shadow={false} />
         <View style={styles.titleWrap}>
@@ -103,24 +111,19 @@ export function QuizFeedbackPanel({ correct, explanation, answer, continueLabel,
         icon="arrow-right"
         onPress={onContinue}
       />
+      </GlassSurface>
     </Animated.View>
   );
 }
 
 const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
-  // Ruled in ink on three sides, like the stop sheet. A coloured hairline over
-  // a soft tinted sheet was the last surface still drawn in the old language,
-  // and next to the ink-bordered answer cards above it, it read as unfinished.
+  wrap: { maxHeight: '60%', width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 10 },
   panel: {
-    maxHeight: '60%', width: '100%', maxWidth: 620, alignSelf: 'center',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    borderWidth: stroke.surface,
-    borderBottomWidth: 0,
-    borderColor: colors.border,
+    flexShrink: 1,
+    borderRadius: 36,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    overflow: 'hidden',
+    paddingBottom: spacing.lg,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm },
   titleWrap: { flex: 1 },

@@ -1,12 +1,13 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import { BossSprite } from '@/components/creatures/BossSprite';
 import { bossForNode } from '@/data/bosses';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/ui';
+import { GlassSurface } from '@/components/ui/GlassSurface';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { colors, duration, easing, palette, questNode, radius, shadows, spacing, typography } from '@/theme';
+import { duration, easing, questNode, radius, spacing } from '@/theme';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { BOSS_TIERS } from '@/data/questMap';
 import type { QuestNode, QuestNodeKindId, QuestNodeState } from '@/types/quest';
@@ -33,6 +34,13 @@ const KIND: Record<QuestNodeKindId, { label: string; glyph: GlyphName; cta: stri
  * The sheet that opens when a stop is tapped: what you're about to do, what
  * it's worth, and one obvious button to begin. This is the last thing between
  * a student and a lesson, so it stays short — title, stakes, go.
+ *
+ * A floating glass card, inset from the screen edges with its corners
+ * following the phone's, as iOS 26 sheets are — rather than a slab bolted to
+ * the bottom edge. It rises on a spring and sinks away when dismissed; it used
+ * to vanish on the spot, because the moment the stop was cleared there was
+ * nothing left to draw. It now keeps the last stop it showed until it has
+ * finished leaving.
  */
 export function LessonSheet({ node, state, unitTitle, onStart, onClose }: LessonSheetProps) {
   const appTheme = useAppTheme();
@@ -43,20 +51,63 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
   const { motionEnabled } = useMotionPreference();
   const rise = useRef(new Animated.Value(0)).current;
   const visible = node !== null;
+  // What is on screen. Follows the props while a stop is selected and holds
+  // the last one while the sheet animates away.
+  const [leaving, setLeaving] = useState<{ node: QuestNode; state: QuestNodeState; unitTitle: string } | null>(null);
+  useEffect(() => {
+    if (node) setLeaving({ node, state, unitTitle });
+  }, [node, state, unitTitle]);
 
   useEffect(() => {
-    if (!motionEnabled) { rise.setValue(visible ? 1 : 0); return; }
-    const animation = Animated.timing(rise, {
-      toValue: visible ? 1 : 0,
-      duration: visible ? duration.base : duration.fast,
-      easing: visible ? easing.out : easing.in,
-      useNativeDriver: true,
-    });
-    animation.start();
+    if (!motionEnabled) {
+      rise.setValue(visible ? 1 : 0);
+      if (!visible) setLeaving(null);
+      return;
+    }
+    const animation = visible
+      ? Animated.spring(rise, { toValue: 1, useNativeDriver: true, damping: 21, stiffness: 200, mass: 1 })
+      : Animated.timing(rise, { toValue: 0, duration: duration.fast, easing: easing.in, useNativeDriver: true });
+    animation.start(({ finished }) => { if (finished && !visible) setLeaving(null); });
     return () => animation.stop();
   }, [visible, rise, motionEnabled]);
 
-  if (!node) return null;
+  const shown = node ? { node, state, unitTitle } : leaving;
+  if (!shown) return null;
+  return (
+    <SheetBody
+      node={shown.node}
+      state={shown.state}
+      unitTitle={shown.unitTitle}
+      visible={visible}
+      rise={rise}
+      bottomInset={insets.bottom}
+      onStart={onStart}
+      onClose={onClose}
+    />
+  );
+}
+
+function SheetBody({
+  node,
+  state,
+  unitTitle,
+  visible,
+  rise,
+  bottomInset,
+  onStart,
+  onClose,
+}: {
+  node: QuestNode;
+  state: QuestNodeState;
+  unitTitle: string;
+  visible: boolean;
+  rise: Animated.Value;
+  bottomInset: number;
+  onStart: () => void;
+  onClose: () => void;
+}) {
+  const { colors, palette, typography } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   const kind = KIND[node.kind];
   const scheme = questNode[node.kind];
@@ -67,19 +118,20 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
   // Bosses are named by rank, so the sheet's kicker says which fight this is.
   const label = isBoss ? `${BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))]} battle` : kind.label;
 
-  const translateY = rise.interpolate({ inputRange: [0, 1], outputRange: [420, 0] });
+  // The spring may carry the sheet a few points past its resting place;
+  // that is the bounce. The scrim is clamped so it never goes darker than set.
+  const translateY = rise.interpolate({ inputRange: [0, 1], outputRange: [460, 0] });
+  const scrimOpacity = rise.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' });
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, { opacity: rise }]}>
+    <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, { opacity: scrimOpacity }]}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Dismiss quest details" onPress={onClose} />
       </Animated.View>
 
-      <View style={styles.dock} pointerEvents="box-none">
-        <Animated.View
-          accessibilityViewIsModal
-          style={[styles.sheet, shadows.xl, { paddingBottom: insets.bottom + spacing.lg, transform: [{ translateY }] }]}
-        >
+      <View style={[styles.dock, { paddingBottom: Math.max(bottomInset, 10) }]} pointerEvents={visible ? 'box-none' : 'none'}>
+        <Animated.View accessibilityViewIsModal style={[styles.sheetWrap, { transform: [{ translateY }] }]}>
+          <GlassSurface variant="thick" style={styles.sheet}>
           <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
           <View style={styles.grabber} />
 
@@ -151,6 +203,7 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
             <Text style={styles.dismissText}>{sealed ? 'Back to the map' : 'Not right now'}</Text>
           </Pressable>
           </ScrollView>
+          </GlassSurface>
         </Animated.View>
       </View>
     </Modal>
@@ -158,8 +211,6 @@ export function LessonSheet({ node, state, unitTitle, onStart, onClose }: Lesson
 }
 
 function Reward({ glyph, color, value }: { glyph: GlyphName; color: string; value: string }) {
-  const appTheme = useAppTheme();
-  const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
 
   return (
@@ -170,24 +221,18 @@ function Reward({ glyph, color, value }: { glyph: GlyphName; color: string; valu
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
-  scrim: { backgroundColor: 'rgba(36,27,34,0.42)' },
-  dock: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
+const createStyles = ({ colors, palette, typography, stroke, glass }: AppTheme) => StyleSheet.create({
+  scrim: { backgroundColor: glass.scrim },
+  dock: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 10 },
+  sheetWrap: { maxHeight: '90%', maxWidth: 600, width: '100%' },
+  // 40 sits just inside a modern iPhone's display corner at a 10pt inset, so
+  // the card's corners run parallel to the screen's.
   sheet: {
-    maxHeight: '90%',
-    maxWidth: 620,
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    borderCurve: 'continuous',
-    // Ruled on three sides. The sheet is the one surface that meets the screen
-    // edge, so without the rule it is the only thing in the app without one.
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.border,
+    flexShrink: 1,
+    borderRadius: 40,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   grabber: {
     alignSelf: 'center',
@@ -237,8 +282,10 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   bossText: { ...typography.caption, color: '#F3E7FA', flex: 1 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
+  // A translucent well, not a solid one: on glass, an opaque chip reads as a
+  // hole punched through it.
   chip: {
-    backgroundColor: colors.surfaceSunken,
+    backgroundColor: colors.overlaySoft,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,

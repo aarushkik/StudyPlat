@@ -20,6 +20,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useRoute, usePreventRemove, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppButton } from '@/components/ui';
+import { GlassSurface } from '@/components/ui/GlassSurface';
 import { Glyph } from '@/components/icons';
 import { Mascot } from '@/components/Mascot';
 import {
@@ -590,11 +591,11 @@ export function QuizScreen() {
       </SafeAreaView>
 
       <Modal transparent visible={confirmExit !== null} animationType="fade" onRequestClose={() => setConfirmExit(null)}>
-        <View style={styles.exitBackdrop}><View accessibilityViewIsModal style={styles.exitCard}>
+        <View style={styles.exitBackdrop}><GlassSurface variant="thick" accessibilityViewIsModal style={styles.exitCard}>
           <Text style={typography.title}>Leave this practice?</Text><Text style={[typography.body, { marginVertical: 16 }]}>This unfinished session won’t be saved. Your earlier progress is safe.</Text>
           <AppButton label="Keep studying" onPress={() => setConfirmExit(null)} />
           <AppButton label="Leave session" tone="secondary" style={{ marginTop: 16 }} onPress={() => { const action = confirmExit; setConfirmExit(null); setExitAction(() => action); }} />
-        </View></View>
+        </GlassSurface></View>
       </Modal>
       <StreakMilestoneOverlay
         visible={overlayVisible}
@@ -623,13 +624,13 @@ const REVIEW_BATCH = 5;
 /** What one right answer is worth in an endless review. */
 const REVIEW_XP_EACH = 4;
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, glass }: AppTheme) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   studyContent: { padding: 24, width: '100%', maxWidth: 620, alignSelf: 'center' },
   studyHeading: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   studyCard: { padding: 18, borderWidth: stroke.surface, borderColor: colors.border, borderRadius: 22, backgroundColor: colors.surface, marginBottom: 16 },
-  exitBackdrop: { flex: 1, backgroundColor: '#0B2029AA', padding: 24, alignItems: 'center', justifyContent: 'center' },
-  exitCard: { width: '100%', maxWidth: 400, borderWidth: stroke.surface, borderColor: colors.border, borderRadius: 26, backgroundColor: colors.surface, padding: 24 },
+  exitBackdrop: { flex: 1, backgroundColor: glass.scrim, padding: 24, alignItems: 'center', justifyContent: 'center' },
+  exitCard: { width: '100%', maxWidth: 400, borderRadius: 34, padding: 24 },
 
   companionBar: {
     flexDirection: 'row',
