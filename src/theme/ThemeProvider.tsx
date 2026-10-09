@@ -6,6 +6,7 @@ import { colors as lightColors, darkColors, palette, type ThemeColors } from './
 import { makeTypography } from './typography';
 import { chunky as makeChunky, type ChunkyOptions } from './chunky';
 import { stroke } from './stroke';
+import { darkGlass, lightGlass } from './glass';
 import { resolveAppearance, type AppearancePreference } from './appearance';
 export type { AppearancePreference } from './appearance';
 
@@ -15,9 +16,7 @@ function makeTheme(mode: 'light' | 'dark') {
     mode, isDark: mode === 'dark', colors, palette, stroke,
     typography: makeTypography(colors),
     chunky: (options?: ChunkyOptions) => makeChunky(options, colors),
-    glass: mode === 'dark' ? 'rgba(19,40,50,0.82)' : 'rgba(255,253,247,0.82)',
-    glassEdge: mode === 'dark' ? 'rgba(202,246,245,0.18)' : 'rgba(255,255,255,0.9)',
-    shadow: mode === 'dark' ? '0 12px 36px rgba(0,0,0,0.26)' : '0 12px 36px rgba(18,48,60,0.1)',
+    glass: mode === 'dark' ? darkGlass : lightGlass,
   };
 }
 export type AppTheme = ReturnType<typeof makeTheme>;
