@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
@@ -276,18 +276,21 @@ function TrackSceneryImpl({ kind, color, width, height, seed }: TrackSceneryProp
 
   const Motif = MOTIF[kind];
   const driftKind = drift(kind);
+  // Per instance: on the web `url(#id)` resolves to the first element with
+  // that id in the document, so every track shared — or lost — one sky.
+  const skyId = `sky${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   return (
     <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={width} height={height}>
       <Defs>
-        <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <LinearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor={isDark ? '#42CADB' : '#FFFFFF'} stopOpacity={isDark ? 0.08 : 0.5} />
           <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
         </LinearGradient>
       </Defs>
 
       {/* Light from above. Short, so it never washes out the track's colour. */}
-      <Rect x={0} y={0} width={width} height={Math.min(height, 340)} fill="url(#sky)" />
+      <Rect x={0} y={0} width={width} height={Math.min(height, 340)} fill={`url(#${skyId})`} />
 
       {/* Group opacity composites the whole group once, so overlapping parts
           of a cloud do not double-darken where they meet. */}
