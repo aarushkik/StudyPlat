@@ -2,29 +2,30 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Privacy Policy — StudyPlat</title>
 <meta name="description" content="What StudyPlat stores, why, and how to delete it.">
-<meta name="theme-color" content="#FBF1E2">
+<meta name="theme-color" content="#F3F6F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1922" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="img/icon.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap narrow doc">
-  <div class="bar">
-    <a class="logo" href="index.html">
-      <span class="logo-word">Study</span><span class="logo-chip">Plat</span>
-    </a>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="privacy.html">Privacy</a>
-      <a href="terms.html">Terms</a>
-      <a href="support.html">Support</a>
-    </nav>
-  </div>
+<header class="nav-shell">
+  <nav class="nav glass" aria-label="Main">
+    <a class="logo" href="index.html"><img src="img/icon-180.png" alt="" width="36" height="36"><span>StudyPlat</span></a>
+    <a class="link" href="privacy.html" aria-current="page">Privacy</a>
+    <a class="link" href="terms.html">Terms</a>
+    <a class="link keep" href="support.html">Support</a>
+    <a class="btn btn-primary btn-small" href="app/">Play</a>
+  </nav>
+</header>
 
+<main class="narrow">
+<article class="paper glass">
 <h1>Privacy Policy</h1>
-  <p class="updated">Last updated 7 September 2026</p>
+  <p class="updated">Last updated 8 October 2026</p>
 
   <p>StudyPlat is a study app for AP exams. This policy describes exactly what
   it stores, why, and how to get rid of it. It is short because the app
@@ -35,8 +36,10 @@
 
   <h2>What we collect</h2>
   <p><strong>Your account.</strong> When you sign in we receive your email
-  address, and — if you sign in with Google or Microsoft — the display name on
-  that account. We never receive your password for those providers. If you sign
+  address, and — if you sign in with Apple, Google or Microsoft — the display
+  name on that account. With Sign in with Apple you can choose to hide your
+  email, in which case we receive a private relay address from Apple instead.
+  We never receive your password for those providers. If you sign
   up with an email and password instead, the password is stored hashed by our
   authentication provider and is not visible to us.</p>
 
@@ -69,7 +72,8 @@
   <p>Signed-in profiles sync with <a href="https://supabase.com/privacy">Supabase</a>,
   which hosts our database and handles authentication. Access is restricted at
   the database level so other students cannot read or write your profile. Authorized service administrators may access data to operate the service. A local copy also supports offline study.</p>
-  <p>Sign-in with Google or Microsoft is handled by those providers, under
+  <p>Sign-in with Apple, Google or Microsoft is handled by those providers, under
+  <a href="https://www.apple.com/legal/privacy/">Apple's</a>,
   <a href="https://policies.google.com/privacy">Google's</a> and
   <a href="https://privacy.microsoft.com/privacystatement">Microsoft's</a> own
   privacy policies. We ask them only for your email address and basic profile.</p>
@@ -101,18 +105,19 @@
   <h2>Contact</h2>
   <p>Questions about privacy, or a deletion request:
   <a href="mailto:tokikks@gmail.com">tokikks@gmail.com</a></p>
-  <footer>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="privacy.html">Privacy Policy</a>
-      <a href="terms.html">Terms of Use</a>
-      <a href="support.html">Support</a>
-    </nav>
-    StudyPlat — an independent study app. AP and Advanced Placement are
-    registered trademarks of the College Board, which is not affiliated with
-    and does not endorse StudyPlat.
-  </footer>
+</article>
+</main>
 
-</div>
+<footer class="glass wrap">
+  <nav aria-label="Footer">
+    <a href="index.html">Home</a>
+    <a href="app/">Play</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Use</a>
+    <a href="support.html">Support</a>
+  </nav>
+  <p>StudyPlat is an independent study app. AP and Advanced Placement are registered trademarks of the College Board, which is not affiliated with and does not endorse StudyPlat.</p>
+</footer>
+
 </body>
 </html>

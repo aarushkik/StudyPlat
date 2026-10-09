@@ -2,27 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Terms of Use — StudyPlat</title>
 <meta name="description" content="The terms you agree to by using StudyPlat.">
-<meta name="theme-color" content="#FBF1E2">
+<meta name="theme-color" content="#F3F6F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1922" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="img/icon.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap narrow doc">
-  <div class="bar">
-    <a class="logo" href="index.html">
-      <span class="logo-word">Study</span><span class="logo-chip">Plat</span>
-    </a>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="privacy.html">Privacy</a>
-      <a href="terms.html">Terms</a>
-      <a href="support.html">Support</a>
-    </nav>
-  </div>
+<header class="nav-shell">
+  <nav class="nav glass" aria-label="Main">
+    <a class="logo" href="index.html"><img src="img/icon-180.png" alt="" width="36" height="36"><span>StudyPlat</span></a>
+    <a class="link" href="privacy.html">Privacy</a>
+    <a class="link" href="terms.html" aria-current="page">Terms</a>
+    <a class="link keep" href="support.html">Support</a>
+    <a class="btn btn-primary btn-small" href="app/">Play</a>
+  </nav>
+</header>
 
+<main class="narrow">
+<article class="paper glass">
 <h1>Terms of Use</h1>
   <p class="updated">Last updated 1 September 2026</p>
 
@@ -78,18 +79,19 @@
 
   <h2>Contact</h2>
   <p><a href="mailto:tokikks@gmail.com">tokikks@gmail.com</a></p>
-  <footer>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="privacy.html">Privacy Policy</a>
-      <a href="terms.html">Terms of Use</a>
-      <a href="support.html">Support</a>
-    </nav>
-    StudyPlat — an independent study app. AP and Advanced Placement are
-    registered trademarks of the College Board, which is not affiliated with
-    and does not endorse StudyPlat.
-  </footer>
+</article>
+</main>
 
-</div>
+<footer class="glass wrap">
+  <nav aria-label="Footer">
+    <a href="index.html">Home</a>
+    <a href="app/">Play</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Use</a>
+    <a href="support.html">Support</a>
+  </nav>
+  <p>StudyPlat is an independent study app. AP and Advanced Placement are registered trademarks of the College Board, which is not affiliated with and does not endorse StudyPlat.</p>
+</footer>
+
 </body>
 </html>
