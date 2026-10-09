@@ -43,9 +43,9 @@ Updated 26 September 2026. The application has been hardened and its UI refined.
 ## Native acceptance before TestFlight release
 
 - Small iPhone and iPad: full onboarding, keyboard entry, long explanations, lesson exit confirmation, results, map navigation, all tabs, companion selection, text scaling, VoiceOver, Reduce Motion, Reduce Transparency, native glass availability, Light/Dark/System appearance and native haptics.
-- Fresh install as guest; complete sessions, force quit/reopen, airplane mode, background during save, return online, low-storage failure. Confirm dismissing account prompts never blocks study.
+- Fresh install: confirm sign-in is required before setup. Then complete sessions, force quit/reopen, airplane mode, background during save, return online, low-storage failure.
 - Google/Microsoft/Apple cancel and success; email confirmation; reset link while app is closed/open; expired link; wrong password; sign out and switch accounts. No credentials or profile details should appear in logs.
-- Upgrade a guest into new/same-course/different-course accounts; interrupt import; retry without duplicated XP. Two devices should combine independent offline sessions and refresh on foreground.
+- On a device with a guest quest from an earlier build, sign in to new/same-course/different-course accounts; interrupt import; retry without duplicated XP. Two devices should combine independent offline sessions and refresh on foreground.
 - Delete an account, verify Supabase profile/auth/receipts removed, sign in denied, then verify guest erase. Device-local copies on other offline devices cannot be remotely erased; confirm policy wording with actual hosting retention.
 - Archive with production EAS profile, inspect privacy manifests in the archive, validate with App Store Connect, install via TestFlight, and capture real screenshots. Record results here before submission.
 
@@ -55,13 +55,13 @@ Name: StudyPlat: AP Study Quests
 
 Subtitle: Short lessons. Steady progress.
 
-Description: Build a steady study habit with Stu, your platypus study companion. Choose an AP course, read short field notes, practise topic questions, and follow a quest map with review stops and boss challenges. Track your sessions, streaks, and topic accuracy. Study as a guest with progress saved on your device, or make an account to carry a compatible quest across devices. Eight courses include Biology, Calculus AB, Chemistry, Computer Science A, English Language, Psychology, U.S. History, and World History. Questions are original practice material. StudyPlat is independent and is not affiliated with or endorsed by the College Board; AP is its registered trademark.
+Description: Build a steady study habit with Stu, your platypus study companion. Choose an AP course, read short field notes, practise topic questions, and follow a quest map with review stops and boss challenges. Track your sessions, streaks, and topic accuracy. Sign in with Apple, Google, Microsoft or email and your quest follows you across devices. Eight courses include Biology, Calculus AB, Chemistry, Computer Science A, English Language, Psychology, U.S. History, and World History. Questions are original practice material. StudyPlat is independent and is not affiliated with or endorsed by the College Board; AP is its registered trademark.
 
 Primary category: Education. No subscriptions, ads, or in-app purchases are implemented. Choose the age rating by answering the current questionnaire accurately; the policy describes an intended audience of 13+ and this is not a Kids Category declaration.
 
 App privacy draft for owner review: account name/email, account user ID, and linked study activity/progress are used for app functionality. No advertising, cross-app tracking, or third-party analytics SDK is included. Include hosting/provider collection as appropriate; confirm final data types and retention against the actual Supabase deployment before submitting labels.
 
-Review notes draft: Full study functionality is accessible using Continue as guest. Account creation enables cloud saves. Account deletion is available in Profile. Provide working review credentials and any needed tenant instructions through App Store Connect after testing; no credentials are included here.
+Review notes draft: An account is required; sign-in syncs progress across devices. Provide a working demo account (email and password) in App Store Connect's Sign-In Information so the reviewer can sign in with email. Account deletion is available in Profile. No credentials are included here.
 
 ## Primary references
 

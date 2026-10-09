@@ -17,10 +17,9 @@ Use `npm run web` for a browser preview. Google/Microsoft callbacks on native re
 
 ## Study and account behavior
 
-- Guests can complete setup and study without authentication. Progress is saved in device storage; web previews use browser local storage.
-- Home and Profile offer account creation. A dismissible reminder appears after a completed session, then only after at least five additional sessions and a day since dismissal.
+- An account is required: sign in with Apple (iPhone), Google, Microsoft or email before setup. There is no guest mode.
 - Google, Microsoft, and email/password use Supabase. Apple OAuth is implemented behind `EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED`; enable it only after configuring and testing the provider.
-- Signing in connects a guest quest with a compatible account course. If the account has a different course, its quest opens and the guest quest stays on the device.
+- Devices that studied as a guest in an earlier version keep that quest; the first sign-in on the device imports it into a compatible account course. If the account has a different course, its quest opens and the guest quest is not merged. Deleting the account erases it.
 - Local saves are immediate. Account changes use a persistent outbox with idempotent mutation IDs and an atomic PostgreSQL merge; retries do not duplicate rewards. Returning to the foreground refreshes account progress.
 - Map stops require a complete attempt with at least 60% correct. Lesson stops start with field notes. Practice, topic review, boss rematches, placement, and endless mode use the course question banks.
 - There are eight courses, 120 original practice questions per course, and 180 map stops per course. Questions recur across stops. This is original practice material, not official exam content or a validated predictor of exam scores.
