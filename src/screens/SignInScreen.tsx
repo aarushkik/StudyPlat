@@ -13,8 +13,9 @@ import { AppButton, TopBackButton, Wordmark } from '@/components/ui';
 import { Glyph } from '@/components/icons';
 import { links, openLink } from '@/lib/links';
 import { colors, fonts, palette } from '@/theme';
-import { useAuth, appleSignInEnabled } from '@/state/AuthContext';
+import { useAuth } from '@/state/AuthContext';
 import { ProviderButton } from '@/components/ui/ProviderButton';
+import { AppleSignInButton } from '@/components/ui/AppleSignInButton';
 import { useNavigation } from '@react-navigation/native';
 
 type Mode = 'welcome' | 'signIn' | 'signUp' | 'reset';
@@ -97,9 +98,10 @@ export function SignInScreen() {
                   </View>
                 </View>
                 <View style={styles.actions}>
+                  {/* Apple first: guideline 4.8 wants it at least as prominent as the others. */}
+                  <AppleSignInButton disabled={busy} onPress={() => signIn('apple')} />
                   <ProviderButton provider="google" busy={pending === 'google'} disabled={busy} onPress={() => signIn('google')} />
                   <ProviderButton provider="azure" busy={pending === 'azure'} disabled={busy} onPress={() => signIn('azure')} />
-                  {appleSignInEnabled && <ProviderButton provider="apple" busy={pending === 'apple'} disabled={busy} onPress={() => signIn('apple')} />}
                   {error ? <Message text={error} error /> : null}
                   <AppButton label="Continue as guest" icon="arrow-right" loading={working} disabled={busy} onPress={start} />
                   <Text style={styles.deviceNote}>Progress saved on this device</Text>
@@ -122,9 +124,9 @@ export function SignInScreen() {
                 </View>
                 <View style={styles.form}>
                   {!recovering && !resetting && <>
+                    <AppleSignInButton disabled={busy} onPress={() => signIn('apple')} />
                     <ProviderButton provider="google" busy={pending === 'google'} disabled={busy} onPress={() => signIn('google')} />
                     <ProviderButton provider="azure" busy={pending === 'azure'} disabled={busy} onPress={() => signIn('azure')} />
-                    {appleSignInEnabled && <ProviderButton provider="apple" busy={pending === 'apple'} disabled={busy} onPress={() => signIn('apple')} />}
                     <Text style={styles.or}>OR USE EMAIL</Text>
                   </>}
                   {error || localError ? <Message text={localError ?? error!} error /> : null}

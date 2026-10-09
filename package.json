@@ -11,11 +11,12 @@
     "@react-navigation/native-stack": "^7.17.9",
     "@supabase/supabase-js": "^2.112.3",
     "expo": "~54.0.36",
+    "expo-apple-authentication": "~8.0.8",
     "expo-auth-session": "~7.0.11",
     "expo-blur": "~15.0.8",
-    "expo-glass-effect": "~0.1.10",
     "expo-crypto": "~15.0.9",
     "expo-font": "~14.0.12",
+    "expo-glass-effect": "~0.1.10",
     "expo-haptics": "~15.0.8",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
@@ -58,7 +59,11 @@
   },
   "overrides": {
     "postcss": "^8.5.23",
-    "metro": { "image-size": "2.0.4" },
-    "xcode": { "uuid": "11.1.1" }
+    "metro": {
+      "image-size": "2.0.4"
+    },
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   }
 }

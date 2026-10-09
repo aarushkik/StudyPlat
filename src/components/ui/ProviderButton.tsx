@@ -5,15 +5,16 @@ import Svg, { Path } from 'react-native-svg';
 import { colors, fonts } from '@/theme';
 import type { AuthProvider } from '@/state/AuthContext';
 
-export function ProviderButton({ provider, busy, disabled, onPress }: { provider: AuthProvider; busy: boolean; disabled: boolean; onPress: () => void }) {
+/** Google and Microsoft. Apple has its own system button: see AppleSignInButton. */
+export function ProviderButton({ provider, busy, disabled, onPress }: { provider: Exclude<AuthProvider, 'apple'>; busy: boolean; disabled: boolean; onPress: () => void }) {
   const appTheme = useAppTheme();
   const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
 
-  const label = `Continue with ${provider === 'azure' ? 'Microsoft' : provider === 'apple' ? 'Apple' : 'Google'}`;
+  const label = `Continue with ${provider === 'azure' ? 'Microsoft' : 'Google'}`;
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, busy }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed, disabled && !busy && styles.disabled]}>
     {busy ? <ActivityIndicator color={colors.ink} /> : <View style={styles.row}>
-      {provider === 'google' ? <GoogleMark /> : provider === 'azure' ? <MicrosoftMark /> : <Text style={styles.apple}></Text>}
+      {provider === 'google' ? <GoogleMark /> : <MicrosoftMark />}
       <Text style={styles.label}>{label}</Text>
     </View>}
   </Pressable>;
@@ -48,5 +49,4 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   disabled: { opacity: 0.5 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
   label: { fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.ink, textAlign: 'center', flexShrink: 1 },
-  apple: { fontSize: 23, color: colors.ink },
 });

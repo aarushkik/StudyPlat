@@ -2,6 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import type { Session, User } from '@supabase/supabase-js';
 import { AUTH_STORAGE_KEY, isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { deviceStorage } from '@/lib/storage';
@@ -9,7 +11,76 @@ import { GUEST_MODE_KEY, flushProfile, prepareProfileExit } from '@/lib/profileC
 
 const browserCompletion = WebBrowser.maybeCompleteAuthSession();
 export type AuthProvider = 'google' | 'azure' | 'apple';
-export const appleSignInEnabled = process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED === 'true';
+
+/**
+ * Sign in with Apple is offered on iOS only, and only through the system
+ * sheet.
+ *
+ * App Store guideline 4.8 requires it on iOS wherever Google or Microsoft
+ * sign-in is offered, and the system sheet is what that guideline — and the
+ * Human Interface Guidelines' rules for the button — have in mind: Face ID,
+ * the student's own Apple ID, no browser. It is also far simpler to run. The
+ * native flow hands Supabase an identity token that it verifies against the
+ * app's bundle ID, so the only setup is listing that ID in the Apple
+ * provider. The browser flow needs a Services ID, a signing key and a client
+ * secret that Apple expires every six months, after which sign-in silently
+ * stops working.
+ *
+ * The web and Android builds do not offer it: the requirement is the App
+ * Store's, and Google, Microsoft and email cover both.
+ *
+ * The flag keeps it off until the provider is switched on in Supabase, so a
+ * build made before that never shows a button that cannot work.
+ */
+export const appleSignInEnabled =
+  Platform.OS === 'ios' && process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED === 'true';
+
+/** Whether this device can show the system Apple sheet at all (iOS 13+). */
+export async function appleSignInAvailable(): Promise<boolean> {
+  if (!appleSignInEnabled) return false;
+  try { return await AppleAuthentication.isAvailableAsync(); } catch { return false; }
+}
+
+/**
+ * The native Apple flow.
+ *
+ * A random nonce is generated here; Apple receives its SHA-256 hash and signs
+ * it into the identity token, and Supabase receives the raw value and checks
+ * that it hashes to what Apple signed. That ties the token to this one
+ * request, so a token lifted from somewhere else cannot be replayed.
+ *
+ * Apple shares the student's name only on the very first sign-in, ever — not
+ * on later ones, and not after a reinstall — so it is saved to the account
+ * the moment it arrives or it is gone for good.
+ */
+async function signInWithAppleNative(): Promise<'cancelled' | 'done'> {
+  const rawNonce = Crypto.randomUUID();
+  const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+  let credential: AppleAuthentication.AppleAuthenticationCredential;
+  try {
+    credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+      nonce: hashedNonce,
+    });
+  } catch (reason) {
+    // Closing the sheet is a normal choice, not an error to show.
+    if ((reason as { code?: string })?.code === 'ERR_REQUEST_CANCELED') return 'cancelled';
+    throw reason;
+  }
+  if (!credential.identityToken) throw new Error('Apple did not return a sign-in token. Please try again.');
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider: 'apple',
+    token: credential.identityToken,
+    nonce: rawNonce,
+  });
+  if (error) throw error;
+  const name = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ');
+  if (name) await supabase.auth.updateUser({ data: { full_name: name } }).catch(() => undefined);
+  return 'done';
+}
 
 interface AuthContextValue {
   session: Session | null;
@@ -132,6 +203,11 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
     busy.current = true; setError(null); setPending(provider);
     try {
       await flushProfile();
+      if (provider === 'apple') {
+        if (!appleSignInEnabled) throw new Error('Sign in with Apple is not available here.');
+        await signInWithAppleNative();
+        return;
+      }
       const redirectTo = Linking.createURL('auth/callback');
       const { data, error: startError } = await supabase.auth.signInWithOAuth({
         provider,
