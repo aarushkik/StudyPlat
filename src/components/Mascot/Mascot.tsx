@@ -1,6 +1,5 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { colors } from '@/theme';
 import { MASCOT_ART, MASCOT_ASPECT, MASCOT_SIZES, type MascotProps } from './Mascot.types';
 
 /** Stu holds a purposeful drawn pose. No ambient bobbing or floating. */
@@ -12,4 +11,14 @@ export function Mascot({ pose = 'neutral', size = 'medium', shadow = true }: Mas
     <Image source={MASCOT_ART[pose]} style={{ width, height }} resizeMode="contain" />
   </View>;
 }
-const styles = StyleSheet.create({ shadow: { position: 'absolute', backgroundColor: colors.ink, opacity: 0.07 } });
+/**
+ * A soft pool of shade rather than a hard pill: the edge is blurred out so it
+ * reads as light failing to reach the ground, not as a grey bar under Stu.
+ */
+const styles = StyleSheet.create({
+  shadow: {
+    position: 'absolute',
+    backgroundColor: 'rgba(18,48,60,0.06)',
+    boxShadow: '0 0 10px 4px rgba(18,48,60,0.07)',
+  },
+});

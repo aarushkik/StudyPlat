@@ -1,4 +1,5 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
+import { Backdrop } from './Backdrop';
 import React from 'react';
 import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
@@ -34,7 +35,8 @@ export function ScreenContainer({
   const pad = padded ? styles.padded : undefined;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: background ?? colors.background }]} edges={edges}>
+    <SafeAreaView style={styles.safe} edges={edges}>
+      <Backdrop base={background} />
       {scroll ? (
         <ScrollView
           style={styles.flex}

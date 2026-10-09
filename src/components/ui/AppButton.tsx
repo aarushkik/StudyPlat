@@ -1,8 +1,9 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { chunky, chunkyRadius, colors, depth, gloss, spacing, spring, typography } from '@/theme';
+import { glassCard, spacing, spring, withAlpha } from '@/theme';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { useHaptics } from '@/hooks/useHaptics';
 
@@ -20,23 +21,24 @@ interface AppButtonProps {
   /** Optional glyph shown before the label. */
   icon?: GlyphName;
   /**
-   * Accepted for call-site compatibility. The chunky treatment already gives
-   * every button the same weight, so there is no separate emphasis state.
+   * Accepted for call-site compatibility. Every filled tone already carries
+   * the same weight, so there is no separate emphasis state.
    */
   emphasis?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
- * The StudyPlat button: a 3px ink border over a hard offset shadow.
+ * The StudyPlat button: a capsule of glass.
  *
- * The depth is a *lip* — a second view of the same shape pushed down behind
- * the face — because React Native cannot draw a hard, coloured, unblurred
- * shadow. Pressing sinks the face onto the lip, which is the whole tactile
- * idea: the button visibly has somewhere to go.
+ * Filled tones are coloured glass — the colour itself, a sheen pooling along
+ * the top, a rim lit from above and a soft glow in the button's own colour
+ * underneath. Secondary is clear glass, the same material as the cards it
+ * sits among; ghost has no surface at all.
  *
- * Every tone keeps the ink border; only the fill and lip colour change, so a
- * row of mixed-tone buttons still reads as one family.
+ * Pressing gives a little under the finger and springs back. The old chunky
+ * button sank onto a lip; glass has no lip to sink onto, so it scales instead,
+ * clamped so the release spring's overshoot never grows it past its own size.
  */
 export function AppButton({
   label,
@@ -50,18 +52,16 @@ export function AppButton({
   style,
 }: AppButtonProps) {
   const appTheme = useAppTheme();
-  const { colors, palette, typography, chunky } = appTheme;
+  const { typography } = appTheme;
   const styles = useThemedStyles(createStyles);
-  const SCHEMES = makeSCHEMES(appTheme);
+  const schemes = useThemedStyles(makeSchemes);
 
   const press = useRef(new Animated.Value(0)).current;
   const haptic = useHaptics();
   const { reduceMotion } = useMotionPreference();
   const inactive = disabled || loading;
-  const scheme = inactive ? SCHEMES.disabled : SCHEMES[tone];
+  const scheme = inactive ? schemes.disabled : schemes[tone];
   useEffect(() => () => press.stopAnimation(), [press]);
-
-  const c = chunky({ depth: depth.button, radius: chunkyRadius.button, shadow: scheme.lip });
 
   const to = (v: number) => {
     if (reduceMotion) { press.setValue(v); return; }
@@ -72,8 +72,8 @@ export function AppButton({
     }).start();
   };
 
-  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] });
-  const pad = size === 'lg' ? 15 : 11;
+  const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97], extrapolate: 'clamp' });
+  const pad = size === 'lg' ? 16 : 11;
 
   return (
     <Pressable
@@ -84,25 +84,16 @@ export function AppButton({
       onPressIn={() => to(1)}
       onPressOut={() => to(0)}
       onPress={() => { if (hapticFeedback) haptic(); onPress?.(); }}
-      style={[c.wrap, style]}
+      style={[styles.wrap, style]}
     >
-      <View style={[c.lip, tone === 'ghost' && styles.hidden]} />
-      <Animated.View
-        style={[
-          c.face,
-          styles.face,
-          {
-            backgroundColor: scheme.fill,
-            borderColor: tone === 'ghost' ? 'transparent' : colors.border,
-            paddingVertical: pad,
-            transform: [{ translateY }],
-          },
-        ]}
-      >
-        {/* Only the coloured tones get the highlight. On the cream secondary
-            button white-on-white is invisible, and on ghost there is no face. */}
-        {!inactive && (tone === 'primary' || tone === 'gold' || tone === 'danger') ? (
-          <View pointerEvents="none" style={gloss(chunkyRadius.button)} />
+      <Animated.View style={[styles.face, scheme.face, { paddingVertical: pad, transform: [{ scale }] }]}>
+        {scheme.sheen ? (
+          <LinearGradient
+            pointerEvents="none"
+            colors={[scheme.sheen, appTheme.glass.sheenClear]}
+            locations={[0, 0.6]}
+            style={[StyleSheet.absoluteFill, styles.under]}
+          />
         ) : null}
 
         {loading ? (
@@ -110,7 +101,7 @@ export function AppButton({
         ) : (
           <View style={styles.row}>
             {icon ? <Glyph name={icon} size={18} color={scheme.text} strokeWidth={2.6} /> : null}
-            <Text style={[typography.button, { color: scheme.text, textAlign: 'center', flexShrink: 1, textTransform: 'none', letterSpacing: 0.2 }]}>
+            <Text style={[typography.button, styles.label, { color: scheme.text }]}>
               {label}
             </Text>
           </View>
@@ -120,29 +111,54 @@ export function AppButton({
   );
 }
 
-type Scheme = { fill: string; lip: string; text: string };
+type Scheme = { face: ViewStyle; text: string; sheen?: string };
 
-const makeSCHEMES = ({ colors }: AppTheme): Record<ButtonTone | 'disabled', Scheme> => ({
-  primary: { fill: colors.primary, lip: colors.lip, text: colors.textOnPrimary },
-  secondary: { fill: colors.surface, lip: colors.lip, text: colors.ink },
-  gold: { fill: colors.gold, lip: colors.currentDeep, text: colors.textOnPrimary },
-  success: { fill: '#2A6E45', lip: colors.border, text: colors.white },
-  danger: { fill: '#A93B1C', lip: colors.border, text: colors.white },
-  ghost: { fill: 'transparent', lip: 'transparent', text: colors.textSecondary },
-  disabled: { fill: colors.disabledBg, lip: colors.disabledEdge, text: colors.disabledText },
-});
+/** Coloured glass: the fill, a white rim lit from above, a glow in its own colour. */
+function tinted(fill: string, solid: boolean): ViewStyle {
+  return {
+    backgroundColor: fill,
+    borderWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.55)',
+    borderLeftColor: 'rgba(255,255,255,0.22)',
+    borderRightColor: 'rgba(255,255,255,0.22)',
+    borderBottomColor: 'rgba(0,0,0,0.10)',
+    boxShadow: solid ? 'none' : `0 8px 22px ${withAlpha(fill, 0.34)}, 0 1px 2px rgba(0,0,0,0.10)`,
+  };
+}
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
-  // Clips the highlight. React Native clamps a corner radius to half the
-  // shorter side, so on a short button the gloss's own corners would be
-  // rounder than the face can show and would bulge past the ink.
+const makeSchemes = ({ colors, glass, solid }: AppTheme): Record<ButtonTone | 'disabled', Scheme> => {
+  const sheen = solid ? undefined : 'rgba(255,255,255,0.32)';
+  return {
+    primary: { face: tinted(colors.primary, solid), text: colors.textOnPrimary, sheen },
+    gold: { face: tinted(colors.gold, solid), text: colors.textOnPrimary, sheen },
+    success: { face: tinted('#2A6E45', solid), text: colors.white, sheen },
+    danger: { face: tinted('#A93B1C', solid), text: colors.white, sheen },
+    secondary: { face: glassCard(glass), text: colors.ink, sheen: solid ? undefined : glass.sheen },
+    ghost: { face: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'transparent' }, text: colors.textSecondary },
+    disabled: {
+      face: { backgroundColor: colors.overlaySoft, borderWidth: 1, borderColor: colors.overlaySoft },
+      text: colors.textFaint,
+    },
+  };
+};
+
+const createStyles = () => StyleSheet.create({
+  // Keeps the room the old lip reserved, so no screen's spacing moved. The
+  // radius is for the web's focus ring, which follows the focused element.
+  wrap: { marginBottom: 3, borderRadius: 999 },
   face: {
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 999,
+    borderCurve: 'continuous',
     overflow: 'hidden',
+    // Its own stacking context, so the sheen at zIndex -1 sits between the
+    // fill and the label. See GlassSurface.
+    zIndex: 0,
   },
+  under: { zIndex: -1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  hidden: { opacity: 0 },
+  label: { textAlign: 'center', flexShrink: 1, textTransform: 'none', letterSpacing: 0.2 },
 });

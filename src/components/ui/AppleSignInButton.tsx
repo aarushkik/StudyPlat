@@ -8,9 +8,9 @@ interface AppleSignInButtonProps {
   onPress: () => void;
 }
 
-/** Matches ProviderButton so the three sign-in options line up as one stack. */
+/** Matches ProviderButton — a capsule — so the three options read as one stack. */
 const HEIGHT = 56;
-const RADIUS = 23;
+const RADIUS = HEIGHT / 2;
 
 /**
  * Apple's own Sign in with Apple button, drawn by the system.

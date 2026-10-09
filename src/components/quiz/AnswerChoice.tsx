@@ -1,10 +1,10 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { useHaptics } from '@/hooks/useHaptics';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { colors, radius, spacing, spring, typography } from '@/theme';
+import { colors, radius, rimOf, spacing, spring, typography, withAlpha } from '@/theme';
 
 /** Visual state driven by the quiz flow. */
 export type ChoiceState = 'idle' | 'selected' | 'correct' | 'wrong' | 'missed' | 'struck';
@@ -58,7 +58,8 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
 
   const s = STATE[state];
   const translateX = shake.interpolate({ inputRange: [-1, 1], outputRange: [-6, 6] });
-  const sink = press.interpolate({ inputRange: [0, 1], outputRange: [0, 3] });
+  // Gives a little under the finger; clamped so the release never grows it.
+  const squeeze = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.98], extrapolate: 'clamp' });
   const lift = pop.interpolate({ inputRange: [0, 1], outputRange: [0, 0] });
 
   const to = (v: number) => {
@@ -72,8 +73,7 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
 
   return (
     <Animated.View style={[styles.holder, { transform: [{ translateX }, { translateY: lift }] }]}>
-      <View style={[styles.lip, { backgroundColor: s.edge }]} />
-      <Animated.View style={{ transform: [{ translateY: sink }] }}>
+      <Animated.View style={{ transform: [{ scale: squeeze }] }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${KEYS[index] ?? index + 1}. ${label}${state === 'struck' ? '. Ruled out' : state === 'correct' || state === 'missed' ? '. Correct answer' : state === 'wrong' ? '. Your answer, incorrect' : ''}`}
@@ -82,9 +82,9 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
           onPressIn={() => to(1)}
           onPressOut={() => to(0)}
           onPress={() => { if (state !== 'selected') haptic(); onPress?.(); }}
-          style={[styles.choice, { backgroundColor: s.bg, borderColor: s.border }]}
+          style={[styles.choice, s.face]}
         >
-          <View style={[styles.key, { backgroundColor: s.keyBg, borderColor: s.border }]}>
+          <View style={[styles.key, { backgroundColor: s.keyBg, borderColor: s.keyBorder }]}>
             <Text style={[styles.keyText, { color: s.keyText }]}>{KEYS[index] ?? '?'}</Text>
           </View>
           <Text style={[styles.label, { color: s.text }, state === 'struck' && styles.struckLabel]}>
@@ -98,79 +98,88 @@ export function AnswerChoice({ index, label, state, onPress, disabled }: AnswerC
 }
 
 type Style = {
-  bg: string;
-  border: string;
+  face: ViewStyle;
   edge: string;
   text: string;
   keyBg: string;
+  keyBorder: string;
   keyText: string;
   icon?: GlyphName;
 };
 
-const makeSTATE = ({ colors }: AppTheme): Record<ChoiceState, Style> => ({
-  idle: {
-    bg: colors.surface,
-    border: colors.border,
-    edge: colors.border,
-    text: colors.textPrimary,
-    keyBg: colors.background,
-    keyText: colors.textSecondary,
-  },
-  selected: {
-    bg: colors.primaryTint,
-    border: colors.primary,
-    edge: colors.primary,
-    text: colors.primaryDeep,
-    keyBg: colors.primary,
-    keyText: colors.textOnPrimary,
-  },
-  correct: {
-    bg: colors.successSoft,
-    border: colors.success,
-    edge: colors.success,
-    text: colors.successDark,
-    keyBg: '#2A6E45',
-    keyText: colors.white,
-    icon: 'check',
-  },
-  wrong: {
-    bg: colors.dangerSoft,
-    border: colors.danger,
-    edge: colors.danger,
-    text: colors.dangerDark,
-    keyBg: '#A93B1C',
-    keyText: colors.white,
-    icon: 'close',
-  },
-  // Ruled out by a companion before answering. Deliberately the locked
-  // palette rather than the danger one: it is not a mistake the student made,
-  // it is an option that has been taken off the table for them.
-  struck: {
-    bg: colors.locked,
-    border: colors.overlayStrong,
-    edge: colors.overlayStrong,
-    text: colors.lockedText,
-    keyBg: 'transparent',
-    keyText: colors.lockedText,
-    icon: 'close',
-  },
-  // The right answer, shown after a miss — present but not celebratory.
-  missed: {
-    bg: colors.surface,
-    border: colors.success,
-    edge: colors.success,
-    text: colors.successDark,
-    keyBg: colors.successSoft,
-    keyText: colors.successDark,
-    icon: 'check',
-  },
-});
-
-const LIP = 2;
+/**
+ * Idle answers are clear glass, like every card. Once something happens to an
+ * answer it becomes tinted glass — its state's soft colour, ringed and faintly
+ * glowing in the strong one — so the state is in the material itself.
+ */
+const makeSTATE = ({ colors, card, solid }: AppTheme): Record<ChoiceState, Style> => {
+  const tinted = (soft: string, ring: string): ViewStyle => ({
+    backgroundColor: solid ? soft : withAlpha(soft, 0.8),
+    ...rimOf(ring),
+    boxShadow: solid ? 'none' : `0 6px 18px ${withAlpha(ring, 0.2)}`,
+  });
+  return {
+    idle: {
+      face: card,
+      edge: colors.border,
+      text: colors.textPrimary,
+      keyBg: colors.overlayFaint,
+      keyBorder: colors.overlaySoft,
+      keyText: colors.textSecondary,
+    },
+    selected: {
+      face: tinted(colors.primaryTint, colors.primary),
+      edge: colors.primary,
+      text: colors.primaryDeep,
+      keyBg: colors.primary,
+      keyBorder: colors.primary,
+      keyText: colors.textOnPrimary,
+    },
+    correct: {
+      face: tinted(colors.successSoft, colors.success),
+      edge: colors.success,
+      text: colors.successDark,
+      keyBg: '#2A6E45',
+      keyBorder: colors.success,
+      keyText: colors.white,
+      icon: 'check',
+    },
+    wrong: {
+      face: tinted(colors.dangerSoft, colors.danger),
+      edge: colors.danger,
+      text: colors.dangerDark,
+      keyBg: '#A93B1C',
+      keyBorder: colors.danger,
+      keyText: colors.white,
+      icon: 'close',
+    },
+    // Ruled out by a companion before answering. Deliberately the locked
+    // palette rather than the danger one: it is not a mistake the student made,
+    // it is an option that has been taken off the table for them.
+    struck: {
+      face: { backgroundColor: solid ? colors.locked : withAlpha(colors.locked, 0.55), ...rimOf(colors.overlayStrong) },
+      edge: colors.overlayStrong,
+      text: colors.lockedText,
+      keyBg: 'transparent',
+      keyBorder: colors.overlayStrong,
+      keyText: colors.lockedText,
+      icon: 'close',
+    },
+    // The right answer, shown after a miss — present but not celebratory.
+    missed: {
+      face: { ...card, ...rimOf(colors.success) },
+      edge: colors.success,
+      text: colors.successDark,
+      keyBg: solid ? colors.successSoft : withAlpha(colors.successSoft, 0.8),
+      keyBorder: colors.success,
+      keyText: colors.successDark,
+      icon: 'check',
+    },
+  };
+};
 
 const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
   holder: { marginBottom: spacing.md },
-  lip: { position: 'absolute', left: 0, right: 0, top: LIP, bottom: -LIP, borderRadius: radius.lg },
   choice: {
     flexDirection: 'row',
     alignItems: 'center',

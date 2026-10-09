@@ -6,27 +6,38 @@ import { colors as lightColors, darkColors, palette, type ThemeColors } from './
 import { makeTypography } from './typography';
 import { chunky as makeChunky, type ChunkyOptions } from './chunky';
 import { stroke } from './stroke';
-import { darkGlass, lightGlass } from './glass';
+import { darkGlass, glassCard, lightGlass, solidGlass } from './glass';
+import { useReducedTransparency } from '@/hooks/useReducedTransparency';
 import { resolveAppearance, type AppearancePreference } from './appearance';
 export type { AppearancePreference } from './appearance';
 
-function makeTheme(mode: 'light' | 'dark') {
+function makeTheme(mode: 'light' | 'dark', solid: boolean) {
   const colors: ThemeColors = mode === 'dark' ? darkColors : { ...lightColors, border: '#CBDBDA', background: '#F5F6F0' };
+  const base = mode === 'dark' ? darkGlass : lightGlass;
+  const glass = solid ? solidGlass(base, colors) : base;
   return {
     mode, isDark: mode === 'dark', colors, palette, stroke,
+    /** True under Reduce Transparency: glass tokens are opaque. */
+    solid,
     typography: makeTypography(colors),
-    chunky: (options?: ChunkyOptions) => makeChunky(options, colors),
-    glass: mode === 'dark' ? darkGlass : lightGlass,
+    chunky: (options?: ChunkyOptions) => makeChunky(options, colors, glass),
+    glass,
+    /** A content card's face. See `glassCard`. */
+    card: glassCard(glass),
   };
 }
 export type AppTheme = ReturnType<typeof makeTheme>;
-const themes = { light: makeTheme('light'), dark: makeTheme('dark') };
-const ThemeContext = createContext(themes.light);
+const themes = {
+  light: { glass: makeTheme('light', false), solid: makeTheme('light', true) },
+  dark: { glass: makeTheme('dark', false), solid: makeTheme('dark', true) },
+};
+const ThemeContext = createContext(themes.light.glass);
 const PreferenceContext = createContext({ preference: 'system' as AppearancePreference, setPreference: (_: AppearancePreference) => {}, error: null as string | null });
 const KEY = 'studyplat.appearance';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const system = useColorScheme();
+  const reduceTransparency = useReducedTransparency();
   const [preference, setPreferenceState] = useState<AppearancePreference>('system');
   const [error, setError] = useState<string | null>(null);
   const changed = useRef(false);
@@ -45,7 +56,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     void saves.save(next).catch(() => setError('Appearance changed for now. Tap your choice again to retry saving it.'));
   }, [saves]);
   const controls = useMemo(() => ({ preference, setPreference, error }), [preference, setPreference, error]);
-  return <PreferenceContext.Provider value={controls}><ThemeContext.Provider value={themes[resolveAppearance(preference, system)]}>{children}</ThemeContext.Provider></PreferenceContext.Provider>;
+  return <PreferenceContext.Provider value={controls}><ThemeContext.Provider value={themes[resolveAppearance(preference, system)][reduceTransparency ? 'solid' : 'glass']}>{children}</ThemeContext.Provider></PreferenceContext.Provider>;
 }
 
 export const useAppTheme = () => useContext(ThemeContext);

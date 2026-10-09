@@ -2,7 +2,7 @@ import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvid
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { chunky, chunkyRadius, colors, depth, spacing, spring, typography } from '@/theme';
+import { chunky, chunkyRadius, colors, depth, selectedCard, spacing, spring, typography } from '@/theme';
 
 /**
  * The surfaces every screen is assembled from.
@@ -62,7 +62,10 @@ export function ChunkyCard({
       ...(v === 1 ? spring.press : spring.release),
     }).start();
   };
-  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] });
+  // Glass gives a little under the finger rather than sinking onto a lip.
+  // Clamped, so the release spring's overshoot never grows the card past
+  // its own width.
+  const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.98], extrapolate: 'clamp' });
 
   const face = (
     <Animated.View
@@ -74,8 +77,8 @@ export function ChunkyCard({
         // Practice grid, where a card with a one-line description sat beside
         // one with two.
         styles.faceFill,
-        { backgroundColor: selected ? colors.surfaceSelected : colors.surface },
-        onPress ? { transform: [{ translateY }] } : null,
+        selected ? selectedCard(appTheme.glass, accent) : null,
+        onPress ? { transform: [{ scale }] } : null,
         contentStyle,
       ]}
     >
@@ -211,9 +214,7 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
 
   track: {
     width: '100%',
-    backgroundColor: colors.disabledBg,
-    borderWidth: 2,
-    borderColor: colors.border,
+    backgroundColor: colors.track,
     overflow: 'hidden',
   },
   fill: { height: '100%' },

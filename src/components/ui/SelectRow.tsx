@@ -2,7 +2,7 @@ import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvid
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Glyph } from '@/components/icons';
-import { chunky, chunkyRadius, colors, depth, fonts, spacing, spring } from '@/theme';
+import { chunky, chunkyRadius, colors, depth, fonts, selectedCard, spacing, spring } from '@/theme';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 
 interface SelectRowProps {
@@ -88,14 +88,14 @@ export function SelectRow({
         style={[
           c.face,
           styles.card,
-          selected && { backgroundColor: colors.surfaceSelected },
-          { transform: [{ translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, c.press] }) }] },
+          selected && selectedCard(appTheme.glass, accent),
+          { transform: [{ scale: press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.98], extrapolate: 'clamp' }) }] },
         ]}
       >
         <View
           style={[
             styles.tile,
-            !bareLeading && { backgroundColor: tint, borderWidth: stroke.surface, borderColor: colors.border },
+            !bareLeading && { backgroundColor: tint, borderWidth: 1, borderColor: colors.overlaySoft },
           ]}
         >
           {leading}
@@ -139,14 +139,14 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   body: { flex: 1, minWidth: 0, gap: 1 },
   title: { fontFamily: fonts.displayHeavy, fontSize: 17, lineHeight: 20, color: colors.ink },
   subtitle: { fontFamily: fonts.bodySemibold, fontSize: 13, lineHeight: 18, color: colors.textSecondary },
-  // Always ink-ruled, filled only when chosen. An empty circle that changes
+  // Always ringed, filled only when chosen. An empty circle that changes
   // only its border colour is easy to miss at a glance down a list of eight.
   check: {
     width: 28,
     height: 28,
     borderRadius: 14,
     borderWidth: stroke.control,
-    borderColor: colors.border,
+    borderColor: colors.overlayStrong,
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',

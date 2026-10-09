@@ -45,6 +45,20 @@ export interface GlassTokens {
   sheenClear: string;
   scrim: string;
   shadow: string;
+  /**
+   * Content cards. Translucent over the aurora backdrop rather than blurred:
+   * the backdrop is already soft, so a blur under a card would change nothing
+   * you could see and cost a backdrop pass per card.
+   */
+  card: string;
+  cardSelected: string;
+  cardShadow: string;
+  /**
+   * The three soft colour fields behind every screen — turquoise, orange and
+   * violet, the app's own palette. Glass needs colour behind it to read as
+   * glass; over a flat page it is just a pale rectangle.
+   */
+  aurora: [string, string, string];
 }
 
 export const lightGlass: GlassTokens = {
@@ -61,6 +75,10 @@ export const lightGlass: GlassTokens = {
   sheenClear: 'rgba(255,255,255,0)',
   scrim: 'rgba(10,28,36,0.30)',
   shadow: '0 10px 30px rgba(18,48,60,0.12), 0 1px 3px rgba(18,48,60,0.08)',
+  card: 'rgba(255,255,255,0.62)',
+  cardSelected: 'rgba(214,244,248,0.82)',
+  cardShadow: '0 8px 24px rgba(18,48,60,0.08), 0 1px 2px rgba(18,48,60,0.05)',
+  aurora: ['rgba(5,177,201,0.30)', 'rgba(245,160,43,0.20)', 'rgba(150,110,220,0.16)'],
 };
 
 export const darkGlass: GlassTokens = {
@@ -77,7 +95,51 @@ export const darkGlass: GlassTokens = {
   sheenClear: 'rgba(255,255,255,0)',
   scrim: 'rgba(0,0,0,0.48)',
   shadow: '0 12px 34px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.25)',
+  card: 'rgba(30,58,70,0.52)',
+  cardSelected: 'rgba(20,78,92,0.66)',
+  cardShadow: '0 10px 28px rgba(0,0,0,0.28), 0 1px 2px rgba(0,0,0,0.2)',
+  aurora: ['rgba(5,177,201,0.26)', 'rgba(245,160,43,0.10)', 'rgba(140,100,220,0.20)'],
 };
+
+/**
+ * Reduce Transparency: the same shapes, nothing to see through.
+ *
+ * Every glass token collapses to an opaque equivalent — cards to the surface
+ * colour, rims to the plain border, the aurora to nothing — so screens never
+ * have to ask which mode they are in. They read `glass.card` and get the
+ * right answer either way.
+ */
+export function solidGlass(base: GlassTokens, colors: { surface: string; surfaceSelected: string; border: string; background: string }): GlassTokens {
+  return {
+    ...base,
+    tint: colors.surface,
+    thick: colors.surface,
+    thickNative: colors.surface,
+    sheen: 'rgba(255,255,255,0)',
+    rim: { top: colors.border, side: colors.border, bottom: colors.border },
+    edgeFade: [colors.background, colors.background, colors.background],
+    card: colors.surface,
+    cardSelected: colors.surfaceSelected,
+    aurora: ['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)'],
+  };
+}
+
+/**
+ * The face of a glass card: translucent fill, a one-point rim lit from above,
+ * and a soft drop. Spread it into a style in place of a fill and a border.
+ */
+export function glassCard(glass: GlassTokens) {
+  return {
+    backgroundColor: glass.card,
+    borderWidth: 1,
+    borderTopColor: glass.rim.top,
+    borderLeftColor: glass.rim.side,
+    borderRightColor: glass.rim.side,
+    borderBottomColor: glass.rim.bottom,
+    borderCurve: 'continuous' as const,
+    boxShadow: glass.cardShadow,
+  };
+}
 
 /** `#RRGGBB` → `rgba(r,g,b,a)`. Glass tints need a colour with an alpha. */
 export function withAlpha(hex: string, alpha: number): string {
@@ -85,4 +147,54 @@ export function withAlpha(hex: string, alpha: number): string {
   if (!match) return hex;
   const n = parseInt(match[1], 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
+/**
+ * One colour on all four sides of a rim. Needed to override a glass rim: the
+ * rim is set per side, and per-side colours win over a plain `borderColor`
+ * whatever order they are written in.
+ */
+export function rimOf(color: string) {
+  return { borderTopColor: color, borderLeftColor: color, borderRightColor: color, borderBottomColor: color };
+}
+
+/** A selected glass card: tinted, ringed in its accent, glowing faintly in it. */
+export function selectedCard(glass: GlassTokens, accent: string) {
+  return {
+    backgroundColor: glass.cardSelected,
+    ...rimOf(accent),
+    boxShadow: `0 8px 24px ${withAlpha(accent, 0.24)}`,
+  };
+}
+
+/**
+ * The rim for a *coloured* surface — a hero card, a tinted button, the
+ * streak card. White light along the top, fading down the sides, a faint dark
+ * line underneath: the same lighting as glass, laid over a colour instead of
+ * a translucent tint.
+ */
+export function litRim(top = 0.45) {
+  return {
+    borderWidth: 1,
+    borderTopColor: `rgba(255,255,255,${top})`,
+    borderLeftColor: `rgba(255,255,255,${top * 0.4})`,
+    borderRightColor: `rgba(255,255,255,${top * 0.4})`,
+    borderBottomColor: 'rgba(0,0,0,0.12)',
+    borderCurve: 'continuous' as const,
+  };
+}
+
+/**
+ * A card in a colour wash rather than clear glass — for the one card on a
+ * screen that is about something (an account prompt, the equipped
+ * companion). The wash is translucent so the aurora still moves under it.
+ */
+export function tintedCard(glass: GlassTokens, tint: string, ring: string, solid: boolean) {
+  return {
+    backgroundColor: solid ? tint : withAlpha(tint, 0.72),
+    borderWidth: 1,
+    ...rimOf(withAlpha(ring, 0.35)),
+    borderCurve: 'continuous' as const,
+    boxShadow: glass.cardShadow,
+  };
 }

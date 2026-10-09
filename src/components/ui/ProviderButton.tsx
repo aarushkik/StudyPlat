@@ -2,18 +2,23 @@ import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvid
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, fonts } from '@/theme';
+import { fonts } from '@/theme';
 import type { AuthProvider } from '@/state/AuthContext';
 
-/** Google and Microsoft. Apple has its own system button: see AppleSignInButton. */
+/**
+ * Google and Microsoft. Apple has its own system button: see AppleSignInButton.
+ *
+ * Frosted white glass capsules. The sign-in screen is always on the night
+ * ground, so these are always light — the same in both themes, and the same
+ * white as Apple's system button that sits above them on iPhone.
+ */
 export function ProviderButton({ provider, busy, disabled, onPress }: { provider: Exclude<AuthProvider, 'apple'>; busy: boolean; disabled: boolean; onPress: () => void }) {
-  const appTheme = useAppTheme();
-  const { colors, palette, typography, chunky } = appTheme;
+  const { palette } = useAppTheme();
   const styles = useThemedStyles(createStyles);
 
   const label = `Continue with ${provider === 'azure' ? 'Microsoft' : 'Google'}`;
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, busy }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed, disabled && !busy && styles.disabled]}>
-    {busy ? <ActivityIndicator color={colors.ink} /> : <View style={styles.row}>
+    {busy ? <ActivityIndicator color={palette.ink} /> : <View style={styles.row}>
       {provider === 'google' ? <GoogleMark /> : <MicrosoftMark />}
       <Text style={styles.label}>{label}</Text>
     </View>}
@@ -43,10 +48,26 @@ function MicrosoftMark() {
   );
 }
 
-const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => StyleSheet.create({
-  button: { backgroundColor: colors.surface, borderWidth: stroke.control, borderBottomWidth: 5, borderColor: colors.border, borderRadius: 23, paddingHorizontal: 16, paddingVertical: 14, minHeight: 56, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  pressed: { borderBottomWidth: stroke.control, marginTop: 3 },
+const createStyles = ({ palette, solid }: AppTheme) => StyleSheet.create({
+  button: {
+    backgroundColor: solid ? palette.white : 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderTopColor: palette.white,
+    borderLeftColor: 'rgba(255,255,255,0.6)',
+    borderRightColor: 'rgba(255,255,255,0.6)',
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 28,
+    borderCurve: 'continuous',
+    boxShadow: solid ? 'none' : '0 8px 24px rgba(0,0,0,0.28)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  pressed: { transform: [{ scale: 0.97 }], opacity: 0.92 },
   disabled: { opacity: 0.5 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-  label: { fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.ink, textAlign: 'center', flexShrink: 1 },
+  label: { fontFamily: fonts.bodyHeavy, fontSize: 15, color: palette.ink, textAlign: 'center', flexShrink: 1 },
 });

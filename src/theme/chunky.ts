@@ -1,6 +1,7 @@
 import type { ViewStyle } from 'react-native';
 import { colors, type ThemeColors } from './colors';
 import { stroke } from './stroke';
+import type { GlassTokens } from './glass';
 
 /**
  * The chunky sticker treatment — a 3px ink border over a hard offset shadow.
@@ -80,9 +81,35 @@ export interface ChunkyOptions {
  * </View>
  * ```
  */
-export function chunky(options: ChunkyOptions = {}, tokens: ThemeColors = colors): ChunkyStyles {
+export function chunky(options: ChunkyOptions = {}, tokens: ThemeColors = colors, glass?: GlassTokens): ChunkyStyles {
   const d = options.depth ?? depth.button;
   const r = options.radius ?? chunkyRadius.card;
+
+  // The themed version (`useAppTheme().chunky`) draws glass: a translucent
+  // face lit along its top edge, with no lip. The lip view is kept, invisible,
+  // so every caller's layout — which reserves room for it — is unchanged.
+  if (glass) {
+    return {
+      wrap: { position: 'relative', marginBottom: d, borderRadius: r },
+      lip: { position: 'absolute', left: 0, right: 0, top: d, bottom: -d, borderRadius: r, opacity: 0 },
+      face: {
+        borderRadius: r,
+        borderCurve: 'continuous',
+        backgroundColor: options.background ?? glass.card,
+        borderWidth: 1,
+        ...(options.border
+          ? { borderColor: options.border }
+          : {
+              borderTopColor: glass.rim.top,
+              borderLeftColor: glass.rim.side,
+              borderRightColor: glass.rim.side,
+              borderBottomColor: glass.rim.bottom,
+            }),
+        boxShadow: glass.cardShadow,
+      },
+      press: 0,
+    };
+  }
 
   return {
     // The wrapper takes the face's radius even though it draws nothing. It is

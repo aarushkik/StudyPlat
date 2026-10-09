@@ -148,7 +148,9 @@ export const colors = {
    * `#E9DCC6` — and palette tones do not change with the theme, so in dark
    * mode each bar became a bright stripe across a dark card.
    */
-  track: palette.sand,
+  // A translucent groove, not a solid band: on glass cards an opaque sand
+  // stripe read as a slot cut through the card.
+  track: 'rgba(18,48,60,0.10)',
 
   /**
    * Overlays: a quiet tint laid over whatever is underneath, for dividers,
@@ -207,7 +209,7 @@ export const darkColors: ThemeColors = {
   surface: '#132832',
   surfaceSelected: '#143C46',
   surfaceSunken: '#0F222C',
-  track: '#1E3540',
+  track: 'rgba(237,245,243,0.10)',
   lip: '#02090D',
   violet: '#C9A6F2',
   overlayFaint: 'rgba(237,245,243,0.05)',

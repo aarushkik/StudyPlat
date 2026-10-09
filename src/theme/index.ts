@@ -5,7 +5,7 @@ export { chunky, gloss, glossRound, depth, chunkyRadius, BORDER } from './chunky
 export type { ChunkyStyles } from './chunky';
 export { spacing } from './spacing';
 export { stroke } from './stroke';
-export { withAlpha } from './glass';
+export { withAlpha, rimOf, selectedCard, glassCard, litRim, tintedCard } from './glass';
 export type { GlassTokens } from './glass';
 export type { StrokeToken } from './stroke';
 export { radius } from './radius';
