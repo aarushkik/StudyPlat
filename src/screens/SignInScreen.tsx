@@ -17,7 +17,6 @@ import { colors, fonts, palette } from '@/theme';
 import { useAuth } from '@/state/AuthContext';
 import { ProviderButton } from '@/components/ui/ProviderButton';
 import { AppleSignInButton } from '@/components/ui/AppleSignInButton';
-import { useNavigation } from '@react-navigation/native';
 
 type Mode = 'welcome' | 'signIn' | 'signUp' | 'reset';
 
@@ -28,12 +27,11 @@ export function SignInScreen() {
   const styles = useThemedStyles(createStyles);
 
   const {
-    signIn, isGuest, signInWithEmail, signUpWithEmail, emailPending, pending, error, clearError,
-    continueAsGuest, resetPassword, updatePassword, recovering, cancelRecovery,
+    signIn, signInWithEmail, signUpWithEmail, emailPending, pending, error, clearError,
+    resetPassword, updatePassword, recovering, cancelRecovery,
   } = useAuth();
   const { width, height } = useWindowDimensions();
-  const navigation = useNavigation();
-  const [mode, setMode] = useState<Mode>(isGuest ? 'signUp' : 'welcome');
+  const [mode, setMode] = useState<Mode>('welcome');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -70,14 +68,6 @@ export function SignInScreen() {
     } finally { latch.current = false; setWorking(false); }
   };
 
-  const start = async () => {
-    if (latch.current || busy) return;
-    if (isGuest) { navigation.goBack(); return; }
-    latch.current = true; setWorking(true);
-    try { await continueAsGuest(); }
-    finally { latch.current = false; setWorking(false); }
-  };
-
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
@@ -105,17 +95,19 @@ export function SignInScreen() {
                   <ProviderButton provider="google" busy={pending === 'google'} disabled={busy} onPress={() => signIn('google')} />
                   <ProviderButton provider="azure" busy={pending === 'azure'} disabled={busy} onPress={() => signIn('azure')} />
                   {error ? <Message text={error} error /> : null}
-                  <AppButton label="Continue as guest" icon="arrow-right" loading={working} disabled={busy} onPress={start} />
-                  <Text style={styles.deviceNote}>Progress saved on this device</Text>
-                  <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeMode('signIn')} style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
-                    <Text style={styles.textButtonLabel}>Sign in or create an account with email</Text>
+                  {/* An account is required — progress lives with it, on every
+                      device — so email is the last way in, not a way around. */}
+                  <AppButton label="Continue with email" icon="arrow-right" disabled={busy} onPress={() => changeMode('signIn')} />
+                  <Text style={styles.deviceNote}>Your progress is saved to your account and syncs across devices.</Text>
+                  <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeMode('signUp')} style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}>
+                    <Text style={styles.textButtonLabel}>New here? Create an account</Text>
                   </Pressable>
                 </View>
               </>
             ) : (
               <>
                 <View style={styles.formTop}>
-                  <TopBackButton color="#BCD8DD" onPress={() => recovering ? cancelRecovery() : isGuest ? navigation.goBack() : changeMode('welcome')} />
+                  <TopBackButton color="#BCD8DD" onPress={() => recovering ? cancelRecovery() : changeMode('welcome')} />
                   <Wordmark size={25} variant="light" />
                   <View style={{ width: 44 }} />
                 </View>
@@ -141,7 +133,6 @@ export function SignInScreen() {
                   {!recovering && <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeMode(signingUp || resetting ? 'signIn' : 'signUp')} style={styles.textButton}>
                     <Text style={styles.textButtonLabel}>{signingUp || resetting ? 'Back to sign in' : 'New here? Create an account'}</Text>
                   </Pressable>}
-                  {!recovering && <Pressable accessibilityRole="button" disabled={busy} onPress={start} style={styles.textButton}><Text style={styles.linkText}>Continue without an account</Text></Pressable>}
                 </View>
               </>
             )}

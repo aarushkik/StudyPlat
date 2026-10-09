@@ -41,9 +41,8 @@ export function RootNavigator() {
   const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
 
-  const { session, isGuest, restoring, recovering, signOut } = useAuth();
+  const { session, restoring, recovering, signOut } = useAuth();
   const { reduceMotion } = useMotionPreference();
-  const identity = session?.user.id ?? (isGuest ? 'guest' : 'signed-out');
   const { loading, blocked, error, retry } = useProfileSync();
   const { onboarded } = useOnboarding();
 
@@ -51,10 +50,10 @@ export function RootNavigator() {
   // fetched. Rendering a stack first and swapping it a frame later shows a
   // returning student either a login form or a setup flow they already
   // finished — and a navigator swap mid-flight loses their place.
-  if (restoring || ((session || isGuest) && loading)) {
+  if (restoring || (session && loading)) {
     return <View style={styles.holding}><Mascot size={112} pose="reading" shadow={false} /><Text style={styles.title}>Opening your field guide…</Text><ActivityIndicator color={palette.turquoiseLight} /></View>;
   }
-  if (blocked && (session || isGuest) && !recovering) {
+  if (blocked && session && !recovering) {
     return <View style={styles.holding}><Mascot size={112} pose="worried" shadow={false} /><Text style={styles.title}>Let’s reconnect.</Text><Text style={styles.message}>{error}</Text><View style={styles.actions}><AppButton label="Try again" onPress={retry} /><AppButton label="Back to sign in" tone="secondary" onPress={signOut} /></View></View>;
   }
 
@@ -65,8 +64,10 @@ export function RootNavigator() {
    * nothing to deep-link into, nothing to `navigate` to by mistake, and no
    * frame where a protected screen mounts before a redirect fires. Signing out
    * swaps the stack, which unmounts everything behind it.
+   *
+   * Everything past sign-in needs an account; there is no guest way in.
    */
-  if ((!session && !isGuest) || recovering) {
+  if (!session || recovering) {
     return (
       <Stack.Navigator key={recovering ? 'recovery' : 'signed-out'} initialRouteName={recovering ? 'SignIn' : 'Splash'} screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'fade' }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
@@ -77,7 +78,7 @@ export function RootNavigator() {
 
   return (
     <Stack.Navigator
-      key={identity}
+      key={session.user.id}
       initialRouteName={onboarded ? 'Home' : 'Intro'}
       screenOptions={{
         headerShown: false,
@@ -85,7 +86,6 @@ export function RootNavigator() {
         contentStyle: { backgroundColor: 'transparent' },
       }}
     >
-      {isGuest && <Stack.Screen name="SignIn" component={SignInScreen} />}
       <Stack.Screen name="Intro" component={IntroScreen} />
       <Stack.Screen name="CourseSelection" component={CourseSelectionScreen} />
       <Stack.Screen name="SubjectExperience" component={SubjectExperienceScreen} />

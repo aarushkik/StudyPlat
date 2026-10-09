@@ -16,7 +16,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Glyph } from '@/components/icons';
-import { AccountSaveCard } from '@/components/account/AccountSaveCard';
 import { SaveStatusNotice } from '@/components/account/SaveStatusNotice';
 import { NextQuestCard } from '@/components/home/NextQuestCard';
 import { GlassSurface } from '@/components/ui/GlassSurface';
@@ -287,7 +286,6 @@ export function HomeScreen() {
                   onContinue={() => currentNode ? setSelected(currentNode) : setTab('practice')}
                   active={tab === 'map'}
                 />
-                <AccountSaveCard compact />
                 <SaveStatusNotice />
               </View>
             }

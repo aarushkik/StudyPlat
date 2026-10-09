@@ -16,7 +16,6 @@ import { AppButton } from "@/components/ui";
 import { Glyph, type GlyphName } from "@/components/icons";
 import { Mascot } from "@/components/Mascot";
 import { colors, radius, spacing, typography } from "@/theme";
-import { AccountSaveCard } from "@/components/account/AccountSaveCard";
 import { SaveStatusNotice } from "@/components/account/SaveStatusNotice";
 import { useMotionPreference } from "@/hooks/useMotionPreference";
 import { useQuest } from "@/state/QuestContext";
@@ -135,7 +134,6 @@ export function LessonCompleteScreen() {
                   ? "This encounter is recorded in your field guide. Revisit its topics to keep them fresh."
                   : verdict.note}
             </Text>
-            <AccountSaveCard reminder />
             <SaveStatusNotice />
           </Animated.View>
         </ScrollView>

@@ -3,7 +3,6 @@ import { CompanionSprite } from '@/components/creatures/CompanionSprite';
 import React, { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MASCOT_ART } from '@/components/Mascot';
-import { AccountSaveCard } from '@/components/account/AccountSaveCard';
 import { AppearanceControls } from '@/components/account/AppearanceControls';
 import { links, openLink } from '@/lib/links';
 import { ChunkyCard } from '@/components/ui';
@@ -65,7 +64,7 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
     bestStreak: quest.bestStreak,
     xp,
   }).slice(0, 4);
-  const { user, isGuest, signOut, deleteAccount, deleting, error: authError } = useAuth();
+  const { user, signOut, deleteAccount, deleting, error: authError } = useAuth();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { offline, error: syncError, notice, retry } = useProfileSync();
 
@@ -84,7 +83,7 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
           </View>
           <View style={styles.bannerBody}>
             <Text style={styles.name} numberOfLines={2}>
-              {isGuest ? 'Your device quest' : displayName(user?.user_metadata, user?.email)}
+              {displayName(user?.user_metadata, user?.email)}
             </Text>
             <Text style={styles.meta}>
               {course?.name ?? 'Your course'} · Level {level} · {completed.length}/{map.order.length} stops
@@ -99,7 +98,6 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
 
       <View style={styles.body}>
         <AppearanceControls />
-        <AccountSaveCard />
         {(offline || syncError) && <View style={styles.offline}><Text style={styles.offlineText}>{syncError ?? 'Your latest progress hasn’t reached your account yet. We’ll retry when you reconnect.'}</Text><Pressable accessibilityRole="button" onPress={retry} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={styles.offlineText}>Try again</Text></Pressable></View>}
         {notice && <View style={styles.offline}><Text style={styles.offlineText}>{notice}</Text></View>}
         {authError && <View accessibilityRole="alert" style={styles.dangerBox}><Text style={styles.dangerBody}>{authError}</Text></View>}
@@ -190,11 +188,11 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isGuest ? "Back to sign in" : "Sign out"}
+          accessibilityLabel="Sign out"
           onPress={signOut}
           style={({ pressed }) => [styles.signOut, pressed && styles.signOutPressed]}
         >
-          <Text style={styles.signOutText}>{isGuest ? "Back to sign in" : "Sign out"}</Text>
+          <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
 
         <View style={styles.legalRow}>
@@ -209,9 +207,9 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
             before the second tap, exactly how much they are about to lose. */}
         {confirmingDelete ? (
           <View style={styles.dangerBox}>
-            <Text style={styles.dangerTitle}>{isGuest ? "Erase this device’s progress?" : "Delete your account?"}</Text>
+            <Text style={styles.dangerTitle}>Delete your account?</Text>
             <Text style={styles.dangerBody}>
-              This removes {isGuest ? 'the progress saved on this device' : 'your account and its saved progress'} — {xp} XP, your{' '}
+              This removes your account and its saved progress — {xp} XP, your{' '}
               {streakDays}-day streak, and all {quest.earned.length} stops you have cleared. It cannot
               be undone, and starting again means starting from zero.
             </Text>
@@ -227,7 +225,7 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={isGuest ? "Permanently erase my device progress" : "Permanently delete my account"}
+                accessibilityLabel="Permanently delete my account"
                 disabled={deleting}
                 onPress={() => void deleteAccount()}
                 style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressedShift]}
@@ -239,12 +237,12 @@ export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={isGuest ? "Erase device progress" : "Delete my account"}
+            accessibilityLabel="Delete my account"
             onPress={() => setConfirmingDelete(true)}
             hitSlop={8}
             style={styles.deleteLink}
           >
-            <Text style={styles.deleteLinkText}>{isGuest ? "Erase device progress" : "Delete account"}</Text>
+            <Text style={styles.deleteLinkText}>Delete account</Text>
           </Pressable>
         )}
       </View>

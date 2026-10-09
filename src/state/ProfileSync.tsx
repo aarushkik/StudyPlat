@@ -22,10 +22,10 @@ interface ProfileSyncValue {
 const ProfileSyncContext = createContext<ProfileSyncValue>({ loading: true, offline: false, blocked: false, error: null, notice: null, retry: () => undefined });
 
 export function ProfileSync({ children }: { children: React.ReactNode }) {
-  const { user, isGuest, guestUpgrade } = useAuth();
+  const { user, guestUpgrade } = useAuth();
   const onboarding = useOnboarding();
   const quest = useQuest();
-  const id = user?.id ?? (isGuest ? GUEST_PROFILE_ID : null);
+  const id = user?.id ?? null;
   const [loading, setLoading] = useState(true);
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
@@ -66,7 +66,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true;
     let cache: CachedProfile | null = null;
-    let remoteKnown = id === GUEST_PROFILE_ID;
+    let remoteKnown = false;
     let networkOffline = false;
     let localFailure = false;
     const markNetwork = (ok: boolean) => { networkOffline = !ok; if (alive) setOffline(networkOffline || localFailure); };
@@ -119,7 +119,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
       if (timer) clearTimeout(timer);
       await localWrites.flush();
       if (remoteWrite) { await remoteWrite; return flush(); }
-      if (!cache?.dirty || id === GUEST_PROFILE_ID) return;
+      if (!cache?.dirty) return;
       remoteWrite = (async () => {
         // After a failed first read, re-read before any write. No cache means
         // the navigator stays on a recoverable error instead of onboarding.
@@ -160,42 +160,37 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
       try {
         cache = await readProfileCache(id);
         if (!alive) return;
-        if (id === GUEST_PROFILE_ID) {
-          cache ??= { version: 1, profile: EMPTY_PROFILE, baseline: null, dirty: false };
-          cache.guestId ??= Crypto.randomUUID();
-        } else {
-          const result = await fetchProfile(id);
+        const result = await fetchProfile(id);
+        if (!alive) return;
+        remoteKnown = result.ok;
+        markNetwork(result.ok);
+        if (result.ok) {
+          const remote = result.profile ?? EMPTY_PROFILE;
+          cache = { ...cache, version: 1, profile: cache?.pendingMutation ? cache.profile : cache?.dirty ? mergeProfile(cache.profile, cache.baseline, remote) : remote, baseline: cache?.pendingMutation ? cache.baseline : remote, dirty: cache?.dirty ?? !result.profile };
+        } else if (!cache) {
+          setBlocked(true);
+          setLoadedId(id);
+          setError('We could not load your saved progress. Reconnect and try again.');
+          setLoading(false);
+          return;
+        }
+        if (guestUpgrade && result.ok) {
+          const guest = await readProfileCache(GUEST_PROFILE_ID);
           if (!alive) return;
-          remoteKnown = result.ok;
-          markNetwork(result.ok);
-          if (result.ok) {
-            const remote = result.profile ?? EMPTY_PROFILE;
-            cache = { ...cache, version: 1, profile: cache?.pendingMutation ? cache.profile : cache?.dirty ? mergeProfile(cache.profile, cache.baseline, remote) : remote, baseline: cache?.pendingMutation ? cache.baseline : remote, dirty: cache?.dirty ?? !result.profile };
-          } else if (!cache) {
-            setBlocked(true);
-            setLoadedId(id);
-            setError('We could not load your saved progress. Reconnect and try again, or return to sign in to study as a guest.');
-            setLoading(false);
-            return;
-          }
-          if (guestUpgrade && result.ok) {
-            const guest = await readProfileCache(GUEST_PROFILE_ID);
-            if (!alive) return;
-            if (guest?.guestId && !cache!.importedGuestIds?.includes(guest.guestId)) {
-              const imported = mergeGuestProfile(guest.profile, cache!.profile, EMPTY_PROFILE);
-              if (imported) {
-                cache = { ...cache!, profile: imported, dirty: true, importedGuestIds: [...(cache!.importedGuestIds ?? []), guest.guestId] };
-                // Commit the imported ID with the data before clearing its
-                // source. Reopening after interruption cannot double rewards.
-                await writeProfileCache(id, cache);
-                await clearProfileCache(GUEST_PROFILE_ID);
-                setNotice('Your device quest is now connected to your account.');
-              } else {
-                setNotice('Your account has a different course. We opened that quest and kept your guest quest on this device.');
-              }
+          if (guest?.guestId && !cache!.importedGuestIds?.includes(guest.guestId)) {
+            const imported = mergeGuestProfile(guest.profile, cache!.profile, EMPTY_PROFILE);
+            if (imported) {
+              cache = { ...cache!, profile: imported, dirty: true, importedGuestIds: [...(cache!.importedGuestIds ?? []), guest.guestId] };
+              // Commit the imported ID with the data before clearing its
+              // source. Reopening after interruption cannot double rewards.
+              await writeProfileCache(id, cache);
+              await clearProfileCache(GUEST_PROFILE_ID);
+              setNotice('Your device quest is now connected to your account.');
+            } else {
+              setNotice('Your account already follows a different course, so we opened that one. Progress from before you signed in on this device was not merged into it.');
             }
-            await deviceStorage.removeItem(GUEST_MODE_KEY);
           }
+          await deviceStorage.removeItem(GUEST_MODE_KEY);
         }
         hydrate(cache!.profile);
         persist();
@@ -203,7 +198,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
           id,
           update(profile) {
             if (!alive || !cache || JSON.stringify(profile) === JSON.stringify(cache.profile)) return;
-            cache = { ...cache, profile, dirty: id !== GUEST_PROFILE_ID };
+            cache = { ...cache, profile, dirty: true };
             // Save locally on every committed change; only network traffic is
             // debounced. Closing the app during the debounce preserves work.
             persist();
@@ -229,7 +224,7 @@ export function ProfileSync({ children }: { children: React.ReactNode }) {
       if (!cache) return;
       void (async () => {
         await flush();
-        if (state !== 'active' || id === GUEST_PROFILE_ID || !alive || cache?.dirty) return;
+        if (state !== 'active' || !alive || cache?.dirty) return;
         const baselineAtFetch = cache.baseline;
         const result = await fetchProfile(id);
         if (!alive || !cache) return;

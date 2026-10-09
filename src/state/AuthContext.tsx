@@ -7,7 +7,7 @@ import * as Crypto from 'expo-crypto';
 import type { Session, User } from '@supabase/supabase-js';
 import { AUTH_STORAGE_KEY, isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { deviceStorage } from '@/lib/storage';
-import { GUEST_MODE_KEY, flushProfile, prepareProfileExit } from '@/lib/profileCache';
+import { GUEST_MODE_KEY, GUEST_PROFILE_ID, clearProfileCache, flushProfile, prepareProfileExit } from '@/lib/profileCache';
 
 const browserCompletion = WebBrowser.maybeCompleteAuthSession();
 export type AuthProvider = 'google' | 'azure' | 'apple';
@@ -85,8 +85,10 @@ async function signInWithAppleNative(): Promise<'cancelled' | 'done'> {
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
-  isGuest: boolean;
-  /** True only for an explicit sign-in from the device's guest quest. */
+  /**
+   * True when this sign-in should take in progress made on this device before
+   * an account was required — a guest quest from an earlier version.
+   */
   guestUpgrade: boolean;
   restoring: boolean;
   pending: AuthProvider | null;
@@ -95,7 +97,6 @@ interface AuthContextValue {
   recovering: boolean;
   error: string | null;
   clearError: () => void;
-  continueAsGuest: () => Promise<void>;
   signIn: (provider: AuthProvider) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<string | null>;
   signUpWithEmail: (email: string, password: string) => Promise<string | null>;
@@ -106,12 +107,17 @@ interface AuthContextValue {
   deleteAccount: () => Promise<boolean>;
 }
 const AuthContext = createContext<AuthContextValue | null>(null);
-const unavailable = 'Account services are unavailable in this build. You can keep studying on this device.';
+const unavailable = 'Account services are unavailable in this build.';
 
 export function AuthProviderComponent({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [isGuest, setGuest] = useState(false);
-  const guestRef = useRef(false);
+  /**
+   * Sign-in is required: there is no guest mode. A device that studied as a
+   * guest before that keeps its progress, though, and the first sign-in on it
+   * brings that progress into the account (ProfileSync does the import and
+   * clears the marker). This remembers that the marker was there.
+   */
+  const deviceQuest = useRef(false);
   const [guestUpgrade, setGuestUpgrade] = useState(false);
   const [restoring, setRestoring] = useState(true);
   const [pending, setPending] = useState<AuthProvider | null>(null);
@@ -127,10 +133,9 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
     const accept = (next: Session | null) => {
       if (!alive) return;
       if (next) {
-        const upgrading = guestRef.current;
+        const upgrading = deviceQuest.current;
         setGuestUpgrade((previous) => previous || upgrading);
-        guestRef.current = false;
-        setGuest(false);
+        deviceQuest.current = false;
         // ProfileSync consumes the persisted guest marker after safely importing.
       }
       setSession(next);
@@ -151,8 +156,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
         const { data, error: restoreError } = await supabase.auth.getSession();
         if (!alive || revision !== initialRevision) return;
         if (restoreError) throw restoreError;
-        guestRef.current = guestMode && !data.session;
-        setGuest(guestRef.current);
+        deviceQuest.current = guestMode && !data.session;
         setGuestUpgrade(guestMode && Boolean(data.session));
         setSession(data.session);
       } catch {
@@ -185,16 +189,6 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
       urlListener.remove(); appListener.remove();
       if (Platform.OS !== 'web') supabase.auth.stopAutoRefresh();
     };
-  }, []);
-
-  const continueAsGuest = useCallback(async () => {
-    if (busy.current) return;
-    busy.current = true; setError(null);
-    try {
-      await deviceStorage.setItem(GUEST_MODE_KEY, 'true');
-      guestRef.current = true; setGuest(true);
-    } catch { setError('This device could not save your progress. Check available storage and try again.'); }
-    finally { busy.current = false; }
   }, []);
 
   const signIn = useCallback(async (provider: AuthProvider) => {
@@ -238,7 +232,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
       } else if (kind === 'signUp') {
         const { data, error: failure } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: Linking.createURL('auth/callback') } });
         if (failure) throw failure;
-        if (!data.session) return 'Check your email to confirm your account, then sign in here. Your device progress is safe.';
+        if (!data.session) return 'Check your email to confirm your account, then sign in here.';
       } else if (kind === 'reset') {
         const { error: failure } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: Linking.createURL('auth/recovery') });
         if (failure) throw failure;
@@ -265,7 +259,7 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
         await deviceStorage.removeItem(`${AUTH_STORAGE_KEY}-code-verifier`);
       }
       await deviceStorage.removeItem(GUEST_MODE_KEY);
-      guestRef.current = false; setGuest(false); setGuestUpgrade(false); setSession(null); setRecovering(false);
+      deviceQuest.current = false; setGuestUpgrade(false); setSession(null); setRecovering(false);
     } catch { setError('We could not safely finish signing out. Check your device storage and try again.'); }
     finally { busy.current = false; }
   }, []);
@@ -274,31 +268,32 @@ export function AuthProviderComponent({ children }: { children: React.ReactNode 
     if (busy.current) return false;
     busy.current = true; setDeleting(true); setError(null);
     try {
-      if (!guestRef.current) {
-        if (!isSupabaseConfigured) throw new Error(unavailable);
-        const { error: failure } = await supabase.rpc('delete_account');
-        if (failure) throw failure;
-      }
+      if (!isSupabaseConfigured) throw new Error(unavailable);
+      const { error: failure } = await supabase.rpc('delete_account');
+      if (failure) throw failure;
       await prepareProfileExit(true);
+      // Guest progress from before sign-in was required has no screen of its
+      // own any more, so deleting the account is how it gets erased too.
+      await clearProfileCache(GUEST_PROFILE_ID);
       await supabase.auth.signOut({ scope: 'local' });
       await deviceStorage.removeItem(AUTH_STORAGE_KEY);
       await deviceStorage.removeItem(`${AUTH_STORAGE_KEY}-code-verifier`);
       await deviceStorage.removeItem(GUEST_MODE_KEY);
-      guestRef.current = false; setGuest(false); setSession(null); setGuestUpgrade(false); setRecovering(false);
+      deviceQuest.current = false; setSession(null); setGuestUpgrade(false); setRecovering(false);
       return true;
     } catch (reason) { setError(messageFor(reason)); return false; }
     finally { busy.current = false; setDeleting(false); }
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
-    session, user: session?.user ?? null, isGuest, guestUpgrade, restoring, pending, emailPending, deleting, recovering, error,
-    clearError: () => setError(null), continueAsGuest, signIn, signOut, deleteAccount,
+    session, user: session?.user ?? null, guestUpgrade, restoring, pending, emailPending, deleting, recovering, error,
+    clearError: () => setError(null), signIn, signOut, deleteAccount,
     signInWithEmail: (email, password) => emailAction('signIn', email, password),
     signUpWithEmail: (email, password) => emailAction('signUp', email, password),
     resetPassword: (email) => emailAction('reset', email),
     updatePassword: (password) => emailAction('update', '', password),
     cancelRecovery: () => setRecovering(false),
-  }), [session, isGuest, guestUpgrade, restoring, pending, emailPending, deleting, recovering, error, continueAsGuest, signIn, signOut, deleteAccount, emailAction]);
+  }), [session, guestUpgrade, restoring, pending, emailPending, deleting, recovering, error, signIn, signOut, deleteAccount, emailAction]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
@@ -354,7 +349,7 @@ function messageFor(reason: unknown): string {
   if (/email not confirmed/i.test(raw)) return 'Confirm your email address first. Check your inbox, then sign in again.';
   if (/rate limit|too many requests/i.test(raw)) return 'Too many attempts. Wait a moment, then try again.';
   if (/network|fetch|timeout/i.test(raw)) return 'We couldn’t reach the server. Check your connection and try again.';
-  if (/provider|redirect/i.test(raw)) return 'This sign-in method is temporarily unavailable. Try email or continue on this device.';
+  if (/provider|redirect/i.test(raw)) return 'This sign-in method is temporarily unavailable. Try another one, or use email.';
   if (/function|delete_account/i.test(raw)) return 'Account deletion is temporarily unavailable. Please try again or contact support.';
   if (/expired|code verifier|flow state/i.test(raw)) return 'This sign-in link has expired. Request a new link on this device.';
   return 'We couldn’t complete that request. Please try again.';
