@@ -71,7 +71,11 @@ const MODES: {
   },
 ];
 
-export function TrainPanel() {
+/**
+ * `topInset` is the height of the floating HUD, so the panel starts below it
+ * and scrolls up underneath it.
+ */
+export function TrainPanel({ topInset = 0 }: { topInset?: number }) {
   const appTheme = useAppTheme();
   const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
@@ -150,7 +154,8 @@ export function TrainPanel() {
   return (
     <ScrollView
       style={styles.flex}
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={[styles.scroll, { paddingTop: topInset + 4 }]}
+      scrollIndicatorInsets={{ top: topInset }}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.head}>

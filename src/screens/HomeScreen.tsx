@@ -18,6 +18,8 @@ import { Glyph } from '@/components/icons';
 import { AccountSaveCard } from '@/components/account/AccountSaveCard';
 import { SaveStatusNotice } from '@/components/account/SaveStatusNotice';
 import { NextQuestCard } from '@/components/home/NextQuestCard';
+import { GlassSurface } from '@/components/ui/GlassSurface';
+import { Presence } from '@/components/ui/Presence';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { useOnboarding } from '@/state/OnboardingContext';
 import { getCourse } from '@/data';
@@ -74,6 +76,14 @@ export function HomeScreen() {
   /** A track to scroll to once the map tab is visible. See the effect below. */
   const [pendingJump, setPendingJump] = useState<number | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
+  /**
+   * The HUD floats over every tab, so content is inset by its height and
+   * scrolls up underneath it. The map does this with a spacer at the top of
+   * its header, which means `headerHeight` includes the HUD — every offset
+   * below that turns a content position into "what is just under the HUD"
+   * subtracts it back out.
+   */
+  const [hudHeight, setHudHeight] = useState(0);
   const [awayFromStart, setAwayFromStart] = useState(false);
 
   const units = quest.map.units;
@@ -146,9 +156,9 @@ export function HomeScreen() {
       // under the pinned banner. Collapsed tracks are only ~124pt tall, so a
       // fold line further down the screen would name a track you cannot see.
       // Header and top inset belong to the list, not to segment metrics.
-      const line = Math.max(0, y - headerHeight + 8);
+      const line = Math.max(0, y + hudHeight - headerHeight + 8);
       setAwayFromStart((away) => {
-        const nextAway = y > headerHeight + 180;
+        const nextAway = y + hudHeight > headerHeight + 180;
         return away === nextAway ? away : nextAway;
       });
       let next = 0;
@@ -160,7 +170,7 @@ export function HomeScreen() {
         setActiveIndex(next);
       }
     },
-    [metrics, headerHeight],
+    [metrics, headerHeight, hudHeight],
   );
 
   /**
@@ -236,23 +246,18 @@ export function HomeScreen() {
    */
   useEffect(() => {
     if (tab !== 'map' || pendingJump == null) return;
-    listRef.current?.scrollToOffset({ offset: headerHeight + (metrics.offsets[pendingJump] ?? 0), animated: false });
+    listRef.current?.scrollToOffset({
+      offset: Math.max(0, headerHeight - hudHeight + (metrics.offsets[pendingJump] ?? 0)),
+      animated: false,
+    });
     setPendingJump(null);
-  }, [tab, pendingJump, metrics, headerHeight]);
+  }, [tab, pendingJump, metrics, headerHeight, hudHeight]);
 
   const activeUnit = units[activeIndex] ?? units[0];
 
   return (
     <View style={styles.root}>
       <StatusBar style={appTheme.isDark ? "light" : "dark"} />
-      <QuestHud
-        streakDays={quest.streakDays}
-        gems={quest.gems}
-        xp={quest.xp}
-        equippedId={quest.equippedId}
-        onOpenCharacters={() => navigation.navigate('Characters')}
-      />
-
       {/* The map stays mounted and is hidden rather than unmounted. Rebuilding
           2,400 points of SVG on every tab switch is wasteful, it threw away
           your scroll position each time, and a list that does not exist cannot
@@ -266,10 +271,12 @@ export function HomeScreen() {
             getItemLayout={getItemLayout}
             onScroll={onScroll}
             scrollEventThrottle={32}
+            scrollIndicatorInsets={{ top: hudHeight }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 130 }}
             ListHeaderComponent={
               <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+                <View style={{ height: hudHeight }} />
                 <NextQuestCard
                   node={currentNode}
                   course={getCourse(courseId)?.name ?? 'Your study adventure'}
@@ -298,45 +305,55 @@ export function HomeScreen() {
             removeClippedSubviews={false}
           />
 
-          <View
-            style={styles.bannerDock}
-            pointerEvents="box-none"
-          >
-            {awayFromStart && activeUnit ? (
+          <Presence visible={awayFromStart && !!activeUnit} style={[styles.bannerDock, { top: hudHeight }]}>
+            {activeUnit ? (
               <UnitBanner
                 unit={activeUnit}
                 cleared={activeUnit.nodes.filter((n) => completedSet.has(n.id)).length}
               />
             ) : null}
-          </View>
-          {awayFromStart && currentNode ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open your next quest, ${currentNode.title}`}
-              onPress={() => setSelected(currentNode)}
-              style={({ pressed }) => [styles.continueDock, pressed && { opacity: 0.88 }]}
-            >
-              <Glyph name="play" size={17} color={colors.textOnPrimary} />
-              <Text style={styles.continueText}>Next quest</Text>
-            </Pressable>
-          ) : null}
+          </Presence>
+          <Presence visible={awayFromStart && !!currentNode} from="bottom" style={styles.continueDock}>
+            {currentNode ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open your next quest, ${currentNode.title}`}
+                onPress={() => setSelected(currentNode)}
+                style={({ pressed }) => [styles.continuePress, pressed && styles.continuePressed]}
+              >
+                <GlassSurface tint={colors.current} interactive style={styles.continueGlass}>
+                  <Glyph name="play" size={17} color={colors.textOnPrimary} />
+                  <Text style={styles.continueText}>Next quest</Text>
+                </GlassSurface>
+              </Pressable>
+            ) : null}
+          </Presence>
       </View>
 
       {tab === 'practice' ? (
         <TabFade key="practice" style={styles.mapArea}>
-          <TrainPanel />
+          <TrainPanel topInset={hudHeight} />
         </TabFade>
       ) : null}
       {tab === 'progress' ? (
         <TabFade key="progress" style={styles.mapArea}>
-          <BattlesPanel onSelect={setSelected} onJumpToTrack={jumpToTrack} />
+          <BattlesPanel onSelect={setSelected} onJumpToTrack={jumpToTrack} topInset={hudHeight} />
         </TabFade>
       ) : null}
       {tab === 'you' ? (
         <TabFade key="you" style={styles.mapArea}>
-          <ProfilePanel />
+          <ProfilePanel topInset={hudHeight} />
         </TabFade>
       ) : null}
+
+      <QuestHud
+        streakDays={quest.streakDays}
+        gems={quest.gems}
+        xp={quest.xp}
+        equippedId={quest.equippedId}
+        onOpenCharacters={() => navigation.navigate('Characters')}
+        onLayout={(event) => setHudHeight(Math.round(event.nativeEvent.layout.height))}
+      />
 
       <QuestTabBar active={tab} onChange={setTab} />
 
@@ -448,16 +465,12 @@ const createStyles = ({ colors, palette, typography, stroke }: AppTheme) => Styl
   root: { flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', backgroundColor: colors.background },
   mapArea: { flex: 1 },
   hidden: { display: 'none' },
-  // Opaque, so the trail never shows through the strip above the banner.
-  bannerDock: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 0,
-    backgroundColor: 'transparent',
-  },
-  continueDock: { position: 'absolute', bottom: 116, right: 18, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.current, borderWidth: 1, borderColor: colors.border, borderRadius: 24, minHeight: 48, paddingHorizontal: 16, boxShadow: '0 5px 18px rgba(0,0,0,0.16)' },
+  // Pinned just under the floating HUD; `top` is set inline from its height.
+  bannerDock: { position: 'absolute', left: 0, right: 0 },
+  continueDock: { position: 'absolute', bottom: 116, right: 18 },
+  continuePress: { borderRadius: 25 },
+  continuePressed: { transform: [{ scale: 0.95 }] },
+  continueGlass: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 50, borderRadius: 25, paddingHorizontal: 18 },
   continueText: { fontFamily: fonts.bodyHeavy, fontSize: 13, color: colors.textOnPrimary },
 
   end: {

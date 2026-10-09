@@ -21,6 +21,8 @@ interface ProgressPanelProps {
   onSelect: (node: QuestNode) => void;
   /** Switch to the map and scroll to this track. */
   onJumpToTrack: (index: number) => void;
+  /** Height of the floating HUD: the panel starts below it and scrolls under it. */
+  topInset?: number;
 }
 
 /**
@@ -34,7 +36,7 @@ interface ProgressPanelProps {
  * The boss roster lives here too. Sixty fights is progress data as much as it
  * is a menu, and it has nowhere better to be.
  */
-export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
+export function BattlesPanel({ onSelect, onJumpToTrack, topInset = 0 }: ProgressPanelProps) {
   const appTheme = useAppTheme();
   const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
@@ -66,7 +68,7 @@ export function BattlesPanel({ onSelect, onJumpToTrack }: ProgressPanelProps) {
   }, [map, completed, earned, stateOf]);
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.flex} contentContainerStyle={[styles.scroll, { paddingTop: topInset + 4 }]} scrollIndicatorInsets={{ top: topInset }} showsVerticalScrollIndicator={false}>
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text style={styles.title}>Progress</Text>

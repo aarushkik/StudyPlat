@@ -30,7 +30,12 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
  * comes here to check.
  */
 
-export function ProfilePanel() {
+/**
+ * `topInset` is the height of the floating HUD. The tinted banner runs up
+ * underneath it, so the glass has the banner's colour behind it rather than a
+ * strip of bare page.
+ */
+export function ProfilePanel({ topInset = 0 }: { topInset?: number }) {
   const appTheme = useAppTheme();
   const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
@@ -67,8 +72,8 @@ export function ProfilePanel() {
   const levelPct = Math.min(100, Math.round(((xp % 500) / 500) * 100));
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-      <View style={styles.banner}>
+    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} scrollIndicatorInsets={{ top: topInset }} showsVerticalScrollIndicator={false}>
+      <View style={[styles.banner, { paddingTop: topInset + 14 }]}>
         <View style={styles.bannerGlow} pointerEvents="none" />
         <View style={styles.bannerRow}>
           <View style={styles.avatarWrap}>

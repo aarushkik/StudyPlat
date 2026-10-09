@@ -1,8 +1,8 @@
 import { useAppTheme, useThemedStyles, type AppTheme } from '@/theme/ThemeProvider';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, palette, spring } from '@/theme';
+import { fonts, spring } from '@/theme';
 import { Glyph, type GlyphName } from '@/components/icons';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -17,25 +17,26 @@ const TABS: { id: QuestTab; label: string; glyph: GlyphName }[] = [
   { id: 'you', label: 'Profile', glyph: 'avatar' },
 ];
 
-const ON = '#052F37';
-const OFF = palette.mutedDark;
-/** The active tile is a pale turquoise, not the brand fill — ink still reads. */
-const TILE = '#7FE0EC';
+/** Bar geometry. The radii are concentric: lens radius + inset = bar radius. */
+const INSET = 7;
+const TILE_HEIGHT = 58;
+const LENS_RADIUS = TILE_HEIGHT / 2;
+const BAR_RADIUS = LENS_RADIUS + INSET;
 
 /**
- * Bottom navigation.
+ * Bottom navigation: a floating glass capsule with a lens on the active tab.
  *
- * The icons are geometry, not outline glyphs: a diamond, a ring, a staircase,
- * a disc. At 22px an outline icon needs a 2px stroke to read, thinner than
- * every border in the app, and the bar stops looking like it belongs. Solid
- * shapes carry the same weight as everything else.
+ * The lens is a translucent wash with a bright rim, not a solid tile — the
+ * bar is glass, and a solid slab inside it read as a sticker stuck on top.
+ * Which tab you are on is carried by the lens's shape and by icon and label
+ * both taking the accent colour, so it never depends on colour alone.
  *
- * The active tab takes icon *and* label into one chunky tile, so which tab you
- * are on is legible from the shape of the bar, not only from colour.
+ * Moving between tabs, the lens travels on a spring and stretches as it goes,
+ * then settles back to its width — the liquid part of Liquid Glass. Both are
+ * skipped when Reduce Motion is on.
  */
 export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: (t: QuestTab) => void }) {
-  const appTheme = useAppTheme();
-  const { colors, palette, typography, chunky } = appTheme;
+  const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
 
   const insets = useSafeAreaInsets();
@@ -43,21 +44,38 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
   const { motionEnabled } = useMotionPreference();
   const [barWidth, setBarWidth] = useState(0);
   const slide = useRef(new Animated.Value(0)).current;
+  const stretch = useRef(new Animated.Value(1)).current;
   const step = Math.max(0, (barWidth - 10) / TABS.length);
   const target = TABS.findIndex(tab => tab.id === active) * step;
+  const lastStep = useRef(step);
   useEffect(() => {
-    if (!motionEnabled) { slide.setValue(target); return; }
-    const movement = Animated.spring(slide, { toValue: target, useNativeDriver: true, damping: 24, stiffness: 250, mass: 0.8 });
+    // A re-measure (rotation, first layout) moves the lens without travel.
+    const resized = lastStep.current !== step;
+    lastStep.current = step;
+    if (!motionEnabled || resized) { slide.setValue(target); stretch.setValue(1); return; }
+    const movement = Animated.parallel([
+      Animated.spring(slide, { toValue: target, useNativeDriver: true, damping: 22, stiffness: 240, mass: 0.85 }),
+      Animated.sequence([
+        Animated.timing(stretch, { toValue: 1.16, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.spring(stretch, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 260, mass: 0.7 }),
+      ]),
+    ]);
     movement.start();
     return () => movement.stop();
-  }, [target, slide, motionEnabled]);
+  }, [target, step, slide, stretch, motionEnabled]);
 
   return (
     <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 12) }]} pointerEvents="box-none">
     <GlassSurface style={styles.bar} onLayout={event => setBarWidth(event.nativeEvent.layout.width)}>
-      {barWidth > 0 ? <Animated.View pointerEvents="none" style={[styles.activePill, { width: step - 6, transform: [{ translateX: slide }] }]} /> : null}
+      {barWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.lens, { width: step - 6, transform: [{ translateX: slide }, { scaleX: stretch }] }]}
+        />
+      ) : null}
       {TABS.map((tab) => {
         const on = tab.id === active;
+        const tone = on ? colors.primaryDeep : colors.textSecondary;
         return (
           <Pressable
             key={tab.id}
@@ -66,11 +84,11 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
             aria-selected={on}
             accessibilityLabel={tab.label}
             onPress={() => { if (!on) { haptic(); onChange(tab.id); } }}
-            style={styles.tab}
+            style={({ pressed }) => [styles.tab, pressed && !on && styles.tabPressed]}
           >
             <Tile on={on}>
-              <Glyph name={tab.glyph} size={22} color={on ? colors.textOnPrimary : colors.textSecondary} strokeWidth={2.2} />
-              <Text style={[styles.label, { color: on ? colors.textOnPrimary : colors.textSecondary }]}>{tab.label}</Text>
+              <Glyph name={tab.glyph} size={22} color={tone} strokeWidth={on ? 2.4 : 2.1} />
+              <Text style={[styles.label, { color: tone }]}>{tab.label}</Text>
             </Tile>
           </Pressable>
         );
@@ -81,16 +99,11 @@ export function QuestTabBar({ active, onChange }: { active: QuestTab; onChange: 
 }
 
 /**
- * The active tile lands rather than appears — it drops in and overshoots once.
- * Switching tabs is the most repeated gesture in the app, so it is worth the
- * one spring; a hard swap makes the whole bar feel like a set of radio
- * buttons.
+ * The active tab's icon and label land rather than appear — a small lift that
+ * overshoots once, in step with the lens arriving under them.
  */
 function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
-  const appTheme = useAppTheme();
-  const { colors, palette, typography, chunky } = appTheme;
   const styles = useThemedStyles(createStyles);
-
   const { motionEnabled } = useMotionPreference();
   const pop = useRef(new Animated.Value(on ? 1 : 0)).current;
 
@@ -108,7 +121,7 @@ function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
         // Only the *inactive* state is scaled down, so the active tile rests at
         // exactly 1 and the spring's overshoot never pushes it wider than the
         // slot it sits in.
-        { transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
+        { transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] },
       ]}
     >
       {children}
@@ -116,44 +129,39 @@ function Tile({ on, children }: { on: boolean; children: React.ReactNode }) {
   );
 }
 
-const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.create({
-  activePill: { position: 'absolute', left: 8, top: 7, bottom: 7, borderRadius: 23, backgroundColor: TILE, borderWidth: 1, borderColor: 'rgba(255,255,255,0.65)', boxShadow: '0 2px 6px rgba(6,54,62,0.12)' },
+const createStyles = ({ glass }: AppTheme) => StyleSheet.create({
   dock: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 14, paddingTop: 8 },
   bar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 7,
+    paddingVertical: INSET,
     paddingHorizontal: 5,
-    borderRadius: 30,
+    borderRadius: BAR_RADIUS,
   },
-  // Rounded to the active pill so a keyboard focus ring matches the shape
-  // the tab takes when it is selected, rather than a square around it.
-  tab: { position: 'relative', flex: 1, minWidth: 0, marginHorizontal: 3, borderRadius: 23 },
+  lens: {
+    position: 'absolute',
+    left: 8,
+    top: INSET,
+    bottom: INSET,
+    borderRadius: LENS_RADIUS,
+    borderCurve: 'continuous',
+    backgroundColor: glass.lens,
+    borderWidth: 1,
+    borderColor: glass.lensRim,
+  },
+  // Rounded to the lens so a keyboard focus ring matches the shape the tab
+  // takes when it is selected, rather than a square around it.
+  tab: { position: 'relative', flex: 1, minWidth: 0, marginHorizontal: 3, borderRadius: LENS_RADIUS },
+  tabPressed: { opacity: 0.6 },
   tile: {
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
+    gap: 4,
     paddingVertical: 7,
     paddingHorizontal: 3,
-    minHeight: 58,
-    borderRadius: 23,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  tileOn: { backgroundColor: TILE, borderColor: 'rgba(255,255,255,0.6)' },
-  // The active tile's 3pt drop, behind the face.
-  tileLip: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 3,
-    bottom: -3,
-    borderRadius: 19,
-    backgroundColor: colors.nightRaised,
+    minHeight: TILE_HEIGHT,
+    borderRadius: LENS_RADIUS,
   },
   label: { fontFamily: fonts.bodyBlack, fontSize: 11, letterSpacing: 0 },
-
-  diamond: { width: 15.6, height: 15.6, borderRadius: 4, margin: 3.2, transform: [{ rotate: '45deg' }] },
-  stairs: { flexDirection: 'row', alignItems: 'flex-end', height: 22 },
-  disc: { width: 22, height: 22, borderRadius: 11 },
 });
