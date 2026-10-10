@@ -435,7 +435,7 @@ function GateBossCard({
             {node.title}
           </Text>
           <Text style={styles.bossNote} numberOfLines={1}>
-            {nextPlace ? `Clear it to open ${nextPlace}` : 'The last fight on the map'}
+            {nextPlace ? `Clear it to open ${nextPlace}` : 'The last check on the map'}
           </Text>
         </View>
       </View>

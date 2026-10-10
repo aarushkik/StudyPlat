@@ -123,7 +123,7 @@ export function CharactersScreen() {
           <Text style={styles.title}>The field guide</Text>
           <Text style={styles.subtitle}>
             {page === "bosses"
-              ? `${defeated} of ${bossCount.length} guardians cleared`
+              ? `${defeated} of ${bossCount.length} checks passed`
               : `${owned.length} of ${companions.length} ready to explore`}
           </Text>
         </View>

@@ -27,7 +27,7 @@ const KIND: Record<QuestNodeKindId, { label: string; glyph: GlyphName; cta: stri
   drill: { label: 'Drill', glyph: 'bolt', cta: 'Start drill', again: 'Run it again' },
   study: { label: 'Knowledge check', glyph: 'page', cta: 'Start review', again: 'Review again' },
   bonus: { label: 'Bonus', glyph: 'chest', cta: 'Open the cache', again: 'Open again' },
-  boss: { label: 'Boss battle', glyph: 'swords', cta: 'Enter the battle', again: 'Rematch' },
+  boss: { label: 'Study club check', glyph: 'swords', cta: 'Start the check', again: 'Try it again' },
 };
 
 /**
@@ -116,7 +116,7 @@ function SheetBody({
   const isBoss = node.kind === 'boss';
   const isAreaBoss = isBoss && node.tier === 6;
   // Bosses are named by rank, so the sheet's kicker says which fight this is.
-  const label = isBoss ? `${BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))]} battle` : kind.label;
+  const label = isBoss ? BOSS_TIERS[Math.min(5, Math.max(0, (node.tier ?? 1) - 1))] : kind.label;
 
   // The spring may carry the sheet a few points past its resting place;
   // that is the bounce. The scrim is clamped so it never goes darker than set.
@@ -166,8 +166,8 @@ function SheetBody({
               <Glyph name="shield" size={22} color={palette.violetLight} strokeWidth={2.2} />
               <Text style={styles.bossText}>
                 {isAreaBoss
-                  ? 'The last fight in this area. Clearing it opens the next one.'
-                  : `Fight ${node.tier} of 6 in this area. Clearing it opens the next stretch of trail.`}
+                  ? 'The final check in this area. Passing it opens the next one.'
+                  : `Check ${node.tier} of 6 in this area. Passing it opens the next stretch of trail.`}
               </Text>
             </View>
           ) : null}

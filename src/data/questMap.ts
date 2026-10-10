@@ -26,8 +26,12 @@ const STAGES_PER_UNIT = 6;
 /** The support stop that sits between each lesson and its boss. */
 const SUPPORT_CYCLE: QuestNodeKindId[] = ['drill', 'study', 'drill', 'bonus', 'study', 'drill'];
 
-/** Boss ranks within an area. The sixth opens the next area. */
-export const BOSS_TIERS = ['Sentry', 'Warden', 'Enforcer', 'Champion', 'Vanguard', 'Overlord'] as const;
+/**
+ * The six checks at the end of an area, easiest first. The sixth opens the
+ * next area. Named for what each one is — the bosses are a friendly study
+ * club checking what you remember, not enemies to defeat.
+ */
+export const BOSS_TIERS = ['Warm-up', 'Quick check', 'Challenge', 'Deep dive', 'Big review', 'Final check'] as const;
 
 /** The "study a source" stop is named for how the subject actually reads. */
 const READING_BY_CATEGORY: Record<CourseCategory, { title: string; summary: string }> = {

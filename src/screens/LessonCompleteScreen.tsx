@@ -95,7 +95,7 @@ export function LessonCompleteScreen() {
               {cleared === false
                 ? "Keep building."
                 : boss
-                  ? "Guardian cleared!"
+                  ? "Check passed!"
                   : verdict.headline}
             </Text>
             <Text style={[typography.body, styles.sub]} numberOfLines={2}>

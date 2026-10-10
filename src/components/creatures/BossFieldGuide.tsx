@@ -34,7 +34,7 @@ export function BossFieldGuide() {
   return (
     <View style={styles.root}>
       <Text style={styles.intro}>
-        Every place has its guardians. Meet all six before you reach the gate.
+        Every area has its own study club. Pass all six checks to open the next one.
       </Text>
       <ScrollView
         ref={areaStrip}
@@ -80,18 +80,18 @@ export function BossFieldGuide() {
                 defeated && { borderColor: colors.success },
               ]}
               accessible
-              accessibilityLabel={`${node.title}. Rank ${node.tier}. ${defeated ? "Defeated" : ready ? "Ready on your path" : "Ahead on your path"}`}
+              accessibilityLabel={`${node.title}. Rank ${node.tier}. ${defeated ? "Passed" : ready ? "Ready on your path" : "Ahead on your path"}`}
             >
               <View style={styles.rank}>
                 <Text style={styles.rankText}>
-                  {node.tier === 6 ? "AREA GUARDIAN" : `RANK ${node.tier}`}
+                  {node.tier === 6 ? "FINAL CHECK" : `RANK ${node.tier}`}
                 </Text>
               </View>
               <BossSprite nodeId={node.id} size={112} />
               <Text style={styles.name}>{node.title}</Text>
               <Text style={styles.status}>
                 {defeated
-                  ? "✓ Defeated"
+                  ? "✓ Passed"
                   : ready
                     ? "Ready on your path"
                     : "Ahead on your path"}

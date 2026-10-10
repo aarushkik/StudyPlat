@@ -59,7 +59,7 @@ export function NextQuestCard({
         <Sheen strength={0.14} />
         <View style={styles.cardTop}>
         <View style={styles.cardBody}>
-          <Text style={styles.kicker}>{node?.kind === 'boss' ? 'A GUARDIAN AWAITS' : node ? 'PICK UP HERE' : 'YOUR NEXT CHAPTER'}</Text>
+          <Text style={styles.kicker}>{node?.kind === 'boss' ? 'STUDY CLUB CHECK' : node ? 'PICK UP HERE' : 'YOUR NEXT CHAPTER'}</Text>
           <Text style={styles.title}>{node?.title ?? 'Keep your knowledge growing'}</Text>
           <Text style={styles.meta}>
             {node ? `About ${node.minutes} min · up to ${node.xp} base XP` : 'Revisit a topic or try a practice set.'}
