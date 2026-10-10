@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Glyph, type GlyphName } from '@/components/icons';
-import { glassCard, spacing, spring, withAlpha } from '@/theme';
+import { glassCard, spacing, spring } from '@/theme';
 import { useMotionPreference } from '@/hooks/useMotionPreference';
 import { useHaptics } from '@/hooks/useHaptics';
 
@@ -32,8 +32,9 @@ interface AppButtonProps {
  * The StudyPlat button: a capsule of glass.
  *
  * Filled tones are coloured glass — the colour itself, a sheen pooling along
- * the top, a rim lit from above and a soft glow in the button's own colour
- * underneath. Secondary is clear glass, the same material as the cards it
+ * the top and a rim lit from above. No coloured glow underneath: a halo in a
+ * button's own colour is decoration, and it made every screen look like a
+ * template. Secondary is clear glass, the same material as the cards it
  * sits among; ghost has no surface at all.
  *
  * Pressing gives a little under the finger and springs back. The old chunky
@@ -113,7 +114,7 @@ export function AppButton({
 
 type Scheme = { face: ViewStyle; text: string; sheen?: string };
 
-/** Coloured glass: the fill, a white rim lit from above, a glow in its own colour. */
+/** Coloured glass: the fill, a white rim lit from above, a quiet drop. */
 function tinted(fill: string, solid: boolean): ViewStyle {
   return {
     backgroundColor: fill,
@@ -122,7 +123,7 @@ function tinted(fill: string, solid: boolean): ViewStyle {
     borderLeftColor: 'rgba(255,255,255,0.22)',
     borderRightColor: 'rgba(255,255,255,0.22)',
     borderBottomColor: 'rgba(0,0,0,0.10)',
-    boxShadow: solid ? 'none' : `0 8px 22px ${withAlpha(fill, 0.34)}, 0 1px 2px rgba(0,0,0,0.10)`,
+    boxShadow: solid ? 'none' : '0 4px 12px rgba(18,48,60,0.16), 0 1px 2px rgba(18,48,60,0.10)',
   };
 }
 

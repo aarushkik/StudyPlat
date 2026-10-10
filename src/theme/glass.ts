@@ -54,11 +54,11 @@ export interface GlassTokens {
   cardSelected: string;
   cardShadow: string;
   /**
-   * The three soft colour fields behind every screen — turquoise, orange and
-   * violet, the app's own palette. Glass needs colour behind it to read as
-   * glass; over a flat page it is just a pale rectangle.
+   * The contour lines on the page behind every screen (see `CONTOURS`).
+   * Glass needs something behind it to read as glass; on a map app, that
+   * something is the map's own paper.
    */
-  aurora: [string, string, string];
+  contour: string;
 }
 
 export const lightGlass: GlassTokens = {
@@ -77,8 +77,10 @@ export const lightGlass: GlassTokens = {
   shadow: '0 10px 30px rgba(18,48,60,0.12), 0 1px 3px rgba(18,48,60,0.08)',
   card: 'rgba(255,255,255,0.62)',
   cardSelected: 'rgba(214,244,248,0.82)',
-  cardShadow: '0 8px 24px rgba(18,48,60,0.08), 0 1px 2px rgba(18,48,60,0.05)',
-  aurora: ['rgba(5,177,201,0.30)', 'rgba(245,160,43,0.20)', 'rgba(150,110,220,0.16)'],
+  // Tight, so a stack of cards does not merge its shadows into a grey band
+  // down each side of the list.
+  cardShadow: '0 1px 2px rgba(18,48,60,0.06), 0 4px 12px rgba(18,48,60,0.05)',
+  contour: 'rgba(18,48,60,0.075)',
 };
 
 export const darkGlass: GlassTokens = {
@@ -97,15 +99,15 @@ export const darkGlass: GlassTokens = {
   shadow: '0 12px 34px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.25)',
   card: 'rgba(30,58,70,0.52)',
   cardSelected: 'rgba(20,78,92,0.66)',
-  cardShadow: '0 10px 28px rgba(0,0,0,0.28), 0 1px 2px rgba(0,0,0,0.2)',
-  aurora: ['rgba(5,177,201,0.26)', 'rgba(245,160,43,0.10)', 'rgba(140,100,220,0.20)'],
+  cardShadow: '0 1px 2px rgba(0,0,0,0.25), 0 4px 14px rgba(0,0,0,0.18)',
+  contour: 'rgba(237,245,243,0.055)',
 };
 
 /**
  * Reduce Transparency: the same shapes, nothing to see through.
  *
  * Every glass token collapses to an opaque equivalent — cards to the surface
- * colour, rims to the plain border, the aurora to nothing — so screens never
+ * colour, rims to the plain border — so screens never
  * have to ask which mode they are in. They read `glass.card` and get the
  * right answer either way.
  */
@@ -120,7 +122,6 @@ export function solidGlass(base: GlassTokens, colors: { surface: string; surface
     edgeFade: [colors.background, colors.background, colors.background],
     card: colors.surface,
     cardSelected: colors.surfaceSelected,
-    aurora: ['rgba(0,0,0,0)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0)'],
   };
 }
 
@@ -158,12 +159,12 @@ export function rimOf(color: string) {
   return { borderTopColor: color, borderLeftColor: color, borderRightColor: color, borderBottomColor: color };
 }
 
-/** A selected glass card: tinted, ringed in its accent, glowing faintly in it. */
+/** A selected glass card: tinted and ringed in its accent. */
 export function selectedCard(glass: GlassTokens, accent: string) {
   return {
     backgroundColor: glass.cardSelected,
     ...rimOf(accent),
-    boxShadow: `0 8px 24px ${withAlpha(accent, 0.24)}`,
+    boxShadow: glass.cardShadow,
   };
 }
 
@@ -186,8 +187,8 @@ export function litRim(top = 0.45) {
 
 /**
  * A card in a colour wash rather than clear glass — for the one card on a
- * screen that is about something (an account prompt, the equipped
- * companion). The wash is translucent so the aurora still moves under it.
+ * screen that is about something (the equipped companion, a score). The wash
+ * is translucent so the map's contour lines still run under it.
  */
 export function tintedCard(glass: GlassTokens, tint: string, ring: string, solid: boolean) {
   return {

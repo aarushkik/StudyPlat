@@ -456,7 +456,6 @@ const createStyles = ({ colors, palette, typography }: AppTheme) => StyleSheet.c
     paddingRight: 9,
     overflow: "hidden",
     ...litRim(0.7),
-    boxShadow: "0 6px 18px rgba(127,224,236,0.28)",
   },
   heroArrow: {
     width: 28,

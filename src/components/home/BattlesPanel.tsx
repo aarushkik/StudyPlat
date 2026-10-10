@@ -258,7 +258,7 @@ const createStyles = ({ colors, palette, typography, stroke, glass, solid }: App
     marginTop: 11,
     backgroundColor: palette.ember,
     ...litRim(0.55),
-    boxShadow: solid ? 'none' : '0 6px 16px rgba(217,85,47,0.30)',
+    boxShadow: solid ? 'none' : '0 4px 12px rgba(18,48,60,0.14)',
     borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',

@@ -274,11 +274,11 @@ function TrackPropsImpl({ kind, width, height, anchors, seed }: TrackPropsProps)
             style={[
               styles.ground,
               {
-                width: p.size * 0.58,
-                height: p.size * 0.15,
-                borderRadius: p.size * 0.075,
-                left: p.size * 0.21,
-                top: p.size * 0.9,
+                width: p.size * 0.52,
+                height: p.size * 0.11,
+                borderRadius: p.size * 0.055,
+                left: p.size * 0.24,
+                top: p.size * 0.86,
               },
             ]}
           />
@@ -295,6 +295,8 @@ function TrackPropsImpl({ kind, width, height, anchors, seed }: TrackPropsProps)
 
 const styles = StyleSheet.create({
   slot: { position: 'absolute' },
-  ground: { position: 'absolute', backgroundColor: 'rgba(18,48,60,0.13)' },
+  // Soft-edged, tucked under the base: a hard oval read as a grey slab
+  // floating below each prop rather than as shade.
+  ground: { position: 'absolute', backgroundColor: 'rgba(18,48,60,0.08)', boxShadow: '0 0 8px 3px rgba(18,48,60,0.08)' },
   art: { width: '100%', height: '100%' },
 });

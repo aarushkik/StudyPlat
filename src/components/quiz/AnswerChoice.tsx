@@ -109,14 +109,13 @@ type Style = {
 
 /**
  * Idle answers are clear glass, like every card. Once something happens to an
- * answer it becomes tinted glass — its state's soft colour, ringed and faintly
- * glowing in the strong one — so the state is in the material itself.
+ * answer it becomes tinted glass — its state's soft colour, ringed in the
+ * strong one — so the state is in the material itself.
  */
 const makeSTATE = ({ colors, card, solid }: AppTheme): Record<ChoiceState, Style> => {
   const tinted = (soft: string, ring: string): ViewStyle => ({
     backgroundColor: solid ? soft : withAlpha(soft, 0.8),
     ...rimOf(ring),
-    boxShadow: solid ? 'none' : `0 6px 18px ${withAlpha(ring, 0.2)}`,
   });
   return {
     idle: {

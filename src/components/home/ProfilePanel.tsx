@@ -264,7 +264,7 @@ function displayName(meta: Record<string, unknown> | undefined, email: string | 
   return 'Your quest';
 }
 
-const createStyles = ({ colors, palette, typography, stroke, card, solid }: AppTheme) => StyleSheet.create({
+const createStyles = ({ colors, palette, typography, stroke, card, solid, glass }: AppTheme) => StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingBottom: 130 },
   legalRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 12 },
@@ -325,7 +325,7 @@ const createStyles = ({ colors, palette, typography, stroke, card, solid }: AppT
     gap: 8,
     backgroundColor: palette.orange,
     ...litRim(0.6),
-    boxShadow: solid ? 'none' : '0 10px 26px rgba(245,160,43,0.30)',
+    boxShadow: solid ? 'none' : glass.cardShadow,
     borderRadius: 24,
     paddingLeft: 8,
     paddingRight: 16,
@@ -444,8 +444,6 @@ const createStyles = ({ colors, palette, typography, stroke, card, solid }: AppT
     height: 8,
     borderRadius: 5,
     backgroundColor: colors.track,
-    borderWidth: 2,
-    borderColor: colors.overlay,
     overflow: 'hidden',
   },
   achieveFill: { height: '100%', backgroundColor: palette.violet },

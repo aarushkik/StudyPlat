@@ -156,7 +156,7 @@ const createStyles = ({ colors, palette, typography, stroke, card }: AppTheme) =
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   rowIcon: { width: 24, alignItems: 'center' },
   summaryText: { ...typography.bodyStrong, flexShrink: 1 },
-  divider: { height: 2, borderRadius: 1, backgroundColor: colors.overlay },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.overlayStrong },
 
   footer: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
 });
