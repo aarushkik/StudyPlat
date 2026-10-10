@@ -26,7 +26,7 @@ test("every course resolves sixty named guardian variants without changing store
   assert.equal(bossForNode("ap-biology-u1-s1-lesson"), null);
   assert.equal(bossForNode("ap-biology-u99-s1-boss"), null);
 });
-test("every illustrated character is bundled and atlas portraits stay inside their own cells", () => {
+test("every illustrated character is bundled and atlas portraits stay in bounds", () => {
   const manifest = JSON.parse(
     readFileSync(
       new URL("../docs/character-art-prompts.json", import.meta.url),
@@ -54,13 +54,14 @@ test("every illustrated character is bundled and atlas portraits stay inside the
   for (const asset of manifest.assets) {
     const image = readFileSync(new URL(`../${asset.asset}`, import.meta.url));
     assert.equal(
-      image.readUInt16BE(0),
-      0xffd8,
-      `${asset.id} must be a real JPEG`,
+      image.subarray(0, 8).toString("hex"),
+      "89504e470d0a1a0a",
+      `${asset.id} must be a real PNG`,
     );
     assert.ok(image.length > 8000);
+    assert.ok([4, 6].includes(image[25]), `${asset.id} must have an alpha channel`);
     assert.ok(
-      catalog.includes(`/${asset.group}/${asset.id}.jpg`),
+      catalog.includes(`/${asset.group}/${asset.id}.png`),
       `${asset.id} needs a static bundle import`,
     );
     hashes.add(createHash("sha256").update(image).digest("hex"));
@@ -68,20 +69,20 @@ test("every illustrated character is bundled and atlas portraits stay inside the
     if (asset.group !== "bosses") continue;
     const atlas = frames[asset.id];
     assert.equal(atlas.width * 2, atlas.height * 3);
+    assert.equal(image.readUInt32BE(16), atlas.width);
+    assert.equal(image.readUInt32BE(20), atlas.height);
     assert.equal(atlas.frames.length, 6);
     const cell = atlas.width / 3;
     atlas.frames.forEach(
       (frame: { x: number; y: number; size: number }, i: number) => {
         assert.ok([frame.x, frame.y, frame.size].every(Number.isFinite));
         assert.ok(frame.size > 0);
-        assert.ok(
-          frame.x >= (i % 3) * cell &&
-            frame.x + frame.size <= ((i % 3) + 1) * cell,
-        );
-        assert.ok(
-          frame.y >= Math.floor(i / 3) * cell &&
-            frame.y + frame.size <= (Math.floor(i / 3) + 1) * cell,
-        );
+        assert.ok(frame.x >= 0 && frame.x + frame.size <= atlas.width);
+        assert.ok(frame.y >= 0 && frame.y + frame.size <= atlas.height);
+        // Individual square frames follow each silhouette, including hats that
+        // extend beyond the nominal grid. Their centers retain row-major order.
+        assert.equal(Math.floor((frame.x + frame.size / 2) / cell), i % 3);
+        assert.equal(Math.floor((frame.y + frame.size / 2) / cell), Math.floor(i / 3));
       },
     );
   }

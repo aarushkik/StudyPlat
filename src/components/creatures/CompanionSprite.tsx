@@ -32,7 +32,6 @@ export const CompanionSprite = memo(function CompanionSprite({
           flexShrink: 0,
           overflow: "hidden",
           borderRadius: radius ?? size * 0.2,
-          backgroundColor: "#FFF8ED",
           opacity: dim ? 0.66 : 1,
         },
         style,

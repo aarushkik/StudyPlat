@@ -13,7 +13,7 @@ interface Props {
   dim?: boolean;
 }
 
-/** Each guardian is a separate painted illustration in its family's local atlas. */
+/** Each guardian is a separate cartoon illustration in its family's local atlas. */
 export const BossSprite = memo(function BossSprite({
   nodeId,
   kind = "waves",
@@ -61,5 +61,5 @@ export const BossSprite = memo(function BossSprite({
   );
 });
 const styles = StyleSheet.create({
-  window: { overflow: "hidden", flexShrink: 0, backgroundColor: "#FFF8ED" },
+  window: { overflow: "hidden", flexShrink: 0 },
 });

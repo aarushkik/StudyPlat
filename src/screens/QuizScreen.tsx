@@ -139,7 +139,7 @@ export function QuizScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endless, refills, courseId, params?.unit, params?.count, quiz, session?.title]);
 
-  // Slate appends what was missed rather than replacing the run, so the
+  // Remy appends what was missed rather than replacing the run, so the
   // counter stays honest: "5 / 7" after a re-ask really is seven questions.
   const run = useMemo(() => [...questions, ...extra, ...requeued], [questions, extra, requeued]);
   const total = run.length;
@@ -206,7 +206,7 @@ export function QuizScreen() {
     return (question.acceptedAnswers ?? []).map(normalize).includes(normalize(textAnswer));
   };
 
-  /** Mira: show the explanation before answering, once. */
+  /** Ellie: show the explanation before answering, once. */
   const takeHint = () => {
     if (hintUsed) return;
     setHintUsed(true);
@@ -214,7 +214,7 @@ export function QuizScreen() {
   };
 
   /**
-   * Nix: rule out one wrong option, once.
+   * Daisy: rule out one wrong option, once.
    *
    * Picked deterministically from the question's own id rather than at random,
    * so leaving and re-entering a stop cannot be used to strike a different
@@ -230,7 +230,7 @@ export function QuizScreen() {
   };
 
   /**
-   * Quill: take a wrong answer back, once.
+   * Benny: take a wrong answer back, once.
    *
    * The answer has already been recorded by `onCheck`, so the retry drops it —
    * otherwise the session would count the attempt the companion just undid,
@@ -347,7 +347,7 @@ export function QuizScreen() {
 
     if (isLast) {
       /**
-       * Slate: ask everything missed one more time before finishing.
+       * Remy: ask everything missed one more time before finishing.
        *
        * Appended once per session, not repeatedly — a student who misses the
        * re-ask too would otherwise never reach the end. Both attempts are

@@ -3,28 +3,9 @@ import type { QuestMap } from '@/types/quest';
 import type { SkillTally } from '@/state/QuestContext';
 
 /**
- * Companions — the collectible half of the quest.
- *
- * Every card here used to be a promise the app did not keep. The ability line
- * was decoration: equipping changed a highlight and nothing else, and `owned`
- * was a hard-coded boolean, so "Beat 5 bosses" stayed locked after fifty. The
- * roster looked like a system and behaved like a picture of one.
- *
- * Two things fix that, and both live in this file:
- *
- * 1. **`effect`** names something a session can actually honour. Every value
- *    is read somewhere real — the quiz screen for the four that change how a
- *    question is asked, `recordSession` for the ones that change what it pays.
- * 2. **`unlock`** carries the condition *as a function of quest state*, so the
- *    card and the thing it is waiting for cannot drift apart. The tag on a
- *    locked card is generated from the same object that decides whether it is
- *    locked.
- *
- * Three abilities were rewritten rather than implemented. Cobalt, Marrow and
- * Orrin described a boss fight with timers and phases — a screen this build
- * does not have — so rather than leave three cards lying, they now name
- * something the boss stops actually do. The four from the Claude Design build
- * are unchanged.
+ * Study buddies with real session effects and progress-based unlocks.
+ * Display names and artwork can change; IDs must remain stable because saved
+ * profiles store the equipped companion ID.
  */
 
 /** What an equipped companion changes. Each one is read somewhere real. */
@@ -110,7 +91,7 @@ const mastered = (s: CompanionState): number =>
 export const COMPANIONS: Companion[] = [
   {
     id: 'mira',
-    name: 'Mira',
+    name: 'Ellie',
     ability: 'Reveals one hint per session',
     effect: 'hint',
     tint: palette.turquoise,
@@ -118,7 +99,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'ember',
-    name: 'Ember',
+    name: 'Buddy',
     ability: 'Shields a streak day',
     effect: 'shield',
     shieldDays: 1,
@@ -127,7 +108,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'pilot',
-    name: 'Pilot',
+    name: 'Penny',
     ability: 'Doubles the gems a session pays',
     effect: 'gems',
     tint: '#3E9E63',
@@ -135,7 +116,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'quill',
-    name: 'Quill',
+    name: 'Benny',
     ability: 'One retry per session',
     effect: 'retry',
     tint: palette.violet,
@@ -143,7 +124,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'cobalt',
-    name: 'Cobalt',
+    name: 'Stella',
     // Was "Freezes a boss timer once" — there is no boss timer to freeze.
     ability: 'Doubles XP for a flawless session',
     effect: 'xpPerfect',
@@ -152,7 +133,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'marrow',
-    name: 'Marrow',
+    name: 'Bruno',
     // Was "Skips one boss phase" — bosses do not have phases in this build.
     ability: '+50% XP from boss stops',
     effect: 'xpBoss',
@@ -161,7 +142,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'tessel',
-    name: 'Tessel',
+    name: 'Toby',
     ability: '+20% XP on practice drills',
     effect: 'xpDrill',
     tint: '#D7B360',
@@ -169,7 +150,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'nix',
-    name: 'Nix',
+    name: 'Daisy',
     ability: 'Strikes out one wrong option',
     effect: 'eliminate',
     tint: '#8CBDBC',
@@ -177,7 +158,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'fen',
-    name: 'Fen',
+    name: 'Oakley',
     ability: 'Shields two streak days',
     effect: 'shield',
     shieldDays: 2,
@@ -186,7 +167,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'slate',
-    name: 'Slate',
+    name: 'Remy',
     ability: 'Re-asks anything you get wrong',
     effect: 'requeue',
     tint: '#96A0B5',
@@ -194,7 +175,7 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'vesper',
-    name: 'Vesper',
+    name: 'Wally',
     ability: 'Doubles the gems a session pays',
     effect: 'gems',
     tint: '#BB99C8',
@@ -202,8 +183,8 @@ export const COMPANIONS: Companion[] = [
   },
   {
     id: 'orrin',
-    name: 'Orrin',
-    // Was "Starts every boss one phase down" — see Marrow.
+    name: 'Leo',
+    // Was "Starts every boss one phase down" — see Bruno.
     ability: '+50% XP from boss stops',
     effect: 'xpBoss',
     tint: '#DAA164',

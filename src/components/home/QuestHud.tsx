@@ -37,7 +37,7 @@ interface QuestHudProps {
  * is paying attention.
  *
  * The last chip is the equipped companion rather than Stu. Equipping one had
- * no visible consequence anywhere you actually play — you chose Ember, went
+ * no visible consequence anywhere you actually play — you chose Buddy, went
  * back to the map, and nothing on screen had changed — so the companion now
  * rides in the HUD, which is both the reminder of what is active and the way
  * back to swap it.
