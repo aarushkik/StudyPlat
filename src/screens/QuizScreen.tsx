@@ -436,17 +436,13 @@ export function QuizScreen() {
 
         <ScrollView contentContainerStyle={styles.introBody}>
           <Mascot size={200} pose="excited" />
-          <View style={styles.introBadge}>
-            <Glyph name="compass" size={16} color={colors.primary} strokeWidth={2.4} />
-            <Text style={styles.introBadgeText}>Find your level</Text>
-          </View>
-          <Text style={[typography.title, styles.introTitle]}>Let's see where you already are</Text>
+          <Text style={[typography.title, styles.introTitle]}>Find your starting point</Text>
           <Text style={[typography.body, styles.introText]}>{quiz.intro}</Text>
           <Text style={styles.introMeta}>{total} questions · about 4 minutes</Text>
         </ScrollView>
 
         <View style={styles.footer}>
-          <AppButton label="Start the quest" icon="play" emphasis onPress={() => { setStartChoice('find_level'); setPhase('quiz'); }} />
+          <AppButton label="Start the questions" icon="play" emphasis onPress={() => { setStartChoice('find_level'); setPhase('quiz'); }} />
           <Pressable
             onPress={() => {
               setStartChoice('scratch');
@@ -677,17 +673,6 @@ const createStyles = ({ colors, palette, typography, stroke, glass, card }: AppT
 
   introTop: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
   introBody: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, width: '100%', maxWidth: 620, alignSelf: 'center' },
-  introBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primaryTint,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 6,
-    marginTop: spacing.lg,
-  },
-  introBadgeText: { ...typography.overline, color: colors.primary },
   introTitle: { marginTop: spacing.md, textAlign: 'center' },
   introText: { textAlign: 'center', marginTop: spacing.sm, paddingHorizontal: spacing.sm },
   introMeta: { ...typography.caption, marginTop: spacing.lg },

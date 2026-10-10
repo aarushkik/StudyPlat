@@ -7,7 +7,7 @@ import { Glyph } from '@/components/icons';
 import { ProgressBar } from '@/components/ui';
 import { useHaptics } from '@/hooks/useHaptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, litRim, palette } from '@/theme';
+import { colors, fonts, litRim, palette, rimOf } from '@/theme';
 import { Sheen } from '@/components/ui/Sheen';
 import type { QuestNode } from '@/types/quest';
 
@@ -71,19 +71,19 @@ export function NextQuestCard({
         </View>
         <View style={styles.cta}>
           <Sheen strength={0.45} reach={0.6} />
-          <Text style={styles.ctaText}>{node ? 'Let’s do this' : 'Open practice'}</Text>
+          <Text style={styles.ctaText}>{node ? 'Continue' : 'Open practice'}</Text>
           <View style={styles.arrow}><Glyph name="arrow-right" size={18} color={colors.textOnPrimary} strokeWidth={2.8} /></View>
         </View>
       </Pressable>
 
-      <View style={[styles.goal, goalMet && { borderColor: colors.successDeep }]} accessible accessibilityLabel={`${todayCount} of ${dailyGoal} daily sessions completed. ${goalMet ? 'Daily goal reached.' : `${left} more to reach your daily goal.`}`}>
+      <View style={[styles.goal, goalMet && rimOf(colors.successDeep)]} accessible accessibilityLabel={`${todayCount} of ${dailyGoal} daily sessions completed. ${goalMet ? 'Daily goal reached.' : `${left} more to reach your daily goal.`}`}>
         <View style={styles.goalHeading}>
           <View style={[styles.goalIcon, goalMet && { backgroundColor: colors.successSoft }]}>
             <Glyph name={goalMet ? 'check' : 'flame'} size={18} color={goalMet ? colors.successDeep : colors.dangerDark} strokeWidth={2.6} />
           </View>
           <View style={styles.headingBody}>
-            <Text style={styles.goalText}>{goalMet ? 'You kept your promise.' : 'Your daily little win'}</Text>
-            <Text style={styles.goalDetail}>{goalMet ? 'Goal reached. The rest is a bonus.' : `${left} short ${left === 1 ? 'session' : 'sessions'} to keep moving.`}</Text>
+            <Text style={styles.goalText}>{goalMet ? 'Goal reached' : 'Today’s goal'}</Text>
+            <Text style={styles.goalDetail}>{goalMet ? 'Anything more today is a bonus.' : `${left} more ${left === 1 ? 'session' : 'sessions'} to go.`}</Text>
           </View>
           <Text style={styles.goalCount}>{todayCount}<Text style={styles.goalTotal}>/{dailyGoal}</Text></Text>
         </View>
@@ -109,7 +109,7 @@ const createStyles = ({ colors, palette, typography, card }: AppTheme) => StyleS
   kicker: { fontFamily: fonts.bodyBlack, fontSize: 10, letterSpacing: 1.5, color: palette.turquoiseLight },
   title: { fontFamily: fonts.displayHeavy, fontSize: 25, lineHeight: 28, color: colors.textOnInk, marginTop: 7 },
   meta: { fontFamily: fonts.bodySemibold, fontSize: 12, lineHeight: 18, color: palette.hero.body, marginTop: 10 },
-  cta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: palette.turquoiseLight, borderRadius: 24, paddingVertical: 10, paddingLeft: 18, paddingRight: 10, marginTop: 17, minHeight: 48, overflow: 'hidden', ...litRim(0.7), boxShadow: '0 6px 18px rgba(127,224,236,0.28)' },
+  cta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: palette.turquoiseLight, borderRadius: 24, paddingVertical: 10, paddingLeft: 18, paddingRight: 10, marginTop: 17, minHeight: 48, overflow: 'hidden', ...litRim(0.7) },
   ctaText: { flexShrink: 1, fontFamily: fonts.bodyHeavy, fontSize: 15, color: colors.textOnPrimary },
   arrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center' },
   mascot: { width: 102, alignItems: 'center' },

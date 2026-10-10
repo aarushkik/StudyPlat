@@ -5,9 +5,9 @@ import { fonts } from '@/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 
 const options: { value: AppearancePreference; label: string; detail: string }[] = [
-  { value: 'light', label: 'Light', detail: 'A fresh start' },
-  { value: 'dark', label: 'Dark', detail: 'After hours' },
-  { value: 'system', label: 'System', detail: 'Follow device' },
+  { value: 'light', label: 'Light', detail: 'Always light' },
+  { value: 'dark', label: 'Dark', detail: 'Always dark' },
+  { value: 'system', label: 'System', detail: 'Matches your device' },
 ];
 
 export function AppearanceControls() {
@@ -15,7 +15,7 @@ export function AppearanceControls() {
   const { preference, setPreference, error } = useAppearancePreference();
   const haptic = useHaptics();
   return <View style={{ marginBottom: 24 }}>
-    <Text style={{ fontFamily: fonts.bodyHeavy, fontSize: 11, letterSpacing: 1.4, color: colors.textSecondary, marginBottom: 12 }}>MAKE IT YOURS</Text>
+    <Text style={{ fontFamily: fonts.bodyHeavy, fontSize: 11, letterSpacing: 1.4, color: colors.textSecondary, marginBottom: 12 }}>APPEARANCE</Text>
     <View style={{ flexDirection: 'row', gap: 9 }}>
       {options.map(({ value, label, detail }) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{ checked: preference === value }} aria-checked={preference === value} accessibilityLabel={`${label} appearance`} onPress={() => { haptic(); setPreference(value); }} style={({ pressed }) => ({ flex: 1, borderRadius: 20, padding: 10, borderWidth: 1.5, borderColor: preference === value ? colors.primaryDeep : colors.border, backgroundColor: preference === value ? colors.surfaceSelected : colors.surface, transform: [{ scale: pressed ? 0.97 : 1 }] })}>
         <View aria-hidden style={{ height: 48, borderRadius: 11, padding: 7, backgroundColor: value === 'dark' ? '#0A1922' : value === 'light' ? '#EDF3EF' : isDark ? '#193841' : '#DCECF0', overflow: 'hidden', marginBottom: 9 }}>

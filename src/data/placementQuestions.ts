@@ -24,15 +24,16 @@ import { apChemQuestions } from './questions/apChem';
 import { apPsychQuestions } from './questions/apPsych';
 import { apEngLangQuestions } from './questions/apEngLang';
 
+/** Plain on purpose: say what the check is and what it decides. */
 const quizIntros: Record<string, string> = {
-  'ap-biology': `Let's see how much AP Biology already lives in your DNA. Answer honestly — this just finds your best starting point.`,
-  'ap-calc-ab': `Time to find your limit! A few AP Calculus questions to place you at the right level.`,
-  'ap-world': `Let's map your AP World History knowledge across time and place. No pressure — just finding where to start.`,
-  'ap-us-history': `A quick tour through American history to place your AP U.S. History journey.`,
-  'ap-csa': `Let's trace some code together. A few AP CS A questions to find your starting level.`,
-  'ap-chem': `Let's find the right formula for you. A short AP Chemistry check to place your level.`,
-  'ap-psych': `Let's explore what you already know about the mind. A quick AP Psychology placement check.`,
-  'ap-eng-lang': `Let's read your rhetorical instincts. A short AP English Language placement check.`,
+  'ap-biology': 'A few questions from across AP Biology. Your answers decide where on the map you start.',
+  'ap-calc-ab': 'A few questions from across AP Calculus AB. Your answers decide where on the map you start.',
+  'ap-world': 'A few questions from across AP World History. Your answers decide where on the map you start.',
+  'ap-us-history': 'A few questions from across AP U.S. History. Your answers decide where on the map you start.',
+  'ap-csa': 'A few questions from across AP Computer Science A. Your answers decide where on the map you start.',
+  'ap-chem': 'A few questions from across AP Chemistry. Your answers decide where on the map you start.',
+  'ap-psych': 'A few questions from across AP Psychology. Your answers decide where on the map you start.',
+  'ap-eng-lang': 'A few questions from across AP English Language. Your answers decide where on the map you start.',
 };
 
 const questionsByCourse: Record<string, PlacementQuestion[]> = {

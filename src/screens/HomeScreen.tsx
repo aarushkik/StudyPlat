@@ -280,7 +280,7 @@ export function HomeScreen() {
                 <View style={{ height: hudHeight }} />
                 <NextQuestCard
                   node={currentNode}
-                  course={getCourse(courseId)?.name ?? 'Your study adventure'}
+                  course={getCourse(courseId)?.name ?? 'Your course'}
                   todayCount={quest.todayCount}
                   dailyGoal={quest.dailyGoal}
                   onContinue={() => currentNode ? setSelected(currentNode) : setTab('practice')}

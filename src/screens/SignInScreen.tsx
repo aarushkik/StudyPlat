@@ -81,8 +81,8 @@ export function SignInScreen() {
                 <View style={styles.brand}><Wordmark size={30} variant="light" /><View style={styles.edition}><Text style={styles.editionText}>THE AP ADVENTURE</Text></View></View>
                 <View style={styles.welcomeBody}>
                   <StudyCamp size={Math.min(width - 40, height < 720 ? 220 : 270)} />
-                  <Text accessibilityRole="header" style={styles.headline}>Small steps.{'\n'}Big discoveries.</Text>
-                  <Text style={styles.tagline}>Turn your AP practice into an adventure.{'\n'}Stu’s coming with you.</Text>
+                  <Text accessibilityRole="header" style={styles.headline}>AP practice,{'\n'}one stop at a time.</Text>
+                  <Text style={styles.tagline}>Five-minute stops on a map of your course.{'\n'}Sign in to start yours.</Text>
                   <View style={styles.features}>
                     <Feature icon="book" label="8 AP courses" />
                     <View style={styles.featureDot} />

@@ -24,11 +24,14 @@ export function IntroScreen() {
   return (
     <ScreenContainer>
       <StatusBar style={appTheme.isDark ? "light" : "dark"} />
-      <TopBackButton onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('SignIn')} />
+      {/* Intro is the first screen after sign-in, so usually there is
+          nowhere to go back to — and an arrow that does nothing is worse
+          than no arrow. */}
+      {navigation.canGoBack() ? <TopBackButton onPress={() => navigation.goBack()} /> : null}
 
       <View style={styles.center}>
         <SpeechBubble
-          text="Hi, I’m Stu! Let’s build your AP quest — just a few quick questions."
+          text="Hi, I’m Stu. Answer five quick questions and I’ll draw your map."
           tail="bottom"
           style={styles.bubble}
         />
